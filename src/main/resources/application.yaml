@@ -2,6 +2,30 @@ spring:
   application:
     name: gathering
 
+  # 데이터베이스 설정
+  datasource:
+    url: jdbc:mysql://localhost:3306/gathering_db
+    username: gathering_user
+    password: gathering1234
+    # 드라이버 클래스 지정 (기본적으로 자동 설정되지만, 여러개인 경우 명시 필요)
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      data-source-properties:
+        useSSL: false # 개발 환경에서만 비활성화 처리
+        serverTimezone: UTC
+        allowPublicKeyRetrieval: true
+
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: create # 개발할 때만 create, 운영시에는 validate 혹은 none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+
+  # Thymeleaf 설정
   thymeleaf:
     enabled: true # Thymeleaf 기능 켜기 (기본값 true)
     prefix: classpath:/templates/ # 템플릿 파일 위치
@@ -9,3 +33,9 @@ spring:
     mode: HTML # 템플릿 모드 (HTML, XML 등)
     cache: false # 개발시 캐시 비활성화
     check-template-location: true # 템플릿 위치 검증 여부
+
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      enabled: true
