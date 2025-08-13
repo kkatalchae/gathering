@@ -45,7 +45,9 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // 개발 도구 (자동 리로드)
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
+    // pk - tsid
+    implementation group: 'com.github.f4b6a3', name: 'tsid-creator', version: '5.2.6'
+    implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.10.3'
 }
 
 tasks.named('test') {
