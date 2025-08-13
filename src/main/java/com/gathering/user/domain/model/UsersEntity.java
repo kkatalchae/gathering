@@ -39,10 +39,10 @@ public class UsersEntity {
 	@Column(nullable = false, length = 320)
 	private String email;
 
-	@Column(nullable = true, length = 255)
+	@Column
 	private String nickname;
 
-	@Column(name = "profile_image_url", nullable = true)
+	@Column(name = "profile_image_url")
 	private String profileImageUrl;
 
 	@Builder.Default
