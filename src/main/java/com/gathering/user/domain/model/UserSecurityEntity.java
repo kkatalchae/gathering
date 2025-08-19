@@ -48,4 +48,12 @@ public class UserSecurityEntity {
 		foreignKey = @ForeignKey(name = "fk_user_security_user_tsid")
 	)
 	private UsersEntity usersEntity;
+
+	public static UserSecurityEntity of(Long userTsid, String passwordHash) {
+		return UserSecurityEntity.builder()
+			.userTsid(userTsid)
+			.passwordHash(passwordHash)
+			.failedLoginCount(0)
+			.build();
+	}
 }

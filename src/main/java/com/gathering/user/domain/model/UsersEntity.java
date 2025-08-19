@@ -3,10 +3,12 @@ package com.gathering.user.domain.model;
 import java.time.Instant;
 
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import io.hypersistence.utils.hibernate.id.Tsid;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
@@ -23,10 +25,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 @Table(
 	name = "users",
 	uniqueConstraints = {
-		@UniqueConstraint(name = "uk_user_email", columnNames = "email")
+		@UniqueConstraint(name = "uk_user_email", columnNames = "email"),
+		@UniqueConstraint(name = "uk_user_phone_number", columnNames = "phone_number")
 	}
 )
 public class UsersEntity {
@@ -41,6 +45,13 @@ public class UsersEntity {
 
 	@Column
 	private String nickname;
+
+	@Column(nullable = false)
+	private String name;
+
+	// TODO 추후 문자를 통해 검증
+	@Column(nullable = false)
+	private String phoneNumber;
 
 	@Column(name = "profile_image_url")
 	private String profileImageUrl;
