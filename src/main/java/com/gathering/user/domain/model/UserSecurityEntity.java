@@ -5,9 +5,9 @@ import java.time.Instant;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -27,14 +27,10 @@ import lombok.NoArgsConstructor;
 public class UserSecurityEntity {
 
 	@Id
+	@Column(nullable = false, columnDefinition = "BIGINT UNSIGNED")
 	private Long userTsid;
 
-	@MapsId
-	@OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_tsid", referencedColumnName = "tsid")
-	private UsersEntity usersEntity;
-
-	@Column(name = "password_hash", nullable = false, length = 255)
+	@Column(name = "password_hash", nullable = false)
 	private String passwordHash;
 
 	@Column(name = "failed_login_count", nullable = false)
@@ -45,4 +41,11 @@ public class UserSecurityEntity {
 
 	@Column(name = "password_changed_at")
 	private Instant passwordChangedAt;
+
+	@OneToOne(fetch = FetchType.LAZY)
+	@JoinColumn(
+		name = "user_tsid",
+		foreignKey = @ForeignKey(name = "fk_user_security_user_tsid")
+	)
+	private UsersEntity usersEntity;
 }
