@@ -39,3 +39,8 @@ spring:
       enabled: true
     restart:
       enabled: true
+
+crypto:
+  aes:
+    key: gatheringkey1234
+

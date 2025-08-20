@@ -697,9 +697,12 @@
             signupBtn.disabled = true;
             signupBtn.textContent = '회원가입 중...';
 
-            // 비밀번호 암호화 (AES)
-            const AES_KEY = 'gathering-secret-key'; // 실제 서비스에서는 안전하게 관리
-            const encryptedPassword = CryptoJS.AES.encrypt(passwordInput.value, AES_KEY).toString();
+            // 비밀번호 암호화 (AES-ECB)
+            const AES_KEY = CryptoJS.enc.Utf8.parse('gatheringkey1234'); // 16바이트 키
+            const encryptedPassword = CryptoJS.AES.encrypt(passwordInput.value, AES_KEY, {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.Pkcs7
+            }).toString();
 
             // 회원가입 API 호출
             const requestBody = {
