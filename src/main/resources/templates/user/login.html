@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - Gathering</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            min-height: 100vh;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0984e3;
+            margin-bottom: 10px;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .login-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #0984e3;
+            background: white;
+        }
+
+        .form-input.error {
+            border-color: #e74c3c;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.8rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #0984e3;
+        }
+
+        .form-checkbox label {
+            font-size: 0.9rem;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: #0984e3;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .login-btn:hover {
+            background: #0773c5;
+            transform: translateY(-2px);
+        }
+
+        .login-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e9ecef;
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 15px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .social-login {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .social-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            color: #333;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .social-btn:hover {
+            border-color: #0984e3;
+            transform: translateY(-2px);
+        }
+
+        .social-btn.kakao {
+            background: #FEE500;
+            border-color: #FEE500;
+            color: #000;
+        }
+
+        .social-btn.google {
+            background: white;
+            border-color: #e9ecef;
+        }
+
+        .signup-link {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .signup-link a {
+            color: #0984e3;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            transform: translateX(-5px);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 20px;
+                padding: 30px 20px;
+            }
+
+            .social-login {
+                flex-direction: column;
+            }
+
+            .back-link {
+                position: relative;
+                top: auto;
+                left: auto;
+                margin-bottom: 20px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+<a href="/" class="back-link">
+    ← 홈으로 돌아가기
+</a>
+
+<div class="login-container">
+    <div class="login-header">
+        <div class="logo">🎉 Gathering</div>
+        <h1 class="login-title">로그인</h1>
+        <p class="login-subtitle">계정에 로그인하여 모임에 참여하세요</p>
+    </div>
+
+    <form id="loginForm" method="post">
+        <div class="form-group">
+            <label for="email" class="form-label">이메일</label>
+            <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="form-input"
+                    placeholder="your@email.com"
+                    required
+            >
+            <div class="error-message" id="emailError">올바른 이메일 형식을 입력해주세요.</div>
+        </div>
+
+        <div class="form-group">
+            <label for="password" class="form-label">비밀번호</label>
+            <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    class="form-input"
+                    placeholder="비밀번호를 입력하세요"
+                    required
+            >
+            <div class="error-message" id="passwordError">비밀번호를 입력해주세요.</div>
+        </div>
+
+        <div class="form-checkbox">
+            <input type="checkbox" id="remember" name="remember">
+            <label for="remember">로그인 상태 유지</label>
+        </div>
+
+        <button type="submit" class="login-btn" id="loginBtn">
+            로그인
+        </button>
+    </form>
+
+    <div class="divider">
+        <span>또는</span>
+    </div>
+
+    <div class="social-login">
+        <a href="#" class="social-btn kakao">
+            <span>💬</span>
+            카카오
+        </a>
+        <a href="#" class="social-btn google">
+            <span>🔍</span>
+            구글
+        </a>
+    </div>
+
+    <div class="signup-link">
+        계정이 없으신가요? <a href="/signup">회원가입</a>
+    </div>
+
+
+</div>
+
+<script>
+    const loginForm = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+
+    // 이메일 유효성 검사
+    function validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // 폼 유효성 검사
+    function validateForm() {
+        let isValid = true;
+
+        // 이메일 검사
+        if (!emailInput.value.trim()) {
+            showError(emailInput, 'emailError', '이메일을 입력해주세요.');
+            isValid = false;
+        } else if (!validateEmail(emailInput.value)) {
+            showError(emailInput, 'emailError', '올바른 이메일 형식을 입력해주세요.');
+            isValid = false;
+        } else {
+            hideError(emailInput, 'emailError');
+        }
+
+        // 비밀번호 검사
+        if (!passwordInput.value.trim()) {
+            showError(passwordInput, 'passwordError', '비밀번호를 입력해주세요.');
+            isValid = false;
+        } else if (passwordInput.value.length < 6) {
+            showError(passwordInput, 'passwordError', '비밀번호는 6자 이상이어야 합니다.');
+            isValid = false;
+        } else {
+            hideError(passwordInput, 'passwordError');
+        }
+
+        return isValid;
+    }
+
+    // 에러 표시
+    function showError(input, errorId, message) {
+        input.classList.add('error');
+        const errorElement = document.getElementById(errorId);
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+
+    // 에러 숨기기
+    function hideError(input, errorId) {
+        input.classList.remove('error');
+        document.getElementById(errorId).style.display = 'none';
+    }
+
+    // 입력 필드 이벤트
+    emailInput.addEventListener('input', () => {
+        if (emailInput.value.trim()) {
+            hideError(emailInput, 'emailError');
+        }
+    });
+
+    passwordInput.addEventListener('input', () => {
+        if (passwordInput.value.trim()) {
+            hideError(passwordInput, 'passwordError');
+        }
+    });
+
+    // 폼 제출
+    loginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (validateForm()) {
+            // 로딩 상태
+            loginBtn.disabled = true;
+            loginBtn.textContent = '로그인 중...';
+
+            // 실제 로그인 요청
+            setTimeout(() => {
+                // 여기서 실제 로그인 API 호출
+                console.log('로그인 시도:', {
+                    email: emailInput.value,
+                    password: passwordInput.value,
+                    remember: document.getElementById('remember').checked
+                });
+
+                // 성공 시 홈페이지로 이동
+                window.location.href = '/';
+            }, 1000);
+        }
+    });
+
+    // 소셜 로그인 버튼 이벤트
+    document.querySelectorAll('.social-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const provider = this.textContent.trim();
+            console.log(`${provider} 로그인 시도`);
+            // 여기서 소셜 로그인 처리
+        });
+    });
+</script>
+</body>
+</html>
