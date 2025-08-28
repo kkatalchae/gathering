@@ -1,6 +1,5 @@
 package com.gathering.user.presentation.dto;
 
-import com.gathering.user.domain.model.UserSecurityEntity;
 import com.gathering.user.domain.model.UsersEntity;
 
 import jakarta.annotation.Nullable;
@@ -35,11 +34,4 @@ public class UserJoinRequest {
 			.phoneNumber(request.phoneNumber)
 			.build();
 	}
-
-	public static UserSecurityEntity toUserSecurityEntity(UserJoinRequest request) {
-		return UserSecurityEntity.builder()
-			.passwordHash(request.password)
-			.build();
-	}
-
 }
