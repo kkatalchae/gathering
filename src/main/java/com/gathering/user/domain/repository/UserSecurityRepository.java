@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import com.gathering.user.domain.model.UserSecurityEntity;
 
 @Repository
-public interface UserSecurityRespository extends JpaRepository<UserSecurityEntity, Long> {
+public interface UserSecurityRepository extends JpaRepository<UserSecurityEntity, Long> {
 
 }

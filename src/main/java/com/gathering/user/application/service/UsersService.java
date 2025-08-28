@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.gathering.user.domain.model.UserSecurityEntity;
 import com.gathering.user.domain.model.UsersEntity;
-import com.gathering.user.domain.repository.UserSecurityRespository;
+import com.gathering.user.domain.repository.UserSecurityRepository;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 import com.gathering.util.CryptoUtil;
@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class UsersService {
 
 	private final UsersRepository usersRepository;
-	private final UserSecurityRespository userSecurityRespository;
+	private final UserSecurityRepository userSecurityRepository;
 	private final PasswordEncoder passwordEncoder;
 
 	@Value("${crypto.aes.key}")
@@ -35,6 +35,6 @@ public class UsersService {
 		UsersEntity usersEntity = usersRepository.save(UserJoinRequest.toUsersEntity(request));
 		UserSecurityEntity userSecurityEntity = UserSecurityEntity.of(usersEntity.getTsid(),
 			getPasswordHash(request.getPassword()));
-		userSecurityRespository.save(userSecurityEntity);
+		userSecurityRepository.save(userSecurityEntity);
 	}
 }
