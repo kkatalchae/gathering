@@ -37,8 +37,8 @@ public class UsersEntity {
 
 	@Id
 	@Tsid
-	@Column(nullable = false, columnDefinition = "BIGINT UNSIGNED")
-	private Long tsid;
+	@Column(nullable = false, length = 13, columnDefinition = "CHAR(13)")
+	private String tsid;
 
 	@Column(nullable = false, length = 320)
 	private String email;

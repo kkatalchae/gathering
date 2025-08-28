@@ -27,8 +27,8 @@ import lombok.NoArgsConstructor;
 public class UserSecurityEntity {
 
 	@Id
-	@Column(nullable = false, columnDefinition = "BIGINT UNSIGNED")
-	private Long userTsid;
+	@Column(nullable = false, length = 13, columnDefinition = "CHAR(13)")
+	private String userTsid;
 
 	@Column(name = "password_hash", nullable = false)
 	private String passwordHash;
@@ -49,7 +49,7 @@ public class UserSecurityEntity {
 	)
 	private UsersEntity usersEntity;
 
-	public static UserSecurityEntity of(Long userTsid, String passwordHash) {
+	public static UserSecurityEntity of(String userTsid, String passwordHash) {
 		return UserSecurityEntity.builder()
 			.userTsid(userTsid)
 			.passwordHash(passwordHash)
