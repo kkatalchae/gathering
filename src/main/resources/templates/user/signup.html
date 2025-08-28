@@ -335,26 +335,26 @@
     <form id="signupForm" method="post">
         <div class="form-row">
             <div class="form-group">
-                <label for="firstName" class="form-label">이름</label>
+                <label for="firstName" class="form-label">이름<span style="color:red">*</span></label>
                 <input
                         type="text"
                         id="firstName"
                         name="firstName"
                         class="form-input"
-                        placeholder="홍"
+                        placeholder="길동"
                         required
                 >
                 <div class="error-message" id="firstNameError">이름을 입력해주세요.</div>
             </div>
 
             <div class="form-group">
-                <label for="lastName" class="form-label">성</label>
+                <label for="lastName" class="form-label">성<span style="color:red">*</span></label>
                 <input
                         type="text"
                         id="lastName"
                         name="lastName"
                         class="form-input"
-                        placeholder="길동"
+                        placeholder="홍"
                         required
                 >
                 <div class="error-message" id="lastNameError">성을 입력해주세요.</div>
@@ -362,7 +362,7 @@
         </div>
 
         <div class="form-group">
-            <label for="email" class="form-label">이메일</label>
+            <label for="email" class="form-label">이메일<span style="color:red">*</span></label>
             <input
                     type="email"
                     id="email"
@@ -376,7 +376,7 @@
         </div>
 
         <div class="form-group">
-            <label for="password" class="form-label">비밀번호</label>
+            <label for="password" class="form-label">비밀번호<span style="color:red">*</span></label>
             <input
                     type="password"
                     id="password"
@@ -395,7 +395,7 @@
         </div>
 
         <div class="form-group">
-            <label for="confirmPassword" class="form-label">비밀번호 확인</label>
+            <label for="confirmPassword" class="form-label">비밀번호 확인<span style="color:red">*</span></label>
             <input
                     type="password"
                     id="confirmPassword"
@@ -409,7 +409,7 @@
         </div>
 
         <div class="form-group">
-            <label for="phone" class="form-label">전화번호</label>
+            <label for="phone" class="form-label">전화번호<span style="color:red">*</span></label>
             <input
                     type="tel"
                     id="phone"
@@ -429,7 +429,6 @@
                     name="nickname"
                     class="form-input"
                     placeholder="닉네임을 입력하세요"
-                    required
             >
             <div class="error-message" id="nicknameError">닉네임을 입력해주세요.</div>
         </div>
@@ -594,14 +593,6 @@
             hideError(phoneInput, 'phoneError');
         }
 
-        // 닉네임 검사
-        if (!nicknameInput.value.trim()) {
-            showError(nicknameInput, 'nicknameError', '닉네임을 입력해주세요.');
-            isValid = false;
-        } else {
-            hideError(nicknameInput, 'nicknameError');
-        }
-
         return isValid;
     }
 
@@ -679,9 +670,7 @@
     });
 
     nicknameInput.addEventListener('input', () => {
-        if (nicknameInput.value.trim()) {
-            hideError(nicknameInput, 'nicknameError');
-        }
+        hideError(nicknameInput, 'nicknameError');
     });
 
     // 전화번호 입력 시 하이픈 자동 제거
@@ -709,7 +698,7 @@
                 email: emailInput.value,
                 password: encryptedPassword,
                 nickname: nicknameInput.value,
-                name: firstNameInput.value + lastNameInput.value,
+                name: lastNameInput.value + firstNameInput.value,
                 phoneNumber: phoneInput.value
             };
 
