@@ -16,22 +16,30 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class UsersService {
+public class UserJoinService {
 
 	private final UsersRepository usersRepository;
 	private final UserSecurityRepository userSecurityRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final UserJoinValidateService userJoinValidateService;
 
 	@Value("${crypto.aes.key}")
 	private String aesKey;
 
 	private String getPasswordHash(String encryptedPassword) {
-		String decryptedPassword = CryptoUtil.decryptAES(encryptedPassword, aesKey);
+		String decryptedPassword = null;
+		try {
+			decryptedPassword = CryptoUtil.decryptAES(encryptedPassword, aesKey);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 		return passwordEncoder.encode(decryptedPassword);
 	}
 
 	@Transactional
 	public void join(UserJoinRequest request) {
+		userJoinValidateService.validateUser(request);
+
 		UsersEntity usersEntity = usersRepository.save(UserJoinRequest.toUsersEntity(request));
 		UserSecurityEntity userSecurityEntity = UserSecurityEntity.of(usersEntity.getTsid(),
 			getPasswordHash(request.getPassword()));
