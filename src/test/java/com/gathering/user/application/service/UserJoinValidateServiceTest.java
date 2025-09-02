@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -62,19 +63,19 @@ class UserJoinValidateServiceTest {
 				expectedErrorMessage);
 		}
 
-		static Stream<org.junit.jupiter.params.provider.Arguments> invalidEmailProvider() {
+		static Stream<Arguments> invalidEmailProvider() {
 			return Stream.of(
 				// null
-				org.junit.jupiter.params.provider.Arguments.of(null,
+				Arguments.of(null,
 					UserJoinValidateService.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
 				// @ 미포함
-				org.junit.jupiter.params.provider.Arguments.of("test",
+				Arguments.of("test",
 					UserJoinValidateService.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
 				// . 미포함
-				org.junit.jupiter.params.provider.Arguments.of("test@",
+				Arguments.of("test@",
 					UserJoinValidateService.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
 				// . 뒤에 없음
-				org.junit.jupiter.params.provider.Arguments.of("test@test.",
+				Arguments.of("test@test.",
 					UserJoinValidateService.ERROR_MESSAGE_EMAIL_INVALID_FORMAT)
 			);
 		}
@@ -116,16 +117,16 @@ class UserJoinValidateServiceTest {
 				expectedErrorMessage);
 		}
 
-		static Stream<org.junit.jupiter.params.provider.Arguments> invalidPhoneNumberProvider() {
+		static Stream<Arguments> invalidPhoneNumberProvider() {
 			return Stream.of(
 				// null
-				org.junit.jupiter.params.provider.Arguments.of(null,
+				Arguments.of(null,
 					UserJoinValidateService.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT),
 				// 숫자가 아닌 문자
-				org.junit.jupiter.params.provider.Arguments.of("abc",
+				Arguments.of("abc",
 					UserJoinValidateService.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT),
 				// 10-11 자리가 아님
-				org.junit.jupiter.params.provider.Arguments.of("010",
+				Arguments.of("010",
 					UserJoinValidateService.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT)
 			);
 		}
@@ -170,19 +171,19 @@ class UserJoinValidateServiceTest {
 				expectedErrorMessage);
 		}
 
-		static Stream<org.junit.jupiter.params.provider.Arguments> invalidPasswordProvider() {
+		static Stream<Arguments> invalidPasswordProvider() {
 			return Stream.of(
 				// null
-				org.junit.jupiter.params.provider.Arguments.of(null,
+				Arguments.of(null,
 					UserJoinValidateService.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
 				// 8자 미만
-				org.junit.jupiter.params.provider.Arguments.of("Pass1!",
+				Arguments.of("Pass1!",
 					UserJoinValidateService.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
 				// 특수문자 없음
-				org.junit.jupiter.params.provider.Arguments.of("Password1",
+				Arguments.of("Password1",
 					UserJoinValidateService.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
 				// 숫자 없음
-				org.junit.jupiter.params.provider.Arguments.of("Password!",
+				Arguments.of("Password!",
 					UserJoinValidateService.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT)
 			);
 		}
