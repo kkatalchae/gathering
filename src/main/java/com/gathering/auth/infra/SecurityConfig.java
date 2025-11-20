@@ -18,7 +18,11 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-	private static final String[] PERMIT_ALL_URLS = {"/login", "/signup", "/", "/users/join", "/error", "/favicon.ico"};
+	private static final String[] PERMIT_ALL_URLS = {
+		"/login", "/signup", "/", "/users/join", "/error", "/favicon.ico",
+		// API 문서
+		"/docs/**", "/redoc.html"
+	};
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

@@ -2,6 +2,8 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.4'
     id 'io.spring.dependency-management' version '1.1.7'
+    id "org.asciidoctor.jvm.convert" version "3.3.2"
+    id 'com.epages.restdocs-api-spec' version '0.19.2'
 }
 
 group = 'com'
@@ -17,10 +19,15 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
+    asciidoctorExt
 }
 
 repositories {
     mavenCentral()
+}
+
+ext {
+    snippetsDir = file("build/generated-snippets")
 }
 
 dependencies {
@@ -51,8 +58,54 @@ dependencies {
     implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.10.3'
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // spring rest docs
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+    asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'
+
+    // REST Docs → OpenAPI 스펙 자동 생성
+    testImplementation 'com.epages:restdocs-api-spec-mockmvc:0.19.2'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    outputs.dir snippetsDir
 }
+
+tasks.named("asciidoctor") {
+    configurations("asciidoctorExt")
+    inputs.dir(snippetsDir)
+    dependsOn("test")
+}
+
+tasks.register("copyDocs", Copy) {
+    dependsOn(tasks.asciidoctor)
+    from(tasks.asciidoctor.outputDir)
+    into(layout.buildDirectory.dir("generated-docs"))
+}
+
+tasks.named("build") {
+    dependsOn("copyDocs")
+}
+
+// OpenAPI 스펙 자동 생성 설정
+openapi3 {
+    title = 'Gathering API'
+    description = 'Gathering 서비스 REST API 문서 (REST Docs 기반)'
+    version = '1.0.0'
+    format = 'yaml'
+    outputDirectory = 'build/api-spec'
+    outputFileNamePrefix = 'openapi'
+}
+
+// OpenAPI 스펙을 static 폴더로 복사
+tasks.register('copyOpenApiSpec', Copy) {
+    dependsOn 'openapi3'
+    from 'build/api-spec'
+    into 'src/main/resources/static/docs'
+}
+
+build {
+    dependsOn copyOpenApiSpec
+}
+

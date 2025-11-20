@@ -1,0 +1,53 @@
+openapi: 3.0.1
+info:
+  title: Gathering API
+  description: Gathering 서비스 REST API 문서 (REST Docs 기반)
+  version: 1.0.0
+servers:
+- url: http://localhost
+tags: []
+paths:
+  /users/join:
+    post:
+      tags:
+      - users
+      operationId: users-join
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/users-join-228386251"
+            examples:
+              users-join:
+                value: "{\"email\":\"test@example.com\",\"password\":\"password1234!\"\
+                  ,\"nickname\":\"테스터\",\"name\":\"홍길동\",\"phoneNumber\":\"01012345678\"\
+                  }"
+      responses:
+        "204":
+          description: "204"
+components:
+  schemas:
+    users-join-228386251:
+      required:
+      - email
+      - name
+      - password
+      - phoneNumber
+      type: object
+      properties:
+        password:
+          type: string
+          description: 비밀번호
+        phoneNumber:
+          type: string
+          description: "전화번호 (숫자만 입력, 예: 01012345678)"
+        name:
+          type: string
+          description: 사용자 이름
+        nickname:
+          type: string
+          description: 닉네임 (선택 사항)
+          nullable: true
+        email:
+          type: string
+          description: 이메일 주소 (이메일 형식)
