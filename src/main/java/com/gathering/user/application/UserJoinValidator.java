@@ -1,4 +1,4 @@
-package com.gathering.user.application.service;
+package com.gathering.user.application;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class UserJoinValidateService {
+public class UserJoinValidator {
 
 	private final UsersRepository usersRepository;
 

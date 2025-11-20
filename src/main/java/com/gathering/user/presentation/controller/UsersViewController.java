@@ -1,4 +1,4 @@
-package com.gathering.user.presentation.controller.view;
+package com.gathering.user.presentation.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

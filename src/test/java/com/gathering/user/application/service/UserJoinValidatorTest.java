@@ -18,26 +18,27 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.gathering.user.application.UserJoinValidator;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 import com.gathering.util.CryptoUtil;
 
 @ExtendWith(MockitoExtension.class)
-class UserJoinValidateServiceTest {
+class UserJoinValidatorTest {
 
 	private final String dummyAesKey = "1234567890123456"; // 16자 키
 
 	@InjectMocks
-	private UserJoinValidateService userJoinValidateService;
+	private UserJoinValidator userJoinValidator;
 
 	@Mock
 	private UsersRepository usersRepository;
 
 	@BeforeEach
 	void setUp() throws Exception {
-		Field aesKeyField = UserJoinValidateService.class.getDeclaredField("aesKey");
+		Field aesKeyField = UserJoinValidator.class.getDeclaredField("aesKey");
 		aesKeyField.setAccessible(true);
-		aesKeyField.set(userJoinValidateService, dummyAesKey);
+		aesKeyField.set(userJoinValidator, dummyAesKey);
 	}
 
 	@Nested
@@ -59,7 +60,7 @@ class UserJoinValidateServiceTest {
 				.build();
 
 			// when & then
-			assertThrows(IllegalArgumentException.class, () -> userJoinValidateService.validateUser(request),
+			assertThrows(IllegalArgumentException.class, () -> userJoinValidator.validateUser(request),
 				expectedErrorMessage);
 		}
 
@@ -67,16 +68,16 @@ class UserJoinValidateServiceTest {
 			return Stream.of(
 				// null
 				Arguments.of(null,
-					UserJoinValidateService.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
+					UserJoinValidator.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
 				// @ 미포함
 				Arguments.of("test",
-					UserJoinValidateService.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
+					UserJoinValidator.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
 				// . 미포함
 				Arguments.of("test@",
-					UserJoinValidateService.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
+					UserJoinValidator.ERROR_MESSAGE_EMAIL_INVALID_FORMAT),
 				// . 뒤에 없음
 				Arguments.of("test@test.",
-					UserJoinValidateService.ERROR_MESSAGE_EMAIL_INVALID_FORMAT)
+					UserJoinValidator.ERROR_MESSAGE_EMAIL_INVALID_FORMAT)
 			);
 		}
 
@@ -97,8 +98,8 @@ class UserJoinValidateServiceTest {
 			when(usersRepository.existsByEmail(duplicateEmail)).thenReturn(true);
 
 			// then
-			assertThrows(IllegalArgumentException.class, () -> userJoinValidateService.validateUser(request),
-				UserJoinValidateService.ERROR_MESSAGE_EMAIL_DUPLICATE);
+			assertThrows(IllegalArgumentException.class, () -> userJoinValidator.validateUser(request),
+				UserJoinValidator.ERROR_MESSAGE_EMAIL_DUPLICATE);
 		}
 
 		@ParameterizedTest
@@ -113,7 +114,7 @@ class UserJoinValidateServiceTest {
 				.phoneNumber(phoneNumber)
 				.build();
 
-			assertThrows(IllegalArgumentException.class, () -> userJoinValidateService.validateUser(request),
+			assertThrows(IllegalArgumentException.class, () -> userJoinValidator.validateUser(request),
 				expectedErrorMessage);
 		}
 
@@ -121,13 +122,13 @@ class UserJoinValidateServiceTest {
 			return Stream.of(
 				// null
 				Arguments.of(null,
-					UserJoinValidateService.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT),
+					UserJoinValidator.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT),
 				// 숫자가 아닌 문자
 				Arguments.of("abc",
-					UserJoinValidateService.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT),
+					UserJoinValidator.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT),
 				// 10-11 자리가 아님
 				Arguments.of("010",
-					UserJoinValidateService.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT)
+					UserJoinValidator.ERROR_MESSAGE_PHONE_NUMBER_INVALID_FORMAT)
 			);
 		}
 
@@ -148,8 +149,8 @@ class UserJoinValidateServiceTest {
 			when(usersRepository.existsByPhoneNumber(duplicatePhoneNumber)).thenReturn(true);
 
 			// then
-			assertThrows(IllegalArgumentException.class, () -> userJoinValidateService.validateUser(request),
-				UserJoinValidateService.ERROR_MESSAGE_PHONE_NUMBER_DUPLICATE);
+			assertThrows(IllegalArgumentException.class, () -> userJoinValidator.validateUser(request),
+				UserJoinValidator.ERROR_MESSAGE_PHONE_NUMBER_DUPLICATE);
 		}
 
 		@ParameterizedTest
@@ -167,7 +168,7 @@ class UserJoinValidateServiceTest {
 				.build();
 
 			// when & then
-			assertThrows(IllegalArgumentException.class, () -> userJoinValidateService.validateUser(request),
+			assertThrows(IllegalArgumentException.class, () -> userJoinValidator.validateUser(request),
 				expectedErrorMessage);
 		}
 
@@ -175,16 +176,16 @@ class UserJoinValidateServiceTest {
 			return Stream.of(
 				// null
 				Arguments.of(null,
-					UserJoinValidateService.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
+					UserJoinValidator.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
 				// 8자 미만
 				Arguments.of("Pass1!",
-					UserJoinValidateService.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
+					UserJoinValidator.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
 				// 특수문자 없음
 				Arguments.of("Password1",
-					UserJoinValidateService.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
+					UserJoinValidator.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT),
 				// 숫자 없음
 				Arguments.of("Password!",
-					UserJoinValidateService.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT)
+					UserJoinValidator.ERROR_MESSAGE_PASSWORD_INVALID_FORMAT)
 			);
 		}
 
@@ -210,7 +211,7 @@ class UserJoinValidateServiceTest {
 				.build();
 
 			// when & then
-			assertDoesNotThrow(() -> userJoinValidateService.validateUser(request));
+			assertDoesNotThrow(() -> userJoinValidator.validateUser(request));
 
 		}
 	}

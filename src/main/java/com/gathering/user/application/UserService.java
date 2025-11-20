@@ -1,4 +1,4 @@
-package com.gathering.user.application.service;
+package com.gathering.user.application;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,12 +16,12 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class UserJoinService {
+public class UserService {
 
 	private final UsersRepository usersRepository;
 	private final UserSecurityRepository userSecurityRepository;
 	private final PasswordEncoder passwordEncoder;
-	private final UserJoinValidateService userJoinValidateService;
+	private final UserJoinValidator userJoinValidator;
 
 	@Value("${crypto.aes.key}")
 	private String aesKey;
@@ -38,7 +38,7 @@ public class UserJoinService {
 
 	@Transactional
 	public void join(UserJoinRequest request) {
-		userJoinValidateService.validateUser(request);
+		userJoinValidator.validateUser(request);
 
 		UsersEntity usersEntity = usersRepository.save(UserJoinRequest.toUsersEntity(request));
 		UserSecurityEntity userSecurityEntity = UserSecurityEntity.of(usersEntity.getTsid(),
