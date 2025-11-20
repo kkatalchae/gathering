@@ -1,4 +1,4 @@
-package com.gathering.user.application.service;
+package com.gathering.user;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
