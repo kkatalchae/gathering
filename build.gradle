@@ -65,9 +65,6 @@ dependencies {
 
     // REST Docs → OpenAPI 스펙 자동 생성
     testImplementation 'com.epages:restdocs-api-spec-mockmvc:0.19.2'
-
-    // H2 (테스트용)
-    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
@@ -108,5 +105,7 @@ tasks.register('copyOpenApiSpec', Copy) {
     into 'src/main/resources/static/docs'
 }
 
-build.dependsOn copyOpenApiSpec
+build {
+    dependsOn copyOpenApiSpec
+}
 
