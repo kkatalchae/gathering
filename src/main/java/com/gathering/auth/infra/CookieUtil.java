@@ -1,15 +1,16 @@
 package com.gathering.auth.infra;
 
 import org.springframework.http.ResponseCookie;
-import org.springframework.stereotype.Component;
 
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * 쿠키 생성 및 관리 유틸리티
  */
-@Component
-public class CookieUtil {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class CookieUtil {
 
 	private static final String COOKIE_PATH = "/";
 	private static final String SAME_SITE = "Lax";
@@ -22,7 +23,7 @@ public class CookieUtil {
 	 * @param value 쿠키 값
 	 * @param maxAge 쿠키 만료 시간 (초)
 	 */
-	public void addSecureCookie(HttpServletResponse response, String name, String value, int maxAge) {
+	public static void addSecureCookie(HttpServletResponse response, String name, String value, int maxAge) {
 		ResponseCookie cookie = ResponseCookie.from(name, value)
 			.httpOnly(true)          // JavaScript 접근 방지 (XSS 방어)
 			.secure(true)            // HTTPS만 전송
@@ -40,7 +41,7 @@ public class CookieUtil {
 	 * @param response HttpServletResponse
 	 * @param name 쿠키 이름
 	 */
-	public void deleteCookie(HttpServletResponse response, String name) {
+	public static void deleteCookie(HttpServletResponse response, String name) {
 		addSecureCookie(response, name, "", 0);
 	}
 }

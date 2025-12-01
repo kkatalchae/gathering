@@ -23,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
 	private final AuthService authService;
-	private final CookieUtil cookieUtil;
 
 	@Value("${jwt.access-token-validity-in-seconds}")
 	private long accessTokenValidityInSeconds;
@@ -41,9 +40,9 @@ public class AuthController {
 		AuthTokens tokens = authService.login(request);
 
 		// 2. 쿠키에 토큰 설정
-		cookieUtil.addSecureCookie(response, "accessToken", tokens.getAccessToken(),
+		CookieUtil.addSecureCookie(response, "accessToken", tokens.getAccessToken(),
 			(int)accessTokenValidityInSeconds);
-		cookieUtil.addSecureCookie(response, "refreshToken", tokens.getRefreshToken(),
+		CookieUtil.addSecureCookie(response, "refreshToken", tokens.getRefreshToken(),
 			(int)refreshTokenValidityInSeconds);
 
 		// 3. 성공 응답 (Body 없이 200 OK)
