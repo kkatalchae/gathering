@@ -15,19 +15,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 	private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
-
-	public SecurityConfig(JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-		JwtAccessDeniedHandler jwtAccessDeniedHandler) {
-		this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
-		this.jwtAccessDeniedHandler = jwtAccessDeniedHandler;
-	}
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 	private static final String[] PERMIT_ALL_URLS = {
 		"/login", "/signup", "/", "/users/join", "/error", "/favicon.ico",
@@ -37,30 +36,68 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		configureAuthorization(http);
+		configureSessionManagement(http);
+		configureSecurityFeatures(http);
+		configureExceptionHandling(http);
+		configureJwtFilter(http);
 
-		// 인증 인가
-		http.authorizeHttpRequests(authorize -> authorize.requestMatchers(PERMIT_ALL_URLS).permitAll());
-		http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
+		return http.build();
+	}
 
-		// 세션
-		http.sessionManagement(
-			sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+	/**
+	 * 인증/인가 설정
+	 */
+	private void configureAuthorization(HttpSecurity http) throws Exception {
+		http.authorizeHttpRequests(authorize -> authorize
+			.requestMatchers(PERMIT_ALL_URLS).permitAll()
+			.anyRequest().authenticated()
+		);
+	}
 
-		// CSRF
+	/**
+	 * 세션 관리 설정
+	 * JWT 기반 인증을 사용하므로 STATELESS 정책 적용
+	 */
+	private void configureSessionManagement(HttpSecurity http) throws Exception {
+		http.sessionManagement(sessionManagement ->
+			sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+		);
+	}
+
+	/**
+	 * 보안 기능 설정
+	 * JWT 기반 인증을 사용하므로 기본 인증 방식들을 비활성화
+	 */
+	private void configureSecurityFeatures(HttpSecurity http) throws Exception {
 		http.csrf(AbstractHttpConfigurer::disable);
-
-		// 로그인, 로그아웃
 		http.httpBasic(AbstractHttpConfigurer::disable);
 		http.formLogin(AbstractHttpConfigurer::disable);
 		http.logout(AbstractHttpConfigurer::disable);
+	}
 
-		// 예외 처리 (Spring Security 표준 방식)
+	/**
+	 * 예외 처리 설정
+	 * 인증/인가 실패 시 커스텀 핸들러 사용
+	 */
+	private void configureExceptionHandling(HttpSecurity http) throws Exception {
 		http.exceptionHandling(exceptionHandling -> exceptionHandling
 			.authenticationEntryPoint(jwtAuthenticationEntryPoint)
 			.accessDeniedHandler(jwtAccessDeniedHandler)
 		);
+	}
 
-		return http.build();
+	/**
+	 * JWT 인증 필터 등록
+	 * UsernamePasswordAuthenticationFilter 전에 배치하는 이유:
+	 * 1. Spring Security의 표준 패턴 (공식 문서 권장 방식)
+	 * 2. 커스텀 인증 필터는 관례적으로 UsernamePasswordAuthenticationFilter 전에 배치
+	 * 3. JWT 필터가 먼저 실행되어 토큰을 검증하고 SecurityContext에 인증 정보 설정
+	 * 4. formLogin을 disabled 했으므로 UsernamePasswordAuthenticationFilter는 실제로 동작하지 않음
+	 *    (단지 필터 체인에서의 "위치 참조점"으로 사용)
+	 */
+	private void configureJwtFilter(HttpSecurity http) throws Exception {
+		http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 	}
 
 	@Bean

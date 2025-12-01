@@ -7,6 +7,23 @@ servers:
 - url: http://localhost
 tags: []
 paths:
+  /login:
+    post:
+      tags:
+      - login
+      operationId: auth-login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/login419725344"
+            examples:
+              auth-login:
+                value: "{\"email\":\"test@example.com\",\"password\":\"password1234!\"\
+                  }"
+      responses:
+        "200":
+          description: "200"
   /users/join:
     post:
       tags:
@@ -27,6 +44,18 @@ paths:
           description: "204"
 components:
   schemas:
+    login419725344:
+      required:
+      - email
+      - password
+      type: object
+      properties:
+        password:
+          type: string
+          description: 비밀번호
+        email:
+          type: string
+          description: 이메일 주소
     users-join-228386251:
       required:
       - email
