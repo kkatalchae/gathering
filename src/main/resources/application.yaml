@@ -44,3 +44,8 @@ crypto:
   aes:
     key: gatheringkey1234
 
+jwt:
+  secret: gatheringSecretKeyForJwtTokenGenerationMustBeLongEnoughForHS256Algorithm
+  access-token-validity-in-seconds: 3600 # 1시간
+  refresh-token-validity-in-seconds: 604800 # 7일
+

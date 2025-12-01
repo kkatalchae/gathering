@@ -3,6 +3,7 @@ package com.gathering.auth;
 import static com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.restdocs.cookies.CookieDocumentation.*;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -25,8 +26,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.AuthService;
+import com.gathering.auth.application.dto.AuthTokens;
 import com.gathering.auth.presentation.dto.LoginRequest;
-import com.gathering.auth.presentation.dto.LoginResponse;
 
 /**
  * AuthController Spring REST Docs 테스트
@@ -68,34 +69,34 @@ class AuthControllerTest {
 			.password("password1234!")
 			.build();
 
-		LoginResponse response = LoginResponse.builder()
+		AuthTokens tokens = AuthTokens.builder()
 			.accessToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
 			.refreshToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
-			.tokenType("Bearer")
-			.expiresIn(3600L)
 			.build();
 
-		when(authService.login(any(LoginRequest.class))).thenReturn(response);
+		when(authService.login(any(LoginRequest.class))).thenReturn(tokens);
 
 		// when & then
 		mockMvc.perform(post("/login")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.accessToken").exists())
-			.andExpect(jsonPath("$.refreshToken").exists())
-			.andExpect(jsonPath("$.tokenType").value("Bearer"))
-			.andExpect(jsonPath("$.expiresIn").value(3600))
+			.andExpect(cookie().exists("accessToken"))
+			.andExpect(cookie().exists("refreshToken"))
+			.andExpect(cookie().httpOnly("accessToken", true))
+			.andExpect(cookie().httpOnly("refreshToken", true))
+			.andExpect(cookie().secure("accessToken", true))
+			.andExpect(cookie().secure("refreshToken", true))
+			.andExpect(cookie().maxAge("accessToken", 3600))
+			.andExpect(cookie().maxAge("refreshToken", 604800))
 			.andDo(document("auth-login",
 				requestFields(
 					fieldWithPath("email").description("이메일 주소"),
 					fieldWithPath("password").description("비밀번호")
 				),
-				responseFields(
-					fieldWithPath("accessToken").description("액세스 토큰 (JWT)"),
-					fieldWithPath("refreshToken").description("리프레시 토큰 (JWT)"),
-					fieldWithPath("tokenType").description("토큰 타입 (Bearer)"),
-					fieldWithPath("expiresIn").description("액세스 토큰 만료 시간 (초)")
+				responseCookies(
+					cookieWithName("accessToken").description("액세스 토큰 (JWT, HttpOnly, Secure)"),
+					cookieWithName("refreshToken").description("리프레시 토큰 (JWT, HttpOnly, Secure)")
 				)
 			));
 

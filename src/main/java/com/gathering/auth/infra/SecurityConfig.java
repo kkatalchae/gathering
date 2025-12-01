@@ -20,6 +20,15 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+
+	public SecurityConfig(JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+		JwtAccessDeniedHandler jwtAccessDeniedHandler) {
+		this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+		this.jwtAccessDeniedHandler = jwtAccessDeniedHandler;
+	}
+
 	private static final String[] PERMIT_ALL_URLS = {
 		"/login", "/signup", "/", "/users/join", "/error", "/favicon.ico",
 		// API 문서
@@ -44,6 +53,12 @@ public class SecurityConfig {
 		http.httpBasic(AbstractHttpConfigurer::disable);
 		http.formLogin(AbstractHttpConfigurer::disable);
 		http.logout(AbstractHttpConfigurer::disable);
+
+		// 예외 처리 (Spring Security 표준 방식)
+		http.exceptionHandling(exceptionHandling -> exceptionHandling
+			.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+			.accessDeniedHandler(jwtAccessDeniedHandler)
+		);
 
 		return http.build();
 	}
