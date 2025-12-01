@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -53,5 +55,20 @@ public class SecurityConfig {
 		encoders.put("bcrypt", new BCryptPasswordEncoder());
 
 		return new DelegatingPasswordEncoder(idForEncode, encoders);
+	}
+
+	/**
+	 * AuthenticationManager 빈 등록
+	 * 로그인 처리 시 인증을 담당하는 핵심 컴포넌트
+	 * AuthenticationConfiguration이 자동으로 다음을 수행합니다:
+	 * - UserDetailsService 를 구현한 빈을 찾아서 DaoAuthenticationProvider에 설정
+	 * - PasswordEncoder 빈을 찾아서 DaoAuthenticationProvider에 설정
+	 * - 구성된 DaoAuthenticationProvider를 AuthenticationManager에 등록
+	 * </ul>
+	 */
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+		throws Exception {
+		return authenticationConfiguration.getAuthenticationManager();
 	}
 }
