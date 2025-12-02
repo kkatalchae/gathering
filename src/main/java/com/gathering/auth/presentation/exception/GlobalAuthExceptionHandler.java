@@ -6,6 +6,12 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.gathering.auth.application.exception.ErrorCode;
+import com.gathering.auth.application.exception.ExpiredTokenException;
+import com.gathering.auth.application.exception.InvalidTokenException;
+import com.gathering.auth.application.exception.TokenMismatchException;
+import com.gathering.auth.presentation.dto.ErrorResponse;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -22,8 +28,39 @@ public class GlobalAuthExceptionHandler {
 	 * - BadCredentialsException: 잘못된 비밀번호
 	 */
 	@ExceptionHandler({UsernameNotFoundException.class, BadCredentialsException.class})
-	public ResponseEntity<Void> handleAuthenticationException(Exception e) {
+	public ResponseEntity<ErrorResponse> handleAuthenticationException(Exception e) {
 		log.warn("인증 실패: {}", e.getMessage());
-		return ResponseEntity.status(401).build();
+		return ErrorCode.INVALID_CREDENTIALS.toResponseEntity();
+	}
+
+	/**
+	 * 유효하지 않은 토큰 예외 처리
+	 * - JWT 형식 오류
+	 * - 서명 검증 실패
+	 */
+	@ExceptionHandler(InvalidTokenException.class)
+	public ResponseEntity<ErrorResponse> handleInvalidToken(InvalidTokenException e) {
+		log.warn("유효하지 않은 토큰: {}", e.getMessage());
+		return ErrorCode.INVALID_TOKEN.toResponseEntity();
+	}
+
+	/**
+	 * 만료된 토큰 예외 처리
+	 */
+	@ExceptionHandler(ExpiredTokenException.class)
+	public ResponseEntity<ErrorResponse> handleExpiredToken(ExpiredTokenException e) {
+		log.info("만료된 토큰: {}", e.getMessage());
+		return ErrorCode.EXPIRED_TOKEN.toResponseEntity();
+	}
+
+	/**
+	 * 토큰 불일치 예외 처리
+	 * - Redis에 저장된 토큰과 불일치
+	 * - 토큰 탈취 의심
+	 */
+	@ExceptionHandler(TokenMismatchException.class)
+	public ResponseEntity<ErrorResponse> handleTokenMismatch(TokenMismatchException e) {
+		log.warn("토큰 불일치 (보안 위협 가능성): {}", e.getMessage());
+		return ErrorCode.TOKEN_MISMATCH.toResponseEntity();
 	}
 }

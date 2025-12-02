@@ -1,5 +1,7 @@
 package com.gathering.auth.presentation.dto;
 
+import com.gathering.common.annotation.AesEncrypted;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -21,5 +23,6 @@ public class LoginRequest {
 	private String email;
 
 	@NotBlank(message = "비밀번호는 필수입니다")
+	@AesEncrypted
 	private String password;
 }

@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.application.dto.AuthTokens;
+import com.gathering.auth.application.exception.InvalidTokenException;
 import com.gathering.auth.infra.AuthConstants;
 import com.gathering.auth.infra.CookieUtil;
 import com.gathering.auth.presentation.dto.LoginRequest;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,16 +39,25 @@ public class AuthController {
 	 */
 	@PostMapping("/login")
 	public ResponseEntity<Void> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-		// 1. 인증 및 토큰 발급
 		AuthTokens tokens = authService.login(request);
+		CookieUtil.setAuthTokens(response, tokens, (int)accessTokenValidityInSeconds,
+			(int)refreshTokenValidityInSeconds);
+		return ResponseEntity.ok().build();
+	}
 
-		// 2. 쿠키에 토큰 설정
-		CookieUtil.addSecureCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE, tokens.getAccessToken(),
-			(int)accessTokenValidityInSeconds);
-		CookieUtil.addSecureCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE, tokens.getRefreshToken(),
+	/**
+	 * 토큰 갱신 API
+	 * RefreshToken을 검증하고 새로운 AccessToken과 RefreshToken 발급 (Token Rotation)
+	 */
+	@PostMapping("/refresh")
+	public ResponseEntity<Void> refresh(HttpServletRequest request, HttpServletResponse response) {
+		String refreshToken = CookieUtil.getCookie(request, AuthConstants.REFRESH_TOKEN_COOKIE)
+			.orElseThrow(() -> new InvalidTokenException("RefreshToken이 없습니다"));
+
+		AuthTokens tokens = authService.refresh(refreshToken);
+		CookieUtil.setAuthTokens(response, tokens, (int)accessTokenValidityInSeconds,
 			(int)refreshTokenValidityInSeconds);
 
-		// 3. 성공 응답 (Body 없이 200 OK)
 		return ResponseEntity.ok().build();
 	}
 }

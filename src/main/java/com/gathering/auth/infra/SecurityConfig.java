@@ -29,7 +29,7 @@ public class SecurityConfig {
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 	private static final String[] PERMIT_ALL_URLS = {
-		"/login", "/signup", "/", "/users/join", "/error", "/favicon.ico",
+		"/login", "/signup", "/refresh", "/", "/users/join", "/error", "/favicon.ico",
 		// API 문서
 		"/docs/**", "/redoc.html"
 	};

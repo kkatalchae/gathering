@@ -337,6 +337,7 @@
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <script>
     const loginForm = document.getElementById('loginForm');
     const emailInput = document.getElementById('email');
@@ -406,7 +407,7 @@
     });
 
     // 폼 제출
-    loginForm.addEventListener('submit', function (e) {
+    loginForm.addEventListener('submit', async function (e) {
         e.preventDefault();
 
         if (validateForm()) {
@@ -414,18 +415,44 @@
             loginBtn.disabled = true;
             loginBtn.textContent = '로그인 중...';
 
-            // 실제 로그인 요청
-            setTimeout(() => {
-                // 여기서 실제 로그인 API 호출
-                console.log('로그인 시도:', {
-                    email: emailInput.value,
-                    password: passwordInput.value,
-                    remember: document.getElementById('remember').checked
+            try {
+                // 비밀번호 암호화 (AES-ECB)
+                const AES_KEY = CryptoJS.enc.Utf8.parse('gatheringkey1234'); // 16바이트 키
+                const encryptedPassword = CryptoJS.AES.encrypt(passwordInput.value, AES_KEY, {
+                    mode: CryptoJS.mode.ECB,
+                    padding: CryptoJS.pad.Pkcs7
+                }).toString();
+
+                // 실제 로그인 API 호출
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: emailInput.value,
+                        password: encryptedPassword
+                    })
                 });
 
-                // 성공 시 홈페이지로 이동
-                window.location.href = '/';
-            }, 1000);
+                if (response.ok) {
+                    // 로그인 성공 - 홈페이지로 이동
+                    window.location.href = '/';
+                } else {
+                    // 로그인 실패
+                    const errorData = await response.json().catch(() => null);
+                    const errorMessage = errorData?.message || '이메일 또는 비밀번호가 올바르지 않습니다.';
+
+                    showError(emailInput, 'emailError', errorMessage);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = '로그인';
+                }
+            } catch (error) {
+                console.error('로그인 요청 실패:', error);
+                showError(emailInput, 'emailError', '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+                loginBtn.disabled = false;
+                loginBtn.textContent = '로그인';
+            }
         }
     });
 

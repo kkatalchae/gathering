@@ -1,7 +1,14 @@
 package com.gathering.auth.infra;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 import org.springframework.http.ResponseCookie;
 
+import com.gathering.auth.application.dto.AuthTokens;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -43,5 +50,40 @@ public final class CookieUtil {
 	 */
 	public static void deleteCookie(HttpServletResponse response, String name) {
 		addSecureCookie(response, name, "", 0);
+	}
+
+	/**
+	 * 쿠키에서 값 조회
+	 *
+	 * @param request HttpServletRequest
+	 * @param name 쿠키 이름
+	 * @return Optional로 감싼 쿠키 값
+	 */
+	public static Optional<String> getCookie(HttpServletRequest request, String name) {
+		Cookie[] cookies = request.getCookies();
+		if (cookies == null) {
+			return Optional.empty();
+		}
+
+		return Arrays.stream(cookies)
+			.filter(cookie -> name.equals(cookie.getName()))
+			.map(Cookie::getValue)
+			.findFirst();
+	}
+
+	/**
+	 * 인증 토큰들을 쿠키에 설정
+	 *
+	 * @param response HttpServletResponse
+	 * @param tokens 인증 토큰 (AccessToken, RefreshToken)
+	 * @param accessTokenValidityInSeconds AccessToken 만료 시간 (초)
+	 * @param refreshTokenValidityInSeconds RefreshToken 만료 시간 (초)
+	 */
+	public static void setAuthTokens(HttpServletResponse response, AuthTokens tokens,
+		int accessTokenValidityInSeconds, int refreshTokenValidityInSeconds) {
+		addSecureCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE, tokens.getAccessToken(),
+			accessTokenValidityInSeconds);
+		addSecureCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE, tokens.getRefreshToken(),
+			refreshTokenValidityInSeconds);
 	}
 }
