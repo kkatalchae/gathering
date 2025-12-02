@@ -1,6 +1,5 @@
 package com.gathering.user.application;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -9,7 +8,6 @@ import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UserSecurityRepository;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.UserJoinRequest;
-import com.gathering.util.CryptoUtil;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -23,26 +21,21 @@ public class UserService {
 	private final PasswordEncoder passwordEncoder;
 	private final UserJoinValidator userJoinValidator;
 
-	@Value("${crypto.aes.key}")
-	private String aesKey;
-
-	private String getPasswordHash(String encryptedPassword) {
-		String decryptedPassword = null;
-		try {
-			decryptedPassword = CryptoUtil.decryptAES(encryptedPassword, aesKey);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-		return passwordEncoder.encode(decryptedPassword);
-	}
-
+	/**
+	 * 회원가입 처리
+	 *
+	 * Note: 비밀번호는 @AesEncrypted 어노테이션에 의해 DTO 바인딩 시점에 자동으로 복호화됨
+	 */
 	@Transactional
 	public void join(UserJoinRequest request) {
 		userJoinValidator.validateUser(request);
 
 		UsersEntity usersEntity = usersRepository.save(UserJoinRequest.toUsersEntity(request));
-		UserSecurityEntity userSecurityEntity = UserSecurityEntity.of(usersEntity.getTsid(),
-			getPasswordHash(request.getPassword()));
+		// 비밀번호는 이미 복호화되어 있으므로 바로 BCrypt 인코딩
+		UserSecurityEntity userSecurityEntity = UserSecurityEntity.of(
+			usersEntity.getTsid(),
+			passwordEncoder.encode(request.getPassword())
+		);
 		userSecurityRepository.save(userSecurityEntity);
 	}
 }

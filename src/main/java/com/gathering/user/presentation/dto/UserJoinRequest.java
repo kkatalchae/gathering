@@ -1,5 +1,6 @@
 package com.gathering.user.presentation.dto;
 
+import com.gathering.common.annotation.AesEncrypted;
 import com.gathering.user.domain.model.UsersEntity;
 
 import jakarta.annotation.Nullable;
@@ -19,6 +20,7 @@ public class UserJoinRequest {
 	@NotNull
 	private final String email;
 	@NotNull
+	@AesEncrypted
 	private final String password;
 	@Nullable
 	private final String nickname;

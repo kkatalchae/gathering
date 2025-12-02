@@ -42,6 +42,8 @@ dependencies {
     // jpa
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    // redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     // thymeleaf
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     // mysql
@@ -58,6 +60,12 @@ dependencies {
     implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.10.3'
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'com.h2database:h2'
+
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
     // spring rest docs
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'

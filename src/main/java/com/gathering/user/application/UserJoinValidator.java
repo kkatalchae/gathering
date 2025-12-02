@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.UserJoinRequest;
-import com.gathering.util.CryptoUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,13 +34,7 @@ public class UserJoinValidator {
 		isPhoneNumberDuplicate(phoneNumber);
 
 		// password
-		String encryptedPassword = request.getPassword();
-		try {
-			String decryptedPassword = CryptoUtil.decryptAES(encryptedPassword, aesKey);
-			isValidPasswordFormat(decryptedPassword);
-		} catch (Exception e) {
-			throw new IllegalArgumentException(ERROR_MESSAGE_PASSWORD_INVALID_FORMAT);
-		}
+		isValidPasswordFormat(request.getPassword());
 	}
 
 	private void isEmailDuplicate(String email) {
