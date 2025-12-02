@@ -31,8 +31,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	private final JwtTokenProvider jwtTokenProvider;
 	private final UserDetailsService userDetailsService;
 
-	private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
-
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 		throws ServletException, IOException {
@@ -66,7 +64,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				log.debug("JWT 인증 성공: {}", email);
 			}
 		} catch (Exception e) {
-			log.error("JWT 인증 처리 중 오류 발생", e);
+			log.debug("JWT 인증 처리 중 오류 발생: {}", e.getMessage());
 			// 인증 실패 시 SecurityContext를 비워서 인증되지 않은 상태로 유지
 			SecurityContextHolder.clearContext();
 		}
@@ -88,7 +86,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		}
 
 		return Arrays.stream(cookies)
-			.filter(cookie -> ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName()))
+			.filter(cookie -> AuthConstants.ACCESS_TOKEN_COOKIE.equals(cookie.getName()))
 			.map(Cookie::getValue)
 			.findFirst()
 			.orElse(null);

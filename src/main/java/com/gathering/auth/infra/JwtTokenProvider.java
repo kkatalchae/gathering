@@ -46,26 +46,25 @@ public class JwtTokenProvider {
 	 * 액세스 토큰 생성
 	 */
 	public String createAccessToken(String email) {
-		Instant now = Instant.now();
-		Instant expiryDate = now.plusSeconds(accessTokenValidityInSeconds);
-
-		return Jwts.builder()
-			.subject(email)
-			.issuedAt(Date.from(now))
-			.expiration(Date.from(expiryDate))
-			.signWith(key)
-			.compact();
+		return createToken(email, accessTokenValidityInSeconds);
 	}
 
 	/**
 	 * 리프레시 토큰 생성
 	 */
 	public String createRefreshToken(String email) {
+		return createToken(email, refreshTokenValidityInSeconds);
+	}
+
+	/**
+	 * JWT 토큰 생성 (공통 로직)
+	 */
+	private String createToken(String subject, long validityInSeconds) {
 		Instant now = Instant.now();
-		Instant expiryDate = now.plusSeconds(refreshTokenValidityInSeconds);
+		Instant expiryDate = now.plusSeconds(validityInSeconds);
 
 		return Jwts.builder()
-			.subject(email)
+			.subject(subject)
 			.issuedAt(Date.from(now))
 			.expiration(Date.from(expiryDate))
 			.signWith(key)
@@ -112,7 +111,7 @@ public class JwtTokenProvider {
 		} catch (SecurityException | MalformedJwtException e) {
 			log.error("잘못된 JWT 서명입니다.", e);
 		} catch (ExpiredJwtException e) {
-			log.error("만료된 JWT 토큰입니다.", e);
+			log.debug("만료된 JWT 토큰입니다. 토큰 갱신이 필요합니다.");
 		} catch (UnsupportedJwtException e) {
 			log.error("지원되지 않는 JWT 토큰입니다.", e);
 		} catch (IllegalArgumentException e) {

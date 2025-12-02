@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.application.dto.AuthTokens;
+import com.gathering.auth.infra.AuthConstants;
 import com.gathering.auth.infra.CookieUtil;
 import com.gathering.auth.presentation.dto.LoginRequest;
 
@@ -40,9 +41,9 @@ public class AuthController {
 		AuthTokens tokens = authService.login(request);
 
 		// 2. 쿠키에 토큰 설정
-		CookieUtil.addSecureCookie(response, "accessToken", tokens.getAccessToken(),
+		CookieUtil.addSecureCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE, tokens.getAccessToken(),
 			(int)accessTokenValidityInSeconds);
-		CookieUtil.addSecureCookie(response, "refreshToken", tokens.getRefreshToken(),
+		CookieUtil.addSecureCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE, tokens.getRefreshToken(),
 			(int)refreshTokenValidityInSeconds);
 
 		// 3. 성공 응답 (Body 없이 200 OK)

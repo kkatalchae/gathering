@@ -116,7 +116,6 @@ public class SecurityConfig {
 	 * - UserDetailsService 를 구현한 빈을 찾아서 DaoAuthenticationProvider에 설정
 	 * - PasswordEncoder 빈을 찾아서 DaoAuthenticationProvider에 설정
 	 * - 구성된 DaoAuthenticationProvider를 AuthenticationManager에 등록
-	 * </ul>
 	 */
 	@Bean
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)

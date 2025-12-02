@@ -2,11 +2,16 @@ spring:
   application:
     name: gathering
 
+  # TODO: [운영 환경 배포 전 필수] Profile별 설정 파일 분리 필요
+  #  - application-dev.yaml: 개발/로컬 공통 (현재 설정 이동, Git 커밋)
+  #  - application-prod.yaml: 운영 전용 (환경변수 사용, Git 커밋)
+  #  참고: dev와 local은 동일 프로파일 사용 (팀 동기화 편의성)
+
   # 데이터베이스 설정
   datasource:
     url: jdbc:mysql://localhost:3306/gathering_db
     username: gathering_user
-    password: gathering1234
+    password: gathering1234  # TODO: [운영] application-prod.yaml에서 ${DB_PASSWORD}로 변경
     # 드라이버 클래스 지정 (기본적으로 자동 설정되지만, 여러개인 경우 명시 필요)
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
@@ -42,10 +47,10 @@ spring:
 
 crypto:
   aes:
-    key: gatheringkey1234
+    key: gatheringkey1234  # TODO: [운영] ${AES_KEY}로 변경, 강력한 키로 교체 필요
 
 jwt:
-  secret: gatheringSecretKeyForJwtTokenGenerationMustBeLongEnoughForHS256Algorithm
+  secret: gatheringSecretKeyForJwtTokenGenerationMustBeLongEnoughForHS256Algorithm  # TODO: [운영] ${JWT_SECRET}로 변경, 보안 강도 높은 키로 교체 필수
   access-token-validity-in-seconds: 3600 # 1시간
   refresh-token-validity-in-seconds: 604800 # 7일
 
