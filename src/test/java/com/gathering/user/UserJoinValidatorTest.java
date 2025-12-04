@@ -194,17 +194,13 @@ class UserJoinValidatorTest {
 		@DisplayName("성공 - 올바른 형식의 회원가입 요청")
 		void success() {
 			// given
+			// @AesEncrypted 어노테이션은 HTTP 요청 역직렬화 시에만 동작하므로
+			// 테스트에서는 복호화된 비밀번호를 전달해야 함
 			String password = "Password1*";
-			String encryptedPassword = null;
-			try {
-				encryptedPassword = CryptoUtil.encryptAES(password, dummyAesKey);
-			} catch (Exception e) {
-				System.out.println(e.getMessage());
-			}
 
 			UserJoinRequest request = UserJoinRequest.builder()
 				.email("test@test.com")
-				.password(encryptedPassword)
+				.password(password)
 				.nickname(null)
 				.name("test")
 				.phoneNumber("01012341234")

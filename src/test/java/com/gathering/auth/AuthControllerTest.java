@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.application.dto.AuthTokens;
 import com.gathering.auth.presentation.dto.LoginRequest;
+import com.gathering.util.CryptoUtil;
 
 /**
  * AuthController Spring REST Docs 테스트
@@ -64,9 +65,14 @@ class AuthControllerTest {
 	@DisplayName("POST /login - 로그인 성공")
 	void login_success() throws Exception {
 		// given
+		// @AesEncrypted 어노테이션이 HTTP 요청 역직렬화 시 복호화를 수행하므로
+		// 테스트에서는 암호화된 비밀번호를 전달해야 함
+		String plainPassword = "Password1!";
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+
 		LoginRequest request = LoginRequest.builder()
 			.email("test@example.com")
-			.password("password1234!")
+			.password(encryptedPassword)
 			.build();
 
 		AuthTokens tokens = AuthTokens.builder()
@@ -92,7 +98,7 @@ class AuthControllerTest {
 			.andDo(document("auth-login",
 				requestFields(
 					fieldWithPath("email").description("이메일 주소"),
-					fieldWithPath("password").description("비밀번호")
+					fieldWithPath("password").description("AES 암호화된 비밀번호 (Base64 인코딩)")
 				),
 				responseCookies(
 					cookieWithName("accessToken").description("액세스 토큰 (JWT, HttpOnly, Secure)"),
@@ -107,9 +113,12 @@ class AuthControllerTest {
 	@DisplayName("POST /login - 로그인 실패: 존재하지 않는 사용자")
 	void login_fail_user_not_found() throws Exception {
 		// given
+		String plainPassword = "Password1!";
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+
 		LoginRequest request = LoginRequest.builder()
 			.email("notfound@example.com")
-			.password("password1234!")
+			.password(encryptedPassword)
 			.build();
 
 		when(authService.login(any(LoginRequest.class)))
@@ -128,9 +137,12 @@ class AuthControllerTest {
 	@DisplayName("POST /login - 로그인 실패: 잘못된 비밀번호")
 	void login_fail_bad_credentials() throws Exception {
 		// given
+		String plainPassword = "WrongPass1!";
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+
 		LoginRequest request = LoginRequest.builder()
 			.email("test@example.com")
-			.password("wrongpassword")
+			.password(encryptedPassword)
 			.build();
 
 		when(authService.login(any(LoginRequest.class)))

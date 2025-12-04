@@ -30,6 +30,7 @@ import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.presentation.dto.UserJoinRequest;
+import com.gathering.util.CryptoUtil;
 
 /**
  * UsersController Spring REST Docs 테스트
@@ -66,9 +67,14 @@ class UserControllerTest {
 	@DisplayName("POST /users/join - 회원가입")
 	void join() throws Exception {
 		// given
+		// @AesEncrypted 어노테이션이 HTTP 요청 역직렬화 시 복호화를 수행하므로
+		// 테스트에서는 암호화된 비밀번호를 전달해야 함
+		String plainPassword = "Password1!";
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+
 		UserJoinRequest request = UserJoinRequest.builder()
 			.email("test@example.com")
-			.password("password1234!")
+			.password(encryptedPassword)
 			.nickname("테스터")
 			.name("홍길동")
 			.phoneNumber("01012345678")
@@ -84,7 +90,7 @@ class UserControllerTest {
 			.andDo(document("users-join",
 				requestFields(
 					fieldWithPath("email").description("이메일 주소 (이메일 형식)"),
-					fieldWithPath("password").description("비밀번호"),
+					fieldWithPath("password").description("AES 암호화된 비밀번호 (Base64 인코딩)"),
 					fieldWithPath("nickname").description("닉네임 (선택 사항)").optional(),
 					fieldWithPath("name").description("사용자 이름"),
 					fieldWithPath("phoneNumber").description("전화번호 (숫자만 입력, 예: 01012345678)")
