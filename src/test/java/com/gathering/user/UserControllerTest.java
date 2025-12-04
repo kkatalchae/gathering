@@ -24,6 +24,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gathering.auth.application.exception.BusinessException;
+import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
@@ -138,15 +140,17 @@ class UserControllerTest {
 		String tsid = "1234567890123";
 
 		when(userService.getUserInfo(tsid))
-			.thenThrow(new IllegalArgumentException("삭제된 사용자입니다."));
+			.thenThrow(new BusinessException(ErrorCode.USER_DELETED));
 
 		// when & then
 		mockMvc.perform(get("/users/{tsid}", tsid)
 				.contentType(MediaType.APPLICATION_JSON))
 			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("USER_DELETED"))
 			.andExpect(jsonPath("$.message").value("삭제된 사용자입니다."))
 			.andDo(document("users-get-deleted",
 				responseFields(
+					fieldWithPath("code").description("에러 코드"),
 					fieldWithPath("message").description("에러 메시지")
 				)
 			));
@@ -161,15 +165,17 @@ class UserControllerTest {
 		String tsid = "1234567890123";
 
 		when(userService.getUserInfo(tsid))
-			.thenThrow(new IllegalArgumentException("사용이 제한된 사용자입니다."));
+			.thenThrow(new BusinessException(ErrorCode.USER_BANNED));
 
 		// when & then
 		mockMvc.perform(get("/users/{tsid}", tsid)
 				.contentType(MediaType.APPLICATION_JSON))
 			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("USER_BANNED"))
 			.andExpect(jsonPath("$.message").value("사용이 제한된 사용자입니다."))
 			.andDo(document("users-get-banned",
 				responseFields(
+					fieldWithPath("code").description("에러 코드"),
 					fieldWithPath("message").description("에러 메시지")
 				)
 			));

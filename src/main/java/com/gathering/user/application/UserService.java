@@ -3,7 +3,10 @@ package com.gathering.user.application;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.gathering.auth.application.exception.BusinessException;
+import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.user.domain.model.UserSecurityEntity;
+import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UserSecurityRepository;
 import com.gathering.user.domain.repository.UsersRepository;
@@ -37,5 +40,27 @@ public class UserService {
 			passwordEncoder.encode(request.getPassword())
 		);
 		userSecurityRepository.save(userSecurityEntity);
+	}
+
+	/**
+	 * 사용자 정보 조회
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @return 사용자 엔티티
+	 * @throws BusinessException 사용자가 존재하지 않거나 삭제/정지된 경우
+	 */
+	public UsersEntity getUserInfo(String tsid) {
+		UsersEntity user = usersRepository.findById(tsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+		if (user.getStatus() == UserStatus.DELETED) {
+			throw new BusinessException(ErrorCode.USER_DELETED);
+		}
+
+		if (user.getStatus() == UserStatus.BANNED) {
+			throw new BusinessException(ErrorCode.USER_BANNED);
+		}
+
+		return user;
 	}
 }
