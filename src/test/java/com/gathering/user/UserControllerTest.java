@@ -7,6 +7,8 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.time.Instant;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.user.application.UserService;
+import com.gathering.user.domain.model.UserStatus;
+import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 
 /**
@@ -86,5 +90,90 @@ class UserControllerTest {
 			));
 
 		verify(userService, times(1)).join(any(UserJoinRequest.class));
+	}
+
+	@Test
+	@DisplayName("GET /users/{tsid} - 사용자 정보 조회 (정상)")
+	void getUserInfo() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		UsersEntity user = UsersEntity.builder()
+			.tsid(tsid)
+			.email("test@example.com")
+			.nickname("테스터")
+			.name("홍길동")
+			.phoneNumber("01012345678")
+			.profileImageUrl("https://example.com/profile.jpg")
+			.status(UserStatus.ACTIVE)
+			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
+			.build();
+
+		when(userService.getUserInfo(tsid)).thenReturn(user);
+
+		// when & then
+		mockMvc.perform(get("/users/{tsid}", tsid)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.nickname").value("테스터"))
+			.andExpect(jsonPath("$.name").value("홍길동"))
+			.andExpect(jsonPath("$.profileImageUrl").value("https://example.com/profile.jpg"))
+			.andExpect(jsonPath("$.email").doesNotExist())
+			.andExpect(jsonPath("$.phoneNumber").doesNotExist())
+			.andExpect(jsonPath("$.tsid").doesNotExist())
+			.andDo(document("users-get",
+				responseFields(
+					fieldWithPath("nickname").description("닉네임"),
+					fieldWithPath("name").description("사용자 이름"),
+					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional()
+				)
+			));
+
+		verify(userService, times(1)).getUserInfo(tsid);
+	}
+
+	@Test
+	@DisplayName("GET /users/{tsid} - 삭제된 사용자 조회")
+	void getUserInfo_Deleted() throws Exception {
+		// given
+		String tsid = "1234567890123";
+
+		when(userService.getUserInfo(tsid))
+			.thenThrow(new IllegalArgumentException("삭제된 사용자입니다."));
+
+		// when & then
+		mockMvc.perform(get("/users/{tsid}", tsid)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.message").value("삭제된 사용자입니다."))
+			.andDo(document("users-get-deleted",
+				responseFields(
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(userService, times(1)).getUserInfo(tsid);
+	}
+
+	@Test
+	@DisplayName("GET /users/{tsid} - 정지된 사용자 조회")
+	void getUserInfo_Banned() throws Exception {
+		// given
+		String tsid = "1234567890123";
+
+		when(userService.getUserInfo(tsid))
+			.thenThrow(new IllegalArgumentException("사용이 제한된 사용자입니다."));
+
+		// when & then
+		mockMvc.perform(get("/users/{tsid}", tsid)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.message").value("사용이 제한된 사용자입니다."))
+			.andDo(document("users-get-banned",
+				responseFields(
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(userService, times(1)).getUserInfo(tsid);
 	}
 }
