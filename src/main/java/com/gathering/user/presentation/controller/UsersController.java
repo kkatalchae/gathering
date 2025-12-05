@@ -8,11 +8,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gathering.auth.application.AuthService;
 import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UsersEntity;
+import com.gathering.user.presentation.dto.MeResponse;
 import com.gathering.user.presentation.dto.UserInfoResponse;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class UsersController {
 
 	private final UserService userService;
+	private final AuthService authService;
 
 	@PostMapping("/join")
 	public ResponseEntity<Void> join(@Valid @RequestBody UserJoinRequest request) {
@@ -35,6 +39,16 @@ public class UsersController {
 	public ResponseEntity<UserInfoResponse> getUserInfo(@PathVariable String tsid) {
 		UsersEntity user = userService.getUserInfo(tsid);
 		UserInfoResponse response = UserInfoResponse.from(user);
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 현재 로그인한 사용자의 정보 조회
+	 */
+	@GetMapping("/me")
+	public ResponseEntity<MeResponse> getMyInfo(HttpServletRequest request) {
+		String tsid = authService.getCurrentUserTsid(request);
+		MeResponse response = userService.getMyInfo(tsid);
 		return ResponseEntity.ok(response);
 	}
 

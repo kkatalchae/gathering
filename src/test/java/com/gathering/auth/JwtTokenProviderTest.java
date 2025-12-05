@@ -39,10 +39,10 @@ class JwtTokenProviderTest {
 	@DisplayName("액세스 토큰 생성 성공")
 	void createAccessToken_success() {
 		// given
-		String email = "test@example.com";
+		String tsid = "1234567890123";
 
 		// when
-		String token = jwtTokenProvider.createAccessToken(email);
+		String token = jwtTokenProvider.createAccessToken(tsid);
 
 		// then
 		assertThat(token).isNotNull();
@@ -53,10 +53,10 @@ class JwtTokenProviderTest {
 	@DisplayName("리프레시 토큰 생성 성공")
 	void createRefreshToken_success() {
 		// given
-		String email = "test@example.com";
+		String tsid = "1234567890123";
 
 		// when
-		String token = jwtTokenProvider.createRefreshToken(email);
+		String token = jwtTokenProvider.createRefreshToken(tsid);
 
 		// then
 		assertThat(token).isNotNull();
@@ -64,25 +64,25 @@ class JwtTokenProviderTest {
 	}
 
 	@Test
-	@DisplayName("토큰에서 이메일 추출 성공")
-	void getEmailFromToken_success() {
+	@DisplayName("토큰에서 TSID 추출 성공")
+	void getTsidFromToken_success() {
 		// given
-		String email = "test@example.com";
-		String token = jwtTokenProvider.createAccessToken(email);
+		String tsid = "1234567890123";
+		String token = jwtTokenProvider.createAccessToken(tsid);
 
 		// when
-		String extractedEmail = jwtTokenProvider.getEmailFromToken(token);
+		String extractedTsid = jwtTokenProvider.getTsidFromToken(token);
 
 		// then
-		assertThat(extractedEmail).isEqualTo(email);
+		assertThat(extractedTsid).isEqualTo(tsid);
 	}
 
 	@Test
 	@DisplayName("유효한 토큰 검증 성공")
 	void validateToken_success() {
 		// given
-		String email = "test@example.com";
-		String token = jwtTokenProvider.createAccessToken(email);
+		String tsid = "1234567890123";
+		String token = jwtTokenProvider.createAccessToken(tsid);
 
 		// when
 		boolean isValid = jwtTokenProvider.validateToken(token);
@@ -115,8 +115,8 @@ class JwtTokenProviderTest {
 			refreshTokenValidityInSeconds);
 		expiredTokenProvider.init();
 
-		String email = "test@example.com";
-		String expiredToken = expiredTokenProvider.createAccessToken(email);
+		String tsid = "1234567890123";
+		String expiredToken = expiredTokenProvider.createAccessToken(tsid);
 
 		// when
 		boolean isValid = jwtTokenProvider.validateToken(expiredToken);
@@ -129,8 +129,8 @@ class JwtTokenProviderTest {
 	@DisplayName("토큰 만료 시간 확인")
 	void getExpirationFromToken_success() {
 		// given
-		String email = "test@example.com";
-		String token = jwtTokenProvider.createAccessToken(email);
+		String tsid = "1234567890123";
+		String token = jwtTokenProvider.createAccessToken(tsid);
 
 		// when
 		Instant expiration = jwtTokenProvider.getExpirationFromToken(token);
@@ -149,15 +149,15 @@ class JwtTokenProviderTest {
 	@DisplayName("토큰에서 모든 Claims 추출 성공")
 	void getAllClaimsFromToken_success() {
 		// given
-		String email = "test@example.com";
-		String token = jwtTokenProvider.createAccessToken(email);
+		String tsid = "1234567890123";
+		String token = jwtTokenProvider.createAccessToken(tsid);
 
 		// when
 		Claims claims = jwtTokenProvider.getAllClaimsFromToken(token);
 
 		// then
 		assertThat(claims).isNotNull();
-		assertThat(claims.getSubject()).isEqualTo(email);
+		assertThat(claims.getSubject()).isEqualTo(tsid);
 		assertThat(claims.getExpiration()).isNotNull();
 		assertThat(claims.getIssuedAt()).isNotNull();
 	}
@@ -166,11 +166,11 @@ class JwtTokenProviderTest {
 	@DisplayName("액세스 토큰과 리프레시 토큰의 만료 시간이 다름")
 	void accessToken_and_refreshToken_have_different_expiration() {
 		// given
-		String email = "test@example.com";
+		String tsid = "1234567890123";
 
 		// when
-		String accessToken = jwtTokenProvider.createAccessToken(email);
-		String refreshToken = jwtTokenProvider.createRefreshToken(email);
+		String accessToken = jwtTokenProvider.createAccessToken(tsid);
+		String refreshToken = jwtTokenProvider.createRefreshToken(tsid);
 
 		Instant accessTokenExpiration = jwtTokenProvider.getExpirationFromToken(accessToken);
 		Instant refreshTokenExpiration = jwtTokenProvider.getExpirationFromToken(refreshToken);

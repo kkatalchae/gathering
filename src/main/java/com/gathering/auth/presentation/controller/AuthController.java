@@ -11,7 +11,11 @@ import com.gathering.auth.application.dto.AuthTokens;
 import com.gathering.auth.application.exception.InvalidTokenException;
 import com.gathering.auth.infra.AuthConstants;
 import com.gathering.auth.infra.CookieUtil;
+import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.auth.presentation.dto.LoginRequest;
+import com.gathering.auth.presentation.dto.LoginResponse;
+import com.gathering.user.domain.model.UsersEntity;
+import com.gathering.user.domain.repository.UsersRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,6 +30,8 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
 	private final AuthService authService;
+	private final JwtTokenProvider jwtTokenProvider;
+	private final UsersRepository usersRepository;
 
 	@Value("${jwt.access-token-validity-in-seconds}")
 	private long accessTokenValidityInSeconds;

@@ -280,10 +280,11 @@
         <header class="header">
             <div class="logo">🎉 Gathering</div>
             <div class="auth-buttons">
-                <a href="/login" class="btn">로그인</a>
+                <button id="myInfoBtn" class="btn" style="display:none;">내 정보</button>
+                <a id="loginBtn" href="/login" class="btn">로그인</a>
+                <button id="logoutBtn" class="btn" style="display:none;">로그아웃</button>
             </div>
         </header>
-
         <!-- 메인 콘텐츠 -->
         <main class="main-content">
             <h1 class="section-title">
@@ -429,6 +430,45 @@
     </div>
 
     <script>
+        // 페이지 로드 시 로그인 상태 확인
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/users/me', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include' // 쿠키 포함
+                });
+
+                if (response.ok) {
+                    const userInfo = await response.json();
+                    const tsid = userInfo.tsid;
+
+                    // 로그인 버튼 숨기고 로그아웃 버튼과 내 정보 버튼 표시
+                    document.getElementById('loginBtn').style.display = 'none';
+                    document.getElementById('logoutBtn').style.display = 'inline-block';
+                    document.getElementById('myInfoBtn').style.display = 'inline-block';
+
+                    // "내 정보" 버튼 클릭 시 tsid를 쿼리 파라미터로 전달
+                    document.getElementById('myInfoBtn').addEventListener('click', function() {
+                        window.location.href = `/users/info?tsid=${tsid}`;
+                    });
+
+                    // 로그아웃 버튼 클릭 시 (추후 로그아웃 API 연동)
+                    document.getElementById('logoutBtn').addEventListener('click', async function() {
+                        // TODO: 로그아웃 API 호출
+                        alert('로그아웃 기능은 추후 구현 예정입니다');
+                    });
+                }
+            } catch (error) {
+                console.log('Not logged in');
+            }
+        }
+
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', checkLoginStatus);
+
         // 카드 클릭 이벤트
         document.querySelectorAll('.gathering-card').forEach(card => {
             card.addEventListener('click', function() {
@@ -437,7 +477,7 @@
                 setTimeout(() => {
                     this.style.transform = '';
                 }, 150);
-                
+
                 // 추후 모임 상세 페이지로 이동
                 // const gatheringId = this.dataset.id;
                 // window.location.href = `/gatherings/${gatheringId}`;

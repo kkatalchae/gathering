@@ -10,14 +10,20 @@ paths:
   /login:
     post:
       tags:
+      - 인증
       - login
-      operationId: auth-login
+      summary: 로그인
+      description: 사용자 로그인 API - JWT 토큰을 쿠키로 반환
+      operationId: auth-login로그인
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/login-733236850"
             examples:
+              로그인:
+                value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
+                  }"
               auth-login:
                 value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
                   }"
@@ -27,14 +33,21 @@ paths:
   /users/join:
     post:
       tags:
+      - 사용자
       - users
-      operationId: users-join
+      summary: 회원가입
+      description: 새로운 사용자를 등록합니다
+      operationId: users-join사용자-가입
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/users-join-1381348445"
             examples:
+              사용자-가입:
+                value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
+                  ,\"nickname\":\"테스터\",\"name\":\"홍길동\",\"phoneNumber\":\"01012345678\"\
+                  }"
               users-join:
                 value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
                   ,\"nickname\":\"테스터\",\"name\":\"홍길동\",\"phoneNumber\":\"01012345678\"\
@@ -42,11 +55,39 @@ paths:
       responses:
         "204":
           description: "204"
+  /users/me:
+    get:
+      tags:
+      - users
+      operationId: users-me
+      responses:
+        "401":
+          description: "401"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/users-tsid-1331249008"
+              examples:
+                users-me-no-token:
+                  value: "{\"code\":\"INVALID_TOKEN\",\"message\":\"토큰이 유효하지 않습니다\"\
+                    }"
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/users-me810629779"
+              examples:
+                users-me:
+                  value: "{\"tsid\":\"1234567890123\"}"
   /users/{tsid}:
     get:
       tags:
       - users
-      operationId: users-get
+      - 사용자
+      summary: 정지된 사용자 조회
+      description: 정지된 사용자를 조회할 경우 404 에러를 반환합니다
+      operationId: users-getusers-get-bannedusers-get-deleted사용자-조회사용자-조회-삭제됨사용자-조회-정지됨
       parameters:
       - name: tsid
         in: path
@@ -64,21 +105,37 @@ paths:
               examples:
                 users-get-deleted:
                   value: "{\"code\":\"USER_DELETED\",\"message\":\"삭제된 사용자입니다.\"}"
+                사용자-조회-정지됨:
+                  value: "{\"code\":\"USER_BANNED\",\"message\":\"사용이 제한된 사용자입니다.\"\
+                    }"
                 users-get-banned:
                   value: "{\"code\":\"USER_BANNED\",\"message\":\"사용이 제한된 사용자입니다.\"\
                     }"
+                사용자-조회-삭제됨:
+                  value: "{\"code\":\"USER_DELETED\",\"message\":\"삭제된 사용자입니다.\"}"
         "200":
           description: "200"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-tsid-370292314"
+                $ref: "#/components/schemas/users-tsid-982397607"
               examples:
                 users-get:
                   value: "{\"nickname\":\"테스터\",\"name\":\"홍길동\",\"profileImageUrl\"\
                     :\"https://example.com/profile.jpg\"}"
+                사용자-조회:
+                  value: "{\"nickname\":\"테스터\",\"name\":\"홍길동\",\"profileImageUrl\"\
+                    :\"https://example.com/profile.jpg\"}"
 components:
   schemas:
+    users-me810629779:
+      required:
+      - tsid
+      type: object
+      properties:
+        tsid:
+          type: string
+          description: 사용자 고유 ID
     login-733236850:
       required:
       - email
@@ -103,6 +160,22 @@ components:
         message:
           type: string
           description: 에러 메시지
+    users-tsid-982397607:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          description: 사용자 이름
+        nickname:
+          type: string
+          description: 닉네임
+          nullable: true
+        profileImageUrl:
+          type: string
+          description: 프로필 이미지 URL
+          nullable: true
     users-join-1381348445:
       required:
       - email
@@ -127,19 +200,3 @@ components:
         email:
           type: string
           description: 이메일 주소 (이메일 형식)
-    users-tsid-370292314:
-      required:
-      - name
-      - nickname
-      type: object
-      properties:
-        name:
-          type: string
-          description: 사용자 이름
-        nickname:
-          type: string
-          description: 닉네임
-        profileImageUrl:
-          type: string
-          description: 프로필 이미지 URL
-          nullable: true

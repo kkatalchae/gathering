@@ -10,6 +10,7 @@ import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UserSecurityRepository;
 import com.gathering.user.domain.repository.UsersRepository;
+import com.gathering.user.presentation.dto.MeResponse;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 
 import jakarta.transaction.Transactional;
@@ -62,5 +63,16 @@ public class UserService {
 		}
 
 		return user;
+	}
+
+	/**
+	 * 현재 로그인한 사용자의 정보 조회
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @return 사용자 기본 정보 (tsid)
+	 */
+	public MeResponse getMyInfo(String tsid) {
+		UsersEntity user = getUserInfo(tsid);
+		return MeResponse.from(user);
 	}
 }

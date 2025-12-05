@@ -24,13 +24,18 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gathering.auth.application.AuthService;
 import com.gathering.auth.application.exception.BusinessException;
 import com.gathering.auth.application.exception.ErrorCode;
+import com.gathering.auth.application.exception.InvalidTokenException;
 import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
+import com.gathering.user.presentation.dto.MeResponse;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 import com.gathering.util.CryptoUtil;
+
+import jakarta.servlet.http.Cookie;
 
 /**
  * UsersController Spring REST Docs 테스트
@@ -47,6 +52,12 @@ class UserControllerTest {
 		public UserService userService() {
 			return Mockito.mock(UserService.class);
 		}
+
+		@Bean
+		@Primary
+		public AuthService authService() {
+			return Mockito.mock(AuthService.class);
+		}
 	}
 
 	@Autowired
@@ -58,9 +69,12 @@ class UserControllerTest {
 	@Autowired
 	private UserService userService;
 
+	@Autowired
+	private AuthService authService;
+
 	@BeforeEach
 	void setUp() {
-		Mockito.reset(userService);
+		Mockito.reset(userService, authService);
 	}
 
 	@Test
@@ -187,5 +201,58 @@ class UserControllerTest {
 			));
 
 		verify(userService, times(1)).getUserInfo(tsid);
+	}
+
+	@Test
+	@DisplayName("GET /users/me - 내 정보 조회 (정상)")
+	void getMyInfo() throws Exception {
+		// given
+		String accessToken = "valid.jwt.token";
+		String tsid = "1234567890123";
+
+		MeResponse meResponse = MeResponse.builder()
+			.tsid(tsid)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		when(userService.getMyInfo(tsid)).thenReturn(meResponse);
+
+		// when & then
+		mockMvc.perform(get("/users/me")
+				.cookie(new Cookie("accessToken", accessToken))
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.tsid").value(tsid))
+			.andDo(document("users-me",
+				responseFields(
+					fieldWithPath("tsid").description("사용자 고유 ID")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).getMyInfo(tsid);
+	}
+
+	@Test
+	@DisplayName("GET /users/me - 토큰이 없는 경우")
+	void getMyInfo_NoToken() throws Exception {
+		// given
+		when(authService.getCurrentUserTsid(any()))
+			.thenThrow(new InvalidTokenException("로그인이 필요합니다"));
+
+		// when & then
+		mockMvc.perform(get("/users/me")
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
+			.andExpect(jsonPath("$.message").value("토큰이 유효하지 않습니다"))
+			.andDo(document("users-me-no-token",
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
 	}
 }

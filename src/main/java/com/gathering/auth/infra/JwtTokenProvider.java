@@ -45,15 +45,15 @@ public class JwtTokenProvider {
 	/**
 	 * 액세스 토큰 생성
 	 */
-	public String createAccessToken(String email) {
-		return createToken(email, accessTokenValidityInSeconds);
+	public String createAccessToken(String tsid) {
+		return createToken(tsid, accessTokenValidityInSeconds);
 	}
 
 	/**
 	 * 리프레시 토큰 생성
 	 */
-	public String createRefreshToken(String email) {
-		return createToken(email, refreshTokenValidityInSeconds);
+	public String createRefreshToken(String tsid) {
+		return createToken(tsid, refreshTokenValidityInSeconds);
 	}
 
 	/**
@@ -72,9 +72,9 @@ public class JwtTokenProvider {
 	}
 
 	/**
-	 * 토큰에서 이메일 추출
+	 * 토큰에서 TSID 추출
 	 */
-	public String getEmailFromToken(String token) {
+	public String getTsidFromToken(String token) {
 		Claims claims = getAllClaimsFromToken(token);
 		return claims.getSubject();
 	}
