@@ -413,7 +413,7 @@ class UserControllerTest {
 		ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest(encryptedCurrent, encryptedNew);
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
-		doThrow(new BusinessException(ErrorCode.INVALID_CREDENTIALS))
+		doThrow(new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD))
 			.when(userService).changePassword(eq(tsid), any());
 
 		// when & then
@@ -421,9 +421,9 @@ class UserControllerTest {
 				.cookie(new Cookie("accessToken", accessToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(changePasswordRequest)))
-			.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
-			.andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("INVALID_CURRENT_PASSWORD"))
+			.andExpect(jsonPath("$.message").value("현재 비밀번호가 올바르지 않습니다."))
 			.andDo(document("users-change-password-invalid-current",
 				responseFields(
 					fieldWithPath("code").description("에러 코드"),

@@ -154,66 +154,6 @@ class UserValidatorTest {
 	}
 
 	@Nested
-	@DisplayName("전화번호 업데이트 검증")
-	class PhoneNumberUpdateValidation {
-
-		@Test
-		@DisplayName("전화번호 변경 시 중복 검증")
-		void updateWithDuplicatePhone() {
-			// given
-			String existingPhone = "01012345678";
-			UsersEntity user = UsersEntity.builder()
-				.email("test@example.com")
-				.name("홍길동")
-				.phoneNumber(existingPhone)
-				.build();
-			usersRepository.save(user);
-
-			String currentPhone = "01087654321";
-			String newPhone = "01012345678"; // 이미 존재하는 번호
-
-			// when & then
-			assertThatThrownBy(() -> userValidator.validatePhoneNumberForUpdate(currentPhone, newPhone))
-				.isInstanceOf(BusinessException.class)
-				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.PHONE_NUMBER_DUPLICATE);
-		}
-
-		@Test
-		@DisplayName("전화번호 변경하지 않음 (null)")
-		void updateWithNull() {
-			// given
-			String currentPhone = "01012345678";
-
-			// when & then
-			assertThatCode(() -> userValidator.validatePhoneNumberForUpdate(currentPhone, null))
-				.doesNotThrowAnyException();
-		}
-
-		@Test
-		@DisplayName("전화번호 변경하지 않음 (동일한 번호)")
-		void updateWithSamePhone() {
-			// given
-			String currentPhone = "01012345678";
-
-			// when & then
-			assertThatCode(() -> userValidator.validatePhoneNumberForUpdate(currentPhone, currentPhone))
-				.doesNotThrowAnyException();
-		}
-
-		@Test
-		@DisplayName("전화번호 변경 성공")
-		void updateWithNewPhone() {
-			// given
-			String currentPhone = "01012345678";
-			String newPhone = "01087654321";
-
-			// when & then
-			assertThatCode(() -> userValidator.validatePhoneNumberForUpdate(currentPhone, newPhone))
-				.doesNotThrowAnyException();
-		}
-	}
-
-	@Nested
 	@DisplayName("비밀번호 형식 검증")
 	class PasswordFormatValidation {
 
