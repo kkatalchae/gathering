@@ -33,27 +33,6 @@ public class UserValidator {
 	}
 
 	/**
-	 * 프로필 수정 시 전화번호 검증
-	 * 현재 전화번호와 다를 때만 중복 검증
-	 *
-	 * @param currentPhoneNumber 현재 사용자의 전화번호
-	 * @param newPhoneNumber 새로운 전화번호
-	 */
-	public void validatePhoneNumberForUpdate(String currentPhoneNumber, String newPhoneNumber) {
-		if (newPhoneNumber == null) {
-			return; // 변경하지 않음
-		}
-
-		// 형식 검증
-		validatePhoneNumberFormat(newPhoneNumber);
-
-		// 전화번호가 변경된 경우에만 중복 검증
-		if (!newPhoneNumber.equals(currentPhoneNumber)) {
-			validatePhoneNumberUnique(newPhoneNumber);
-		}
-	}
-
-	/**
 	 * 이름 검증
 	 *
 	 * @param name 검증할 이름

@@ -31,6 +31,7 @@ public enum ErrorCode {
 	INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "올바른 형식의 이메일이 아닙니다."),
 	INVALID_PHONE_NUMBER_FORMAT(HttpStatus.BAD_REQUEST, "올바른 형식의 전화번호가 아닙니다."),
 	INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "비밀번호는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다."),
+	INVALID_CURRENT_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다."),
 	NAME_BLANK(HttpStatus.BAD_REQUEST, "이름은 비어있을 수 없습니다."),
 
 	// 중복 에러 (409 Conflict)

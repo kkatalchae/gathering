@@ -98,8 +98,13 @@ public class UserService {
 		// 3. 이름 검증
 		userValidator.validateName(name);
 
-		// 4. 전화번호 검증 (변경된 경우만 중복 체크)
-		userValidator.validatePhoneNumberForUpdate(user.getPhoneNumber(), phoneNumber);
+		// 4. 전화번호 검증 (변경 시에만 형식 및 중복 체크)
+		if (phoneNumber != null) {
+			userValidator.validatePhoneNumberFormat(phoneNumber);
+			if (!phoneNumber.equals(user.getPhoneNumber())) {
+				userValidator.validatePhoneNumberUnique(phoneNumber);
+			}
+		}
 
 		// 5. 엔티티 업데이트 (JPA dirty checking으로 자동 UPDATE)
 		user.updateProfile(nickname, name, phoneNumber);
@@ -129,7 +134,7 @@ public class UserService {
 
 		// 4. 현재 비밀번호 검증 (AES 복호화는 이미 완료됨)
 		if (!passwordEncoder.matches(currentPassword, security.getPasswordHash())) {
-			throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+			throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
 		}
 
 		// 5. 새 비밀번호 정책 검증
