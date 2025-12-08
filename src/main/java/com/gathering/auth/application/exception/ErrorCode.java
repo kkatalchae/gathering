@@ -25,7 +25,17 @@ public enum ErrorCode {
 	// 사용자 관련 에러 (404 Not Found)
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
 	USER_DELETED(HttpStatus.NOT_FOUND, "삭제된 사용자입니다."),
-	USER_BANNED(HttpStatus.NOT_FOUND, "사용이 제한된 사용자입니다.");
+	USER_BANNED(HttpStatus.NOT_FOUND, "사용이 제한된 사용자입니다."),
+
+	// 유효성 검증 에러 (400 Bad Request)
+	INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "올바른 형식의 이메일이 아닙니다."),
+	INVALID_PHONE_NUMBER_FORMAT(HttpStatus.BAD_REQUEST, "올바른 형식의 전화번호가 아닙니다."),
+	INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "비밀번호는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다."),
+	NAME_BLANK(HttpStatus.BAD_REQUEST, "이름은 비어있을 수 없습니다."),
+
+	// 중복 에러 (409 Conflict)
+	EMAIL_DUPLICATE(HttpStatus.CONFLICT, "이미 사용중인 이메일입니다."),
+	PHONE_NUMBER_DUPLICATE(HttpStatus.CONFLICT, "이미 사용중인 전화번호입니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;

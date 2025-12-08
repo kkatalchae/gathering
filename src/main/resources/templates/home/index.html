@@ -450,9 +450,9 @@
                     document.getElementById('logoutBtn').style.display = 'inline-block';
                     document.getElementById('myInfoBtn').style.display = 'inline-block';
 
-                    // "내 정보" 버튼 클릭 시 tsid를 쿼리 파라미터로 전달
+                    // "내 정보" 버튼 클릭 시 내 정보 페이지로 이동
                     document.getElementById('myInfoBtn').addEventListener('click', function() {
-                        window.location.href = `/users/info?tsid=${tsid}`;
+                        window.location.href = '/my-info';
                     });
 
                     // 로그아웃 버튼 클릭 시 (추후 로그아웃 API 연동)
