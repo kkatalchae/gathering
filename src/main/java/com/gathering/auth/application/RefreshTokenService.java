@@ -30,23 +30,23 @@ public class RefreshTokenService {
 
 	/**
 	 * RefreshToken 저장
-	 * @param email 사용자 이메일
+	 * @param tsid 사용자 고유 ID
 	 * @param refreshToken 리프레시 토큰
 	 */
-	public void saveRefreshToken(String email, String refreshToken) {
-		String key = KEY_PREFIX + email;
+	public void saveRefreshToken(String tsid, String refreshToken) {
+		String key = KEY_PREFIX + tsid;
 		redisAdapter.set(key, refreshToken, Duration.ofSeconds(refreshTokenValidityInSeconds));
-		log.debug("RefreshToken 저장 완료: {}", email);
+		log.debug("RefreshToken 저장 완료: {}", tsid);
 	}
 
 	/**
 	 * RefreshToken 조회 및 검증
-	 * @param email 사용자 이메일
+	 * @param tsid 사용자 고유 ID
 	 * @param refreshToken 검증할 토큰
 	 * @return 유효 여부
 	 */
-	public boolean validateRefreshToken(String email, String refreshToken) {
-		String key = KEY_PREFIX + email;
+	public boolean validateRefreshToken(String tsid, String refreshToken) {
+		String key = KEY_PREFIX + tsid;
 		return redisAdapter.get(key)
 			.map(storedToken -> storedToken.equals(refreshToken))
 			.orElse(false);
@@ -54,10 +54,10 @@ public class RefreshTokenService {
 
 	/**
 	 * RefreshToken 삭제 (로그아웃 시 사용)
-	 * @param email 사용자 이메일
+	 * @param tsid 사용자 고유 ID
 	 */
-	public void deleteRefreshToken(String email) {
-		String key = KEY_PREFIX + email;
+	public void deleteRefreshToken(String tsid) {
+		String key = KEY_PREFIX + tsid;
 		redisAdapter.delete(key);
 	}
 }

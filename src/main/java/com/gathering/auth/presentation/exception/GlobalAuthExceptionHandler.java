@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.gathering.auth.application.exception.BusinessException;
 import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.auth.application.exception.ExpiredTokenException;
 import com.gathering.auth.application.exception.InvalidTokenException;
@@ -62,5 +63,17 @@ public class GlobalAuthExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleTokenMismatch(TokenMismatchException e) {
 		log.warn("토큰 불일치 (보안 위협 가능성): {}", e.getMessage());
 		return ErrorCode.TOKEN_MISMATCH.toResponseEntity();
+	}
+
+	/**
+	 * 비즈니스 로직 예외 처리
+	 * - 사용자 조회 실패
+	 * - 삭제/정지된 사용자 접근
+	 * - 기타 비즈니스 규칙 위반
+	 */
+	@ExceptionHandler(BusinessException.class)
+	public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
+		log.warn("비즈니스 예외 발생: {} - {}", e.getErrorCode().name(), e.getMessage());
+		return e.getErrorCode().toResponseEntity();
 	}
 }

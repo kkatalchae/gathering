@@ -7,6 +7,8 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.time.Instant;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,8 +24,20 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gathering.auth.application.AuthService;
+import com.gathering.auth.application.exception.BusinessException;
+import com.gathering.auth.application.exception.ErrorCode;
+import com.gathering.auth.application.exception.InvalidTokenException;
 import com.gathering.user.application.UserService;
+import com.gathering.user.domain.model.UserStatus;
+import com.gathering.user.domain.model.UsersEntity;
+import com.gathering.user.presentation.dto.ChangePasswordRequest;
+import com.gathering.user.presentation.dto.MyInfoResponse;
+import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
+import com.gathering.util.CryptoUtil;
+
+import jakarta.servlet.http.Cookie;
 
 /**
  * UsersController Spring REST Docs 테스트
@@ -40,6 +54,12 @@ class UserControllerTest {
 		public UserService userService() {
 			return Mockito.mock(UserService.class);
 		}
+
+		@Bean
+		@Primary
+		public AuthService authService() {
+			return Mockito.mock(AuthService.class);
+		}
 	}
 
 	@Autowired
@@ -51,18 +71,26 @@ class UserControllerTest {
 	@Autowired
 	private UserService userService;
 
+	@Autowired
+	private AuthService authService;
+
 	@BeforeEach
 	void setUp() {
-		Mockito.reset(userService);
+		Mockito.reset(userService, authService);
 	}
 
 	@Test
 	@DisplayName("POST /users/join - 회원가입")
 	void join() throws Exception {
 		// given
+		// @AesEncrypted 어노테이션이 HTTP 요청 역직렬화 시 복호화를 수행하므로
+		// 테스트에서는 암호화된 비밀번호를 전달해야 함
+		String plainPassword = "Password1!";
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+
 		UserJoinRequest request = UserJoinRequest.builder()
 			.email("test@example.com")
-			.password("password1234!")
+			.password(encryptedPassword)
 			.nickname("테스터")
 			.name("홍길동")
 			.phoneNumber("01012345678")
@@ -78,7 +106,7 @@ class UserControllerTest {
 			.andDo(document("users-join",
 				requestFields(
 					fieldWithPath("email").description("이메일 주소 (이메일 형식)"),
-					fieldWithPath("password").description("비밀번호"),
+					fieldWithPath("password").description("AES 암호화된 비밀번호 (Base64 인코딩)"),
 					fieldWithPath("nickname").description("닉네임 (선택 사항)").optional(),
 					fieldWithPath("name").description("사용자 이름"),
 					fieldWithPath("phoneNumber").description("전화번호 (숫자만 입력, 예: 01012345678)")
@@ -86,5 +114,360 @@ class UserControllerTest {
 			));
 
 		verify(userService, times(1)).join(any(UserJoinRequest.class));
+	}
+
+	@Test
+	@DisplayName("GET /users/{tsid} - 사용자 정보 조회 (정상)")
+	void getUserInfo() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		UsersEntity user = UsersEntity.builder()
+			.tsid(tsid)
+			.email("test@example.com")
+			.nickname("테스터")
+			.name("홍길동")
+			.phoneNumber("01012345678")
+			.profileImageUrl("https://example.com/profile.jpg")
+			.status(UserStatus.ACTIVE)
+			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
+			.build();
+
+		when(userService.getUserInfo(tsid)).thenReturn(user);
+
+		// when & then
+		mockMvc.perform(get("/users/{tsid}", tsid)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.nickname").value("테스터"))
+			.andExpect(jsonPath("$.name").value("홍길동"))
+			.andExpect(jsonPath("$.profileImageUrl").value("https://example.com/profile.jpg"))
+			.andExpect(jsonPath("$.email").doesNotExist())
+			.andExpect(jsonPath("$.phoneNumber").doesNotExist())
+			.andExpect(jsonPath("$.tsid").doesNotExist())
+			.andDo(document("users-get",
+				responseFields(
+					fieldWithPath("nickname").description("닉네임"),
+					fieldWithPath("name").description("사용자 이름"),
+					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional()
+				)
+			));
+
+		verify(userService, times(1)).getUserInfo(tsid);
+	}
+
+	@Test
+	@DisplayName("GET /users/{tsid} - 삭제된 사용자 조회")
+	void getUserInfo_Deleted() throws Exception {
+		// given
+		String tsid = "1234567890123";
+
+		when(userService.getUserInfo(tsid))
+			.thenThrow(new BusinessException(ErrorCode.USER_DELETED));
+
+		// when & then
+		mockMvc.perform(get("/users/{tsid}", tsid)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("USER_DELETED"))
+			.andExpect(jsonPath("$.message").value("삭제된 사용자입니다."))
+			.andDo(document("users-get-deleted",
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(userService, times(1)).getUserInfo(tsid);
+	}
+
+	@Test
+	@DisplayName("GET /users/{tsid} - 정지된 사용자 조회")
+	void getUserInfo_Banned() throws Exception {
+		// given
+		String tsid = "1234567890123";
+
+		when(userService.getUserInfo(tsid))
+			.thenThrow(new BusinessException(ErrorCode.USER_BANNED));
+
+		// when & then
+		mockMvc.perform(get("/users/{tsid}", tsid)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("USER_BANNED"))
+			.andExpect(jsonPath("$.message").value("사용이 제한된 사용자입니다."))
+			.andDo(document("users-get-banned",
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(userService, times(1)).getUserInfo(tsid);
+	}
+
+	@Test
+	@DisplayName("GET /users/me - 내 정보 조회 (정상)")
+	void getMyInfo() throws Exception {
+		// given
+		String accessToken = "valid.jwt.token";
+		String tsid = "1234567890123";
+
+		MyInfoResponse myInfoResponse = MyInfoResponse.builder()
+			.tsid(tsid)
+			.email("test@example.com")
+			.nickname("테스터")
+			.name("홍길동")
+			.phoneNumber("01012345678")
+			.profileImageUrl("https://example.com/profile.jpg")
+			.status(UserStatus.ACTIVE)
+			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		when(userService.getMyInfo(tsid)).thenReturn(myInfoResponse);
+
+		// when & then
+		mockMvc.perform(get("/users/me")
+				.cookie(new Cookie("accessToken", accessToken))
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.tsid").value(tsid))
+			.andExpect(jsonPath("$.email").value("test@example.com"))
+			.andExpect(jsonPath("$.nickname").value("테스터"))
+			.andExpect(jsonPath("$.name").value("홍길동"))
+			.andExpect(jsonPath("$.phoneNumber").value("01012345678"))
+			.andExpect(jsonPath("$.profileImageUrl").value("https://example.com/profile.jpg"))
+			.andExpect(jsonPath("$.status").value("ACTIVE"))
+			.andDo(document("users-me",
+				responseFields(
+					fieldWithPath("tsid").description("사용자 고유 ID"),
+					fieldWithPath("email").description("이메일"),
+					fieldWithPath("nickname").description("닉네임").optional(),
+					fieldWithPath("name").description("사용자 이름"),
+					fieldWithPath("phoneNumber").description("전화번호"),
+					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional(),
+					fieldWithPath("status").description("계정 상태 (ACTIVE, BANNED, DELETED)"),
+					fieldWithPath("createdAt").description("가입일시")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).getMyInfo(tsid);
+	}
+
+	@Test
+	@DisplayName("GET /users/me - 토큰이 없는 경우")
+	void getMyInfo_NoToken() throws Exception {
+		// given
+		when(authService.getCurrentUserTsid(any()))
+			.thenThrow(new InvalidTokenException("로그인이 필요합니다"));
+
+		// when & then
+		mockMvc.perform(get("/users/me")
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
+			.andExpect(jsonPath("$.message").value("토큰이 유효하지 않습니다"))
+			.andDo(document("users-me-no-token",
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+	}
+
+	@Test
+	@DisplayName("PATCH /users/me - 내 정보 수정 (성공)")
+	void updateMyInfo_Success() throws Exception {
+		// given
+		String accessToken = "valid.jwt.token";
+		String tsid = "1234567890123";
+
+		UpdateMyInfoRequest updateRequest = new UpdateMyInfoRequest("새닉네임", "새이름", "01087654321");
+
+		MyInfoResponse updatedResponse = MyInfoResponse.builder()
+			.tsid(tsid)
+			.email("test@example.com")
+			.nickname("새닉네임")
+			.name("새이름")
+			.phoneNumber("01087654321")
+			.profileImageUrl("https://example.com/profile.jpg")
+			.status(UserStatus.ACTIVE)
+			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		when(userService.updateMyInfo(eq(tsid), any(UpdateMyInfoRequest.class))).thenReturn(updatedResponse);
+
+		// when & then
+		mockMvc.perform(patch("/users/me")
+				.cookie(new Cookie("accessToken", accessToken))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateRequest)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.nickname").value("새닉네임"))
+			.andExpect(jsonPath("$.name").value("새이름"))
+			.andExpect(jsonPath("$.phoneNumber").value("01087654321"))
+			.andDo(document("users-update-me",
+				requestFields(
+					fieldWithPath("nickname").description("닉네임 (null이면 변경하지 않음)").optional(),
+					fieldWithPath("name").description("이름 (null이면 변경하지 않음)").optional(),
+					fieldWithPath("phoneNumber").description("전화번호 (null이면 변경하지 않음, 10-11자리 숫자)").optional()
+				),
+				responseFields(
+					fieldWithPath("tsid").description("사용자 고유 ID"),
+					fieldWithPath("email").description("이메일 (변경 불가)"),
+					fieldWithPath("nickname").description("닉네임").optional(),
+					fieldWithPath("name").description("사용자 이름"),
+					fieldWithPath("phoneNumber").description("전화번호"),
+					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional(),
+					fieldWithPath("status").description("계정 상태"),
+					fieldWithPath("createdAt").description("가입일시")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).updateMyInfo(eq(tsid), any(UpdateMyInfoRequest.class));
+	}
+
+	@Test
+	@DisplayName("PATCH /users/me - 전화번호 중복")
+	void updateMyInfo_DuplicatePhoneNumber() throws Exception {
+		// given
+		String accessToken = "valid.jwt.token";
+		String tsid = "1234567890123";
+
+		UpdateMyInfoRequest updateRequest = new UpdateMyInfoRequest(null, null, "01012345678");
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		when(userService.updateMyInfo(eq(tsid), any()))
+			.thenThrow(new BusinessException(ErrorCode.PHONE_NUMBER_DUPLICATE));
+
+		// when & then
+		mockMvc.perform(patch("/users/me")
+				.cookie(new Cookie("accessToken", accessToken))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateRequest)))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("PHONE_NUMBER_DUPLICATE"))
+			.andExpect(jsonPath("$.message").value("이미 사용중인 전화번호입니다."))
+			.andDo(document("users-update-me-duplicate-phone",
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).updateMyInfo(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("PUT /users/me/password - 비밀번호 변경 (성공)")
+	void changePassword_Success() throws Exception {
+		// given
+		String accessToken = "valid.jwt.token";
+		String tsid = "1234567890123";
+
+		String currentPassword = "OldPass1!";
+		String newPassword = "NewPass1!";
+		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, "gatheringkey1234");
+		String encryptedNew = CryptoUtil.encryptAES(newPassword, "gatheringkey1234");
+
+		ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest(encryptedCurrent, encryptedNew);
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		doNothing().when(userService).changePassword(eq(tsid), any(ChangePasswordRequest.class));
+
+		// when & then
+		mockMvc.perform(put("/users/me/password")
+				.cookie(new Cookie("accessToken", accessToken))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(changePasswordRequest)))
+			.andExpect(status().isNoContent())
+			.andDo(document("users-change-password",
+				requestFields(
+					fieldWithPath("currentPassword").description("현재 비밀번호 (AES 암호화)"),
+					fieldWithPath("newPassword").description("새 비밀번호 (AES 암호화, 최소 8자, 숫자+특수문자 포함)")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).changePassword(eq(tsid), any(ChangePasswordRequest.class));
+	}
+
+	@Test
+	@DisplayName("PUT /users/me/password - 현재 비밀번호 불일치")
+	void changePassword_InvalidCurrentPassword() throws Exception {
+		// given
+		String accessToken = "valid.jwt.token";
+		String tsid = "1234567890123";
+
+		String currentPassword = "WrongPass1!";
+		String newPassword = "NewPass1!";
+		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, "gatheringkey1234");
+		String encryptedNew = CryptoUtil.encryptAES(newPassword, "gatheringkey1234");
+
+		ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest(encryptedCurrent, encryptedNew);
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		doThrow(new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD))
+			.when(userService).changePassword(eq(tsid), any());
+
+		// when & then
+		mockMvc.perform(put("/users/me/password")
+				.cookie(new Cookie("accessToken", accessToken))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(changePasswordRequest)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("INVALID_CURRENT_PASSWORD"))
+			.andExpect(jsonPath("$.message").value("현재 비밀번호가 올바르지 않습니다."))
+			.andDo(document("users-change-password-invalid-current",
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).changePassword(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("PUT /users/me/password - 새 비밀번호 형식 오류")
+	void changePassword_InvalidPasswordFormat() throws Exception {
+		// given
+		String accessToken = "valid.jwt.token";
+		String tsid = "1234567890123";
+
+		String currentPassword = "OldPass1!";
+		String newPassword = "weak"; // 비밀번호 정책 위반
+		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, "gatheringkey1234");
+		String encryptedNew = CryptoUtil.encryptAES(newPassword, "gatheringkey1234");
+
+		ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest(encryptedCurrent, encryptedNew);
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		doThrow(new BusinessException(ErrorCode.INVALID_PASSWORD_FORMAT))
+			.when(userService).changePassword(eq(tsid), any());
+
+		// when & then
+		mockMvc.perform(put("/users/me/password")
+				.cookie(new Cookie("accessToken", accessToken))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(changePasswordRequest)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("INVALID_PASSWORD_FORMAT"))
+			.andDo(document("users-change-password-invalid-format",
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).changePassword(eq(tsid), any());
 	}
 }

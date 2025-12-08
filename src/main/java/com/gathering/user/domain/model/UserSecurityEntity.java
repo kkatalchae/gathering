@@ -56,4 +56,15 @@ public class UserSecurityEntity {
 			.failedLoginCount(0)
 			.build();
 	}
+
+	/**
+	 * 비밀번호 업데이트
+	 * JPA dirty checking으로 자동 UPDATE
+	 *
+	 * @param newPasswordHash BCrypt 해시된 새 비밀번호
+	 */
+	public void updatePassword(String newPasswordHash) {
+		this.passwordHash = newPasswordHash;
+		this.passwordChangedAt = Instant.now();
+	}
 }

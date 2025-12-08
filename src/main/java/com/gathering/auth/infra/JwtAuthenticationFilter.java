@@ -11,6 +11,9 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.gathering.user.domain.model.UsersEntity;
+import com.gathering.user.domain.repository.UsersRepository;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -30,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final JwtTokenProvider jwtTokenProvider;
 	private final UserDetailsService userDetailsService;
+	private final UsersRepository usersRepository;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -41,13 +45,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 			// 2. 토큰이 있고 유효한 경우 인증 정보 설정
 			if (jwt != null && jwtTokenProvider.validateToken(jwt)) {
-				// 3. 토큰에서 사용자 이메일 추출
-				String email = jwtTokenProvider.getEmailFromToken(jwt);
+				// 3. 토큰에서 사용자 TSID 추출
+				String tsid = jwtTokenProvider.getTsidFromToken(jwt);
 
-				// 4. UserDetailsService를 통해 사용자 정보 로드
+				// 4. TSID로 사용자 조회하여 이메일 가져오기
+				UsersEntity user = usersRepository.findById(tsid).orElse(null);
+				if (user == null) {
+					log.debug("사용자를 찾을 수 없습니다: {}", tsid);
+					filterChain.doFilter(request, response);
+					return;
+				}
+
+				String email = user.getEmail();
+
+				// 5. UserDetailsService를 통해 사용자 정보 로드
 				UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-				// 5. Authentication 객체 생성
+				// 6. Authentication 객체 생성
 				UsernamePasswordAuthenticationToken authentication =
 					new UsernamePasswordAuthenticationToken(
 						userDetails,
@@ -55,10 +69,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 						userDetails.getAuthorities()
 					);
 
-				// 6. 요청 정보 추가 (IP, Session ID 등)
+				// 7. 요청 정보 추가 (IP, Session ID 등)
 				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-				// 7. SecurityContext에 인증 정보 설정
+				// 8. SecurityContext에 인증 정보 설정
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 
 				log.debug("JWT 인증 성공: {}", email);

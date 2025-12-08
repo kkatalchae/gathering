@@ -67,4 +67,24 @@ public class UsersEntity {
 
 	@Column(name = "deleted_at")
 	private Instant deletedAt;
+
+	/**
+	 * 프로필 정보 업데이트
+	 * JPA 엔티티이므로 필드를 직접 변경하면 dirty checking으로 자동 UPDATE
+	 *
+	 * @param nickname 닉네임 (null 또는 빈 문자열이면 변경하지 않음)
+	 * @param name 이름 (null 또는 빈 문자열이면 변경하지 않음)
+	 * @param phoneNumber 전화번호 (null 또는 빈 문자열이면 변경하지 않음)
+	 */
+	public void updateProfile(String nickname, String name, String phoneNumber) {
+		if (nickname != null && !nickname.isBlank()) {
+			this.nickname = nickname;
+		}
+		if (name != null && !name.isBlank()) {
+			this.name = name;
+		}
+		if (phoneNumber != null && !phoneNumber.isBlank()) {
+			this.phoneNumber = phoneNumber;
+		}
+	}
 }
