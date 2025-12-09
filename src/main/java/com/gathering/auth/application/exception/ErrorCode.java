@@ -18,9 +18,19 @@ public enum ErrorCode {
 
 	// 인증 관련 에러 (401 Unauthorized)
 	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다"),
-	INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "토큰이 유효하지 않습니다"),
-	EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다"),
-	TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "토큰이 일치하지 않습니다. 다시 로그인해주세요"),
+
+	// Access Token Errors
+	ACCESS_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "액세스 토큰이 필요합니다"),
+	ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "액세스 토큰이 만료되었습니다. 토큰을 갱신해주세요"),
+	ACCESS_TOKEN_MALFORMED(HttpStatus.UNAUTHORIZED, "액세스 토큰 형식이 올바르지 않습니다"),
+	ACCESS_TOKEN_INVALID_SIGNATURE(HttpStatus.UNAUTHORIZED, "액세스 토큰 서명이 유효하지 않습니다"),
+
+	// Refresh Token Errors
+	REFRESH_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 필요합니다"),
+	REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 만료되었습니다. 다시 로그인해주세요"),
+	REFRESH_TOKEN_MALFORMED(HttpStatus.UNAUTHORIZED, "리프레시 토큰 형식이 올바르지 않습니다"),
+	REFRESH_TOKEN_INVALID_SIGNATURE(HttpStatus.UNAUTHORIZED, "리프레시 토큰 서명이 유효하지 않습니다"),
+	REFRESH_TOKEN_REVOKED(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 취소되었습니다. 다시 로그인해주세요"),
 
 	// 사용자 관련 에러 (404 Not Found)
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),

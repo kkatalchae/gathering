@@ -30,6 +30,14 @@ paths:
       responses:
         "200":
           description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/login1168052559"
+              examples:
+                auth-login:
+                  value: "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\
+                    ,\"tokenType\":\"Bearer\",\"expiresIn\":3600}"
   /users/join:
     post:
       tags:
@@ -66,11 +74,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-tsid-1331249008"
+                $ref: "#/components/schemas/users-me-1331249008"
               examples:
                 users-me-no-token:
-                  value: "{\"code\":\"INVALID_TOKEN\",\"message\":\"토큰이 유효하지 않습니다\"\
-                    }"
+                  value: "{\"code\":\"ACCESS_TOKEN_MISSING\",\"message\":\"액세스 토큰이\
+                    \ 필요합니다\"}"
         "200":
           description: "200"
           content:
@@ -117,7 +125,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-tsid-1331249008"
+                $ref: "#/components/schemas/users-me-1331249008"
               examples:
                 users-update-me-duplicate-phone:
                   value: "{\"code\":\"PHONE_NUMBER_DUPLICATE\",\"message\":\"이미 사용\
@@ -143,7 +151,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-tsid-1331249008"
+                $ref: "#/components/schemas/users-me-1331249008"
               examples:
                 users-get-deleted:
                   value: "{\"code\":\"USER_DELETED\",\"message\":\"삭제된 사용자입니다.\"}"
@@ -194,7 +202,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-tsid-1331249008"
+                $ref: "#/components/schemas/users-me-1331249008"
               examples:
                 users-change-password-invalid-current:
                   value: "{\"code\":\"INVALID_CURRENT_PASSWORD\",\"message\":\"현재\
@@ -206,6 +214,22 @@ paths:
           description: "204"
 components:
   schemas:
+    login1168052559:
+      required:
+      - accessToken
+      - expiresIn
+      - tokenType
+      type: object
+      properties:
+        expiresIn:
+          type: number
+          description: 액세스 토큰 만료 시간 (초)
+        tokenType:
+          type: string
+          description: 토큰 타입 (Bearer)
+        accessToken:
+          type: string
+          description: 액세스 토큰 (JWT)
     users-me-458480484:
       type: object
       properties:
@@ -269,7 +293,7 @@ components:
         email:
           type: string
           description: 이메일 주소
-    users-tsid-1331249008:
+    users-me-1331249008:
       required:
       - code
       - message

@@ -3,6 +3,7 @@ package com.gathering.auth.infra;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,7 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * JWT 인증 필터
- * HTTP 요청의 쿠키에서 JWT 토큰을 추출하여 인증 처리
+ * HTTP 요청의 Authorization 헤더에서 JWT 토큰을 추출하여 인증 처리
+ * OAuth 2.0 스타일: "Authorization: Bearer {token}"
  */
 @Slf4j
 @Component
@@ -40,15 +42,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		throws ServletException, IOException {
 
 		try {
-			// 1. 쿠키에서 JWT 토큰 추출
-			String jwt = extractJwtFromCookie(request);
+			// 1. Authorization 헤더에서 JWT 토큰 추출
+			String jwt = extractJwtFromRequest(request);
 
-			// 2. 토큰이 있고 유효한 경우 인증 정보 설정
-			if (jwt != null && jwtTokenProvider.validateToken(jwt)) {
-				// 3. 토큰에서 사용자 TSID 추출
+			// 2. 토큰이 있으면 검증 및 인증 정보 설정
+			if (jwt != null) {
+				// 3. 액세스 토큰 검증 (상세 예외 발생)
+				jwtTokenProvider.validateAccessToken(jwt);
+
+				// 4. 토큰에서 사용자 TSID 추출
 				String tsid = jwtTokenProvider.getTsidFromToken(jwt);
 
-				// 4. TSID로 사용자 조회하여 이메일 가져오기
+				// 5. TSID로 사용자 조회하여 이메일 가져오기
 				UsersEntity user = usersRepository.findById(tsid).orElse(null);
 				if (user == null) {
 					log.debug("사용자를 찾을 수 없습니다: {}", tsid);
@@ -58,10 +63,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 				String email = user.getEmail();
 
-				// 5. UserDetailsService를 통해 사용자 정보 로드
+				// 6. UserDetailsService를 통해 사용자 정보 로드
 				UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-				// 6. Authentication 객체 생성
+				// 7. Authentication 객체 생성
 				UsernamePasswordAuthenticationToken authentication =
 					new UsernamePasswordAuthenticationToken(
 						userDetails,
@@ -69,10 +74,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 						userDetails.getAuthorities()
 					);
 
-				// 7. 요청 정보 추가 (IP, Session ID 등)
+				// 8. 요청 정보 추가 (IP, Session ID 등)
 				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-				// 8. SecurityContext에 인증 정보 설정
+				// 9. SecurityContext에 인증 정보 설정
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 
 				log.debug("JWT 인증 성공: {}", email);
@@ -83,26 +88,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			SecurityContextHolder.clearContext();
 		}
 
-		// 8. 다음 필터로 요청 전달
+		// 10. 다음 필터로 요청 전달
 		filterChain.doFilter(request, response);
 	}
 
 	/**
-	 * HTTP 요청의 쿠키에서 JWT 토큰 추출
+	 * HTTP 요청의 Authorization 헤더에서 JWT 토큰 추출
+	 * OAuth 2.0 스타일: "Authorization: Bearer {token}" 형식
 	 *
 	 * @param request HttpServletRequest
 	 * @return JWT 토큰 (없으면 null)
 	 */
-	private String extractJwtFromCookie(HttpServletRequest request) {
-		Cookie[] cookies = request.getCookies();
-		if (cookies == null) {
-			return null;
+	private String extractJwtFromRequest(HttpServletRequest request) {
+		String bearerToken = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+		if (bearerToken != null && bearerToken.startsWith(AuthConstants.BEARER_PREFIX)) {
+			return bearerToken.substring(AuthConstants.BEARER_PREFIX.length());
 		}
 
-		return Arrays.stream(cookies)
-			.filter(cookie -> AuthConstants.ACCESS_TOKEN_COOKIE.equals(cookie.getName()))
-			.map(Cookie::getValue)
-			.findFirst()
-			.orElse(null);
+		return null;
 	}
 }

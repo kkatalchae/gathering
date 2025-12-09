@@ -10,6 +10,11 @@ import lombok.NoArgsConstructor;
 public final class AuthConstants {
 
 	/**
+	 * Authorization 헤더 관련
+	 */
+	public static final String BEARER_PREFIX = "Bearer ";
+
+	/**
 	 * 쿠키 이름
 	 */
 	public static final String ACCESS_TOKEN_COOKIE = "accessToken";

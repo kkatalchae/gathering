@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.application.exception.BusinessException;
 import com.gathering.auth.application.exception.ErrorCode;
-import com.gathering.auth.application.exception.InvalidTokenException;
 import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
@@ -260,14 +259,14 @@ class UserControllerTest {
 	void getMyInfo_NoToken() throws Exception {
 		// given
 		when(authService.getCurrentUserTsid(any()))
-			.thenThrow(new InvalidTokenException("로그인이 필요합니다"));
+			.thenThrow(new BusinessException(ErrorCode.ACCESS_TOKEN_MISSING));
 
 		// when & then
 		mockMvc.perform(get("/users/me")
 				.contentType(MediaType.APPLICATION_JSON))
 			.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
-			.andExpect(jsonPath("$.message").value("토큰이 유효하지 않습니다"))
+			.andExpect(jsonPath("$.code").value("ACCESS_TOKEN_MISSING"))
+			.andExpect(jsonPath("$.message").value("액세스 토큰이 필요합니다"))
 			.andDo(document("users-me-no-token",
 				responseFields(
 					fieldWithPath("code").description("에러 코드"),

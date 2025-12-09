@@ -26,9 +26,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.AuthService;
-import com.gathering.auth.application.dto.AuthTokens;
 import com.gathering.auth.presentation.dto.LoginRequest;
+import com.gathering.auth.presentation.dto.LoginResponse;
 import com.gathering.util.CryptoUtil;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * AuthController Spring REST Docs 테스트
@@ -62,7 +64,7 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("POST /login - 로그인 성공")
+	@DisplayName("POST /login - 로그인 성공 (OAuth 2.0 스타일)")
 	void login_success() throws Exception {
 		// given
 		// @AesEncrypted 어노테이션이 HTTP 요청 역직렬화 시 복호화를 수행하므로
@@ -75,38 +77,36 @@ class AuthControllerTest {
 			.password(encryptedPassword)
 			.build();
 
-		AuthTokens tokens = AuthTokens.builder()
+		LoginResponse response = LoginResponse.builder()
 			.accessToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
-			.refreshToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+			.tokenType("Bearer")
+			.expiresIn(3600L)
 			.build();
 
-		when(authService.login(any(LoginRequest.class))).thenReturn(tokens);
+		when(authService.login(any(LoginRequest.class), any(HttpServletResponse.class)))
+			.thenReturn(response);
 
 		// when & then
 		mockMvc.perform(post("/login")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isOk())
-			.andExpect(cookie().exists("accessToken"))
-			.andExpect(cookie().exists("refreshToken"))
-			.andExpect(cookie().httpOnly("accessToken", true))
-			.andExpect(cookie().httpOnly("refreshToken", true))
-			.andExpect(cookie().secure("accessToken", true))
-			.andExpect(cookie().secure("refreshToken", true))
-			.andExpect(cookie().maxAge("accessToken", 3600))
-			.andExpect(cookie().maxAge("refreshToken", 604800))
+			.andExpect(jsonPath("$.accessToken").value("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."))
+			.andExpect(jsonPath("$.tokenType").value("Bearer"))
+			.andExpect(jsonPath("$.expiresIn").value(3600))
 			.andDo(document("auth-login",
 				requestFields(
 					fieldWithPath("email").description("이메일 주소"),
 					fieldWithPath("password").description("AES 암호화된 비밀번호 (Base64 인코딩)")
 				),
-				responseCookies(
-					cookieWithName("accessToken").description("액세스 토큰 (JWT, HttpOnly, Secure)"),
-					cookieWithName("refreshToken").description("리프레시 토큰 (JWT, HttpOnly, Secure)")
+				responseFields(
+					fieldWithPath("accessToken").description("액세스 토큰 (JWT)"),
+					fieldWithPath("tokenType").description("토큰 타입 (Bearer)"),
+					fieldWithPath("expiresIn").description("액세스 토큰 만료 시간 (초)")
 				)
 			));
 
-		verify(authService, times(1)).login(any(LoginRequest.class));
+		verify(authService, times(1)).login(any(LoginRequest.class), any(HttpServletResponse.class));
 	}
 
 	@Test
@@ -121,7 +121,7 @@ class AuthControllerTest {
 			.password(encryptedPassword)
 			.build();
 
-		when(authService.login(any(LoginRequest.class)))
+		when(authService.login(any(LoginRequest.class), any(HttpServletResponse.class)))
 			.thenThrow(new UsernameNotFoundException("사용자를 찾을 수 없습니다"));
 
 		// when & then
@@ -130,7 +130,7 @@ class AuthControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isUnauthorized());
 
-		verify(authService, times(1)).login(any(LoginRequest.class));
+		verify(authService, times(1)).login(any(LoginRequest.class), any(HttpServletResponse.class));
 	}
 
 	@Test
@@ -145,7 +145,7 @@ class AuthControllerTest {
 			.password(encryptedPassword)
 			.build();
 
-		when(authService.login(any(LoginRequest.class)))
+		when(authService.login(any(LoginRequest.class), any(HttpServletResponse.class)))
 			.thenThrow(new BadCredentialsException("비밀번호가 일치하지 않습니다"));
 
 		// when & then
@@ -154,7 +154,7 @@ class AuthControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isUnauthorized());
 
-		verify(authService, times(1)).login(any(LoginRequest.class));
+		verify(authService, times(1)).login(any(LoginRequest.class), any(HttpServletResponse.class));
 	}
 
 	@Test
