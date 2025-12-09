@@ -34,5 +34,5 @@ crypto:
 
 jwt:
   secret: gatheringSecretKeyForJwtTokenGenerationMustBeLongEnoughForHS256Algorithm
-  access-token-validity-in-seconds: 3600
-  refresh-token-validity-in-seconds: 604800
+  access-token-validity-in-seconds: 3600 # 1시간
+  refresh-token-validity-in-seconds: 7776000 # 90일
