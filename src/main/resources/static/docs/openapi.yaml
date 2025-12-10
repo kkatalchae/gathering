@@ -10,20 +10,14 @@ paths:
   /login:
     post:
       tags:
-      - 인증
       - login
-      summary: 로그인
-      description: 사용자 로그인 API - JWT 토큰을 쿠키로 반환
-      operationId: auth-login로그인
+      operationId: auth-login
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/login-733236850"
             examples:
-              로그인:
-                value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
-                  }"
               auth-login:
                 value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
                   }"
@@ -41,21 +35,14 @@ paths:
   /users/join:
     post:
       tags:
-      - 사용자
       - users
-      summary: 회원가입
-      description: 새로운 사용자를 등록합니다
-      operationId: users-join사용자-가입
+      operationId: users-join
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/users-join-1381348445"
             examples:
-              사용자-가입:
-                value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
-                  ,\"nickname\":\"테스터\",\"name\":\"홍길동\",\"phoneNumber\":\"01012345678\"\
-                  }"
               users-join:
                 value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
                   ,\"nickname\":\"테스터\",\"name\":\"홍길동\",\"phoneNumber\":\"01012345678\"\
@@ -69,16 +56,6 @@ paths:
       - users
       operationId: users-me
       responses:
-        "401":
-          description: "401"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/users-me-1331249008"
-              examples:
-                users-me-no-token:
-                  value: "{\"code\":\"ACCESS_TOKEN_MISSING\",\"message\":\"액세스 토큰이\
-                    \ 필요합니다\"}"
         "200":
           description: "200"
           content:
@@ -125,7 +102,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me-1331249008"
+                $ref: "#/components/schemas/users-me-password-1331249008"
               examples:
                 users-update-me-duplicate-phone:
                   value: "{\"code\":\"PHONE_NUMBER_DUPLICATE\",\"message\":\"이미 사용\
@@ -134,10 +111,7 @@ paths:
     get:
       tags:
       - users
-      - 사용자
-      summary: 정지된 사용자 조회
-      description: 정지된 사용자를 조회할 경우 404 에러를 반환합니다
-      operationId: users-getusers-get-bannedusers-get-deleted사용자-조회사용자-조회-삭제됨사용자-조회-정지됨
+      operationId: users-get
       parameters:
       - name: tsid
         in: path
@@ -151,29 +125,21 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me-1331249008"
+                $ref: "#/components/schemas/users-me-password-1331249008"
               examples:
                 users-get-deleted:
                   value: "{\"code\":\"USER_DELETED\",\"message\":\"삭제된 사용자입니다.\"}"
-                사용자-조회-정지됨:
-                  value: "{\"code\":\"USER_BANNED\",\"message\":\"사용이 제한된 사용자입니다.\"\
-                    }"
                 users-get-banned:
                   value: "{\"code\":\"USER_BANNED\",\"message\":\"사용이 제한된 사용자입니다.\"\
                     }"
-                사용자-조회-삭제됨:
-                  value: "{\"code\":\"USER_DELETED\",\"message\":\"삭제된 사용자입니다.\"}"
         "200":
           description: "200"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-tsid-982397607"
+                $ref: "#/components/schemas/users-tsid-370292314"
               examples:
                 users-get:
-                  value: "{\"nickname\":\"테스터\",\"name\":\"홍길동\",\"profileImageUrl\"\
-                    :\"https://example.com/profile.jpg\"}"
-                사용자-조회:
                   value: "{\"nickname\":\"테스터\",\"name\":\"홍길동\",\"profileImageUrl\"\
                     :\"https://example.com/profile.jpg\"}"
   /users/me/password:
@@ -202,7 +168,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me-1331249008"
+                $ref: "#/components/schemas/users-me-password-1331249008"
               examples:
                 users-change-password-invalid-current:
                   value: "{\"code\":\"INVALID_CURRENT_PASSWORD\",\"message\":\"현재\
@@ -293,7 +259,7 @@ components:
         email:
           type: string
           description: 이메일 주소
-    users-me-1331249008:
+    users-me-password-1331249008:
       required:
       - code
       - message
@@ -305,22 +271,6 @@ components:
         message:
           type: string
           description: 에러 메시지
-    users-tsid-982397607:
-      required:
-      - name
-      type: object
-      properties:
-        name:
-          type: string
-          description: 사용자 이름
-        nickname:
-          type: string
-          description: 닉네임
-          nullable: true
-        profileImageUrl:
-          type: string
-          description: 프로필 이미지 URL
-          nullable: true
     users-join-1381348445:
       required:
       - email
@@ -345,6 +295,22 @@ components:
         email:
           type: string
           description: 이메일 주소 (이메일 형식)
+    users-tsid-370292314:
+      required:
+      - name
+      - nickname
+      type: object
+      properties:
+        name:
+          type: string
+          description: 사용자 이름
+        nickname:
+          type: string
+          description: 닉네임
+        profileImageUrl:
+          type: string
+          description: 프로필 이미지 URL
+          nullable: true
     users-me-password443516385:
       required:
       - currentPassword
