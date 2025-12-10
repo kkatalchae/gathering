@@ -1,9 +1,10 @@
 package com.gathering.auth.infra;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,12 +13,13 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.gathering.auth.application.exception.BusinessException;
+import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 			// 2. 토큰이 있으면 검증 및 인증 정보 설정
 			if (jwt != null) {
-				// 3. 액세스 토큰 검증 (상세 예외 발생)
+				// 3. 액세스 토큰 검증 (BusinessException 발생)
 				jwtTokenProvider.validateAccessToken(jwt);
 
 				// 4. 토큰에서 사용자 TSID 추출
@@ -82,14 +84,58 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 				log.debug("JWT 인증 성공: {}", email);
 			}
+		} catch (BusinessException e) {
+			// validateAccessToken()에서 발생한 BusinessException 처리
+			ErrorCode errorCode = e.getErrorCode();
+			log.debug("JWT 인증 실패: {} - {}", errorCode.name(), errorCode.getMessage());
+
+			// 상세한 에러 응답 전송
+			sendErrorResponse(
+				response,
+				errorCode.getHttpStatus(),
+				errorCode.name(),  // 예: "ACCESS_TOKEN_EXPIRED"
+				errorCode.getMessage()  // 예: "액세스 토큰이 만료되었습니다"
+			);
+			return; // 필터 체인 중단!
+
 		} catch (Exception e) {
-			log.debug("JWT 인증 처리 중 오류 발생: {}", e.getMessage());
-			// 인증 실패 시 SecurityContext를 비워서 인증되지 않은 상태로 유지
-			SecurityContextHolder.clearContext();
+			// 기타 예상치 못한 예외
+			log.error("JWT 인증 처리 중 예상치 못한 오류: ", e);
+			sendErrorResponse(
+				response,
+				HttpStatus.UNAUTHORIZED,
+				"AUTHENTICATION_FAILED",
+				"인증 처리 중 오류가 발생했습니다"
+			);
+			return;
 		}
 
 		// 10. 다음 필터로 요청 전달
 		filterChain.doFilter(request, response);
+	}
+
+	/**
+	 * 에러 응답을 JSON 형식으로 전송
+	 */
+	private void sendErrorResponse(
+		HttpServletResponse response,
+		HttpStatus status,
+		String code,
+		String message
+	) throws IOException {
+		response.setStatus(status.value());
+		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		response.setCharacterEncoding("UTF-8");
+
+		// ErrorResponse 형식과 동일하게 JSON 생성
+		String jsonResponse = String.format(
+			"{\"code\":\"%s\",\"message\":\"%s\"}",
+			code,
+			message
+		);
+
+		response.getWriter().write(jsonResponse);
+		response.getWriter().flush();
 	}
 
 	/**
