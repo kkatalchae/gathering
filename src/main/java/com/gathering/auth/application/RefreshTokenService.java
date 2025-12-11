@@ -37,7 +37,7 @@ public class RefreshTokenService {
 	public void saveRefreshToken(String tsid, String jti, String refreshToken) {
 		String key = createKey(tsid, jti);
 		redisAdapter.set(key, refreshToken, Duration.ofSeconds(refreshTokenValidityInSeconds));
-		log.debug("RefreshToken 저장 완료: tsid={}, jti={}", tsid, jti);
+		log.info("RefreshToken 저장 완료: tsid={}, jti={}", tsid, jti);
 	}
 
 	/**
@@ -62,7 +62,7 @@ public class RefreshTokenService {
 	public void deleteRefreshToken(String tsid, String jti) {
 		String key = createKey(tsid, jti);
 		boolean deleted = redisAdapter.delete(key);
-		log.debug("RefreshToken 삭제: tsid={}, jti={}, deleted={}", tsid, jti, deleted);
+		log.info("RefreshToken 삭제: tsid={}, jti={}, deleted={}", tsid, jti, deleted);
 	}
 
 	/**
