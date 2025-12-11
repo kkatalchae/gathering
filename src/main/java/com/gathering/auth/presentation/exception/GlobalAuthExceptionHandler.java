@@ -3,6 +3,8 @@ package com.gathering.auth.presentation.exception;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -42,5 +44,40 @@ public class GlobalAuthExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
 		log.warn("비즈니스 예외 발생: {} - {}", e.getErrorCode().name(), e.getMessage());
 		return e.getErrorCode().toResponseEntity();
+	}
+
+	/**
+	 * 유효성 검증 실패 예외 처리
+	 * @Valid 어노테이션으로 요청 바디 검증 실패 시 발생
+	 */
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
+		// 첫 번째 필드 에러만 처리
+		FieldError fieldError = e.getBindingResult().getFieldError();
+
+		if (fieldError == null) {
+			log.warn("유효성 검증 실패: 필드 에러 없음");
+			return ErrorCode.INVALID_EMAIL_FORMAT.toResponseEntity();
+		}
+
+		String fieldName = fieldError.getField();
+		log.warn("유효성 검증 실패: {} - {}", fieldName, fieldError.getDefaultMessage());
+
+		// 필드 이름으로 ErrorCode 결정
+		ErrorCode errorCode = getErrorCodeByField(fieldName);
+		return errorCode.toResponseEntity();
+	}
+
+	/**
+	 * 필드 이름으로 ErrorCode 매핑
+	 */
+	private ErrorCode getErrorCodeByField(String fieldName) {
+		return switch (fieldName) {
+			case "email" -> ErrorCode.INVALID_EMAIL_FORMAT;
+			case "password" -> ErrorCode.INVALID_PASSWORD_FORMAT;
+			case "name" -> ErrorCode.NAME_BLANK;
+			case "phoneNumber" -> ErrorCode.INVALID_PHONE_NUMBER_FORMAT;
+			default -> ErrorCode.INVALID_EMAIL_FORMAT;
+		};
 	}
 }
