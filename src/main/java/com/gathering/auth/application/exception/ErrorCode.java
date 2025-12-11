@@ -18,6 +18,7 @@ public enum ErrorCode {
 
 	// 인증 관련 에러 (401 Unauthorized)
 	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다"),
+	AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "인증 처리 중 오류가 발생했습니다"),
 
 	// Access Token Errors
 	ACCESS_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "액세스 토큰이 필요합니다"),

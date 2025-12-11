@@ -3,7 +3,6 @@ package com.gathering.auth.infra;
 import java.io.IOException;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,8 +12,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.exception.BusinessException;
 import com.gathering.auth.application.exception.ErrorCode;
+import com.gathering.auth.presentation.dto.ErrorResponse;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 
@@ -38,6 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	private final JwtTokenProvider jwtTokenProvider;
 	private final UserDetailsService userDetailsService;
 	private final UsersRepository usersRepository;
+	private static final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -92,9 +94,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			// 상세한 에러 응답 전송
 			sendErrorResponse(
 				response,
-				errorCode.getHttpStatus(),
-				errorCode.name(),  // 예: "ACCESS_TOKEN_EXPIRED"
-				errorCode.getMessage()  // 예: "액세스 토큰이 만료되었습니다"
+				errorCode
 			);
 			return; // 필터 체인 중단!
 
@@ -103,9 +103,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			log.error("JWT 인증 처리 중 예상치 못한 오류: ", e);
 			sendErrorResponse(
 				response,
-				HttpStatus.UNAUTHORIZED,
-				"AUTHENTICATION_FAILED",
-				"인증 처리 중 오류가 발생했습니다"
+				ErrorCode.AUTHENTICATION_FAILED
 			);
 			return;
 		}
@@ -119,20 +117,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	 */
 	private void sendErrorResponse(
 		HttpServletResponse response,
-		HttpStatus status,
-		String code,
-		String message
+		ErrorCode errorCode
 	) throws IOException {
-		response.setStatus(status.value());
+		response.setStatus(errorCode.getHttpStatus().value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding("UTF-8");
 
-		// ErrorResponse 형식과 동일하게 JSON 생성
-		String jsonResponse = String.format(
-			"{\"code\":\"%s\",\"message\":\"%s\"}",
-			code,
-			message
-		);
+		ErrorResponse errorResponse = ErrorResponse.from(errorCode);
+
+		String jsonResponse = objectMapper.writeValueAsString(errorResponse);
 
 		response.getWriter().write(jsonResponse);
 		response.getWriter().flush();
