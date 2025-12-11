@@ -152,15 +152,26 @@ public class AuthService {
 		String refreshToken = CookieUtil.getCookie(request, AuthConstants.REFRESH_TOKEN_COOKIE)
 			.orElse(null);
 
-		if (refreshToken != null) {
-			// 2. 토큰에서 TSID와 JTI 추출
-			String tsid = jwtTokenProvider.getTsidFromToken(refreshToken);
-			String jti = jwtTokenProvider.getJtiFromToken(refreshToken);
-
-			// 3. Redis에서 해당 RefreshToken 삭제 (특정 기기만 로그아웃)
-			refreshTokenService.deleteRefreshToken(tsid, jti);
-			log.info("로그아웃 완료: tsid={}, jti={}", tsid, jti);
+		if (refreshToken == null) {
+			return;
 		}
+
+		try {
+			// 2. RefreshToken JWT 검증 (상세 예외 발생)
+			jwtTokenProvider.validateRefreshToken(refreshToken);
+		} catch (BusinessException ex) {
+			log.warn("유효하지 않은 RefreshToken으로 로그아웃 시도: {}", ex.getMessage());
+			CookieUtil.deleteCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE);
+			return;
+		}
+
+		// 2. 토큰에서 TSID와 JTI 추출
+		String tsid = jwtTokenProvider.getTsidFromToken(refreshToken);
+		String jti = jwtTokenProvider.getJtiFromToken(refreshToken);
+
+		// 3. Redis에서 해당 RefreshToken 삭제 (특정 기기만 로그아웃)
+		refreshTokenService.deleteRefreshToken(tsid, jti);
+		log.info("로그아웃 완료: tsid={}, jti={}", tsid, jti);
 
 		// 4. RefreshToken 쿠키 삭제
 		CookieUtil.deleteCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE);
