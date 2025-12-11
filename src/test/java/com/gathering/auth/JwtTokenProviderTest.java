@@ -7,12 +7,13 @@ import java.time.temporal.ChronoUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.gathering.auth.application.exception.BusinessException;
+import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.auth.infra.JwtTokenProvider;
-
-import io.jsonwebtoken.Claims;
 
 /**
  * JwtTokenProvider 단위 테스트
@@ -78,54 +79,6 @@ class JwtTokenProviderTest {
 	}
 
 	@Test
-	@DisplayName("유효한 토큰 검증 성공")
-	void validateToken_success() {
-		// given
-		String tsid = "1234567890123";
-		String token = jwtTokenProvider.createAccessToken(tsid);
-
-		// when
-		boolean isValid = jwtTokenProvider.validateToken(token);
-
-		// then
-		assertThat(isValid).isTrue();
-	}
-
-	@Test
-	@DisplayName("유효하지 않은 토큰 검증 실패")
-	void validateToken_fail_invalid_token() {
-		// given
-		String invalidToken = "invalid.token.value";
-
-		// when
-		boolean isValid = jwtTokenProvider.validateToken(invalidToken);
-
-		// then
-		assertThat(isValid).isFalse();
-	}
-
-	@Test
-	@DisplayName("만료된 토큰 검증 실패")
-	void validateToken_fail_expired_token() {
-		// given
-		JwtTokenProvider expiredTokenProvider = new JwtTokenProvider();
-		ReflectionTestUtils.setField(expiredTokenProvider, "secretKey", secretKey);
-		ReflectionTestUtils.setField(expiredTokenProvider, "accessTokenValidityInSeconds", -1L); // 이미 만료
-		ReflectionTestUtils.setField(expiredTokenProvider, "refreshTokenValidityInSeconds",
-			refreshTokenValidityInSeconds);
-		expiredTokenProvider.init();
-
-		String tsid = "1234567890123";
-		String expiredToken = expiredTokenProvider.createAccessToken(tsid);
-
-		// when
-		boolean isValid = jwtTokenProvider.validateToken(expiredToken);
-
-		// then
-		assertThat(isValid).isFalse();
-	}
-
-	@Test
 	@DisplayName("토큰 만료 시간 확인")
 	void getExpirationFromToken_success() {
 		// given
@@ -145,37 +98,179 @@ class JwtTokenProviderTest {
 		assertThat(Math.abs(expectedExpirationSeconds - actualExpirationSeconds)).isLessThan(10);
 	}
 
-	@Test
-	@DisplayName("토큰에서 모든 Claims 추출 성공")
-	void getAllClaimsFromToken_success() {
-		// given
-		String tsid = "1234567890123";
-		String token = jwtTokenProvider.createAccessToken(tsid);
+	@Nested
+	@DisplayName("JTI 추출")
+	class JtiExtraction {
 
-		// when
-		Claims claims = jwtTokenProvider.getAllClaimsFromToken(token);
+		@Test
+		@DisplayName("리프레시 토큰을 생성하면 JTI가 포함된다")
+		void createRefreshToken_containsJti() {
+			// given
+			String tsid = "1234567890123";
 
-		// then
-		assertThat(claims).isNotNull();
-		assertThat(claims.getSubject()).isEqualTo(tsid);
-		assertThat(claims.getExpiration()).isNotNull();
-		assertThat(claims.getIssuedAt()).isNotNull();
+			// when
+			String refreshToken = jwtTokenProvider.createRefreshToken(tsid);
+			String jti = jwtTokenProvider.getJtiFromToken(refreshToken);
+
+			// then
+			assertThat(jti).isNotBlank().isNotEmpty();
+		}
+
+		@Test
+		@DisplayName("액세스 토큰을 생성하면 JTI가 포함되지 않는다")
+		void createAccessToken_doesNotContainJti() {
+			// given
+			String tsid = "1234567890123";
+
+			// when
+			String accessToken = jwtTokenProvider.createAccessToken(tsid);
+			String jti = jwtTokenProvider.getJtiFromToken(accessToken);
+
+			// then
+			assertThat(jti).isNull();
+		}
 	}
 
-	@Test
-	@DisplayName("액세스 토큰과 리프레시 토큰의 만료 시간이 다름")
-	void accessToken_and_refreshToken_have_different_expiration() {
-		// given
-		String tsid = "1234567890123";
+	@Nested
+	@DisplayName("액세스 토큰 검증")
+	class AccessTokenValidation {
 
-		// when
-		String accessToken = jwtTokenProvider.createAccessToken(tsid);
-		String refreshToken = jwtTokenProvider.createRefreshToken(tsid);
+		@Test
+		@DisplayName("유효한 액세스 토큰을 검증하면 예외가 발생하지 않는다")
+		void validateAccessToken_validToken_success() {
+			// given
+			String tsid = "1234567890123";
+			String accessToken = jwtTokenProvider.createAccessToken(tsid);
 
-		Instant accessTokenExpiration = jwtTokenProvider.getExpirationFromToken(accessToken);
-		Instant refreshTokenExpiration = jwtTokenProvider.getExpirationFromToken(refreshToken);
+			// when & then
+			assertThatCode(() -> jwtTokenProvider.validateAccessToken(accessToken))
+				.doesNotThrowAnyException();
+		}
 
-		// then
-		assertThat(refreshTokenExpiration).isAfter(accessTokenExpiration);
+		@Test
+		@DisplayName("만료된 액세스 토큰을 검증하면 ACCESS_TOKEN_EXPIRED 예외가 발생한다")
+		void validateAccessToken_expiredToken_throwsException() {
+			// given
+			String tsid = "1234567890123";
+			// 만료된 토큰 생성 (유효기간을 음수로 설정)
+			JwtTokenProvider expiredTokenProvider = new JwtTokenProvider();
+			ReflectionTestUtils.setField(expiredTokenProvider, "secretKey", secretKey);
+			ReflectionTestUtils.setField(expiredTokenProvider, "accessTokenValidityInSeconds", -1L);
+			ReflectionTestUtils.setField(expiredTokenProvider, "refreshTokenValidityInSeconds",
+				refreshTokenValidityInSeconds);
+			expiredTokenProvider.init();
+			String expiredToken = expiredTokenProvider.createAccessToken(tsid);
+
+			// when & then
+			assertThatThrownBy(() -> jwtTokenProvider.validateAccessToken(expiredToken))
+				.isInstanceOf(BusinessException.class)
+				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_TOKEN_EXPIRED);
+		}
+
+		@Test
+		@DisplayName("잘못된 서명의 액세스 토큰을 검증하면 ACCESS_TOKEN_MALFORMED 예외가 발생한다")
+		void validateAccessToken_invalidSignature_throwsException() {
+			// given
+			String tsid = "1234567890123";
+			// 다른 시크릿 키로 토큰 생성
+			JwtTokenProvider otherProvider = new JwtTokenProvider();
+			ReflectionTestUtils.setField(otherProvider, "secretKey",
+				"different-secret-key-for-testing-invalid-signature-must-be-long");
+			ReflectionTestUtils.setField(otherProvider, "accessTokenValidityInSeconds",
+				accessTokenValidityInSeconds);
+			ReflectionTestUtils.setField(otherProvider, "refreshTokenValidityInSeconds",
+				refreshTokenValidityInSeconds);
+			otherProvider.init();
+			String invalidToken = otherProvider.createAccessToken(tsid);
+
+			// when & then
+			assertThatThrownBy(() -> jwtTokenProvider.validateAccessToken(invalidToken))
+				.isInstanceOf(BusinessException.class)
+				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_TOKEN_MALFORMED);
+		}
+
+		@Test
+		@DisplayName("잘못된 형식의 액세스 토큰을 검증하면 ACCESS_TOKEN_MALFORMED 예외가 발생한다")
+		void validateAccessToken_malformedToken_throwsException() {
+			// given
+			String malformedToken = "invalid-token-format";
+
+			// when & then
+			assertThatThrownBy(() -> jwtTokenProvider.validateAccessToken(malformedToken))
+				.isInstanceOf(BusinessException.class)
+				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESS_TOKEN_MALFORMED);
+		}
 	}
+
+	@Nested
+	@DisplayName("리프레시 토큰 검증")
+	class RefreshTokenValidation {
+
+		@Test
+		@DisplayName("유효한 리프레시 토큰을 검증하면 예외가 발생하지 않는다")
+		void validateRefreshToken_validToken_success() {
+			// given
+			String tsid = "1234567890123";
+			String refreshToken = jwtTokenProvider.createRefreshToken(tsid);
+
+			// when & then
+			assertThatCode(() -> jwtTokenProvider.validateRefreshToken(refreshToken))
+				.doesNotThrowAnyException();
+		}
+
+		@Test
+		@DisplayName("만료된 리프레시 토큰을 검증하면 REFRESH_TOKEN_EXPIRED 예외가 발생한다")
+		void validateRefreshToken_expiredToken_throwsException() {
+			// given
+			String tsid = "1234567890123";
+			// 만료된 토큰 생성 (유효기간을 음수로 설정)
+			JwtTokenProvider expiredTokenProvider = new JwtTokenProvider();
+			ReflectionTestUtils.setField(expiredTokenProvider, "secretKey", secretKey);
+			ReflectionTestUtils.setField(expiredTokenProvider, "accessTokenValidityInSeconds",
+				accessTokenValidityInSeconds);
+			ReflectionTestUtils.setField(expiredTokenProvider, "refreshTokenValidityInSeconds", -1L);
+			expiredTokenProvider.init();
+			String expiredToken = expiredTokenProvider.createRefreshToken(tsid);
+
+			// when & then
+			assertThatThrownBy(() -> jwtTokenProvider.validateRefreshToken(expiredToken))
+				.isInstanceOf(BusinessException.class)
+				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.REFRESH_TOKEN_EXPIRED);
+		}
+
+		@Test
+		@DisplayName("잘못된 서명의 리프레시 토큰을 검증하면 REFRESH_TOKEN_MALFORMED 예외가 발생한다")
+		void validateRefreshToken_invalidSignature_throwsException() {
+			// given
+			String tsid = "1234567890123";
+			// 다른 시크릿 키로 토큰 생성
+			JwtTokenProvider otherProvider = new JwtTokenProvider();
+			ReflectionTestUtils.setField(otherProvider, "secretKey",
+				"different-secret-key-for-testing-invalid-signature-must-be-long");
+			ReflectionTestUtils.setField(otherProvider, "accessTokenValidityInSeconds",
+				accessTokenValidityInSeconds);
+			ReflectionTestUtils.setField(otherProvider, "refreshTokenValidityInSeconds",
+				refreshTokenValidityInSeconds);
+			otherProvider.init();
+			String invalidToken = otherProvider.createRefreshToken(tsid);
+
+			// when & then
+			assertThatThrownBy(() -> jwtTokenProvider.validateRefreshToken(invalidToken))
+				.isInstanceOf(BusinessException.class)
+				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.REFRESH_TOKEN_MALFORMED);
+		}
+
+		@Test
+		@DisplayName("잘못된 형식의 리프레시 토큰을 검증하면 REFRESH_TOKEN_MALFORMED 예외가 발생한다")
+		void validateRefreshToken_malformedToken_throwsException() {
+			// given
+			String malformedToken = "invalid-token-format";
+
+			// when & then
+			assertThatThrownBy(() -> jwtTokenProvider.validateRefreshToken(malformedToken))
+				.isInstanceOf(BusinessException.class)
+				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.REFRESH_TOKEN_MALFORMED);
+		}
+	}
+
 }
