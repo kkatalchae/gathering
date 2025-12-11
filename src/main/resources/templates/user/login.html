@@ -436,7 +436,15 @@
                 });
 
                 if (response.ok) {
-                    // 로그인 성공 - 홈페이지로 이동
+                    // 로그인 성공 - accessToken을 localStorage에 저장
+                    const loginData = await response.json();
+
+                    // OAuth 2.0 토큰 저장
+                    localStorage.setItem('accessToken', loginData.accessToken);
+                    localStorage.setItem('tokenType', loginData.tokenType);
+                    localStorage.setItem('expiresIn', loginData.expiresIn);
+
+                    // 홈페이지로 이동
                     window.location.href = '/';
                 } else {
                     // 로그인 실패

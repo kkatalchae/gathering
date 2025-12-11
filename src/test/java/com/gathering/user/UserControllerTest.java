@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.application.exception.BusinessException;
 import com.gathering.auth.application.exception.ErrorCode;
-import com.gathering.auth.application.exception.InvalidTokenException;
+import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
@@ -36,8 +36,6 @@ import com.gathering.user.presentation.dto.MyInfoResponse;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 import com.gathering.util.CryptoUtil;
-
-import jakarta.servlet.http.Cookie;
 
 /**
  * UsersController Spring REST Docs 테스트
@@ -60,6 +58,12 @@ class UserControllerTest {
 		public AuthService authService() {
 			return Mockito.mock(AuthService.class);
 		}
+
+		@Bean
+		@Primary
+		public JwtTokenProvider jwtTokenProvider() {
+			return Mockito.mock(JwtTokenProvider.class);
+		}
 	}
 
 	@Autowired
@@ -73,6 +77,9 @@ class UserControllerTest {
 
 	@Autowired
 	private AuthService authService;
+
+	@Autowired
+	private JwtTokenProvider jwtTokenProvider;
 
 	@BeforeEach
 	void setUp() {
@@ -209,7 +216,6 @@ class UserControllerTest {
 	@DisplayName("GET /users/me - 내 정보 조회 (정상)")
 	void getMyInfo() throws Exception {
 		// given
-		String accessToken = "valid.jwt.token";
 		String tsid = "1234567890123";
 
 		MyInfoResponse myInfoResponse = MyInfoResponse.builder()
@@ -228,7 +234,6 @@ class UserControllerTest {
 
 		// when & then
 		mockMvc.perform(get("/users/me")
-				.cookie(new Cookie("accessToken", accessToken))
 				.contentType(MediaType.APPLICATION_JSON))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.tsid").value(tsid))
@@ -256,33 +261,9 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("GET /users/me - 토큰이 없는 경우")
-	void getMyInfo_NoToken() throws Exception {
-		// given
-		when(authService.getCurrentUserTsid(any()))
-			.thenThrow(new InvalidTokenException("로그인이 필요합니다"));
-
-		// when & then
-		mockMvc.perform(get("/users/me")
-				.contentType(MediaType.APPLICATION_JSON))
-			.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
-			.andExpect(jsonPath("$.message").value("토큰이 유효하지 않습니다"))
-			.andDo(document("users-me-no-token",
-				responseFields(
-					fieldWithPath("code").description("에러 코드"),
-					fieldWithPath("message").description("에러 메시지")
-				)
-			));
-
-		verify(authService, times(1)).getCurrentUserTsid(any());
-	}
-
-	@Test
 	@DisplayName("PATCH /users/me - 내 정보 수정 (성공)")
 	void updateMyInfo_Success() throws Exception {
 		// given
-		String accessToken = "valid.jwt.token";
 		String tsid = "1234567890123";
 
 		UpdateMyInfoRequest updateRequest = new UpdateMyInfoRequest("새닉네임", "새이름", "01087654321");
@@ -303,7 +284,6 @@ class UserControllerTest {
 
 		// when & then
 		mockMvc.perform(patch("/users/me")
-				.cookie(new Cookie("accessToken", accessToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(updateRequest)))
 			.andExpect(status().isOk())
@@ -336,7 +316,6 @@ class UserControllerTest {
 	@DisplayName("PATCH /users/me - 전화번호 중복")
 	void updateMyInfo_DuplicatePhoneNumber() throws Exception {
 		// given
-		String accessToken = "valid.jwt.token";
 		String tsid = "1234567890123";
 
 		UpdateMyInfoRequest updateRequest = new UpdateMyInfoRequest(null, null, "01012345678");
@@ -347,7 +326,6 @@ class UserControllerTest {
 
 		// when & then
 		mockMvc.perform(patch("/users/me")
-				.cookie(new Cookie("accessToken", accessToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(updateRequest)))
 			.andExpect(status().isConflict())
@@ -368,7 +346,6 @@ class UserControllerTest {
 	@DisplayName("PUT /users/me/password - 비밀번호 변경 (성공)")
 	void changePassword_Success() throws Exception {
 		// given
-		String accessToken = "valid.jwt.token";
 		String tsid = "1234567890123";
 
 		String currentPassword = "OldPass1!";
@@ -383,7 +360,6 @@ class UserControllerTest {
 
 		// when & then
 		mockMvc.perform(put("/users/me/password")
-				.cookie(new Cookie("accessToken", accessToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(changePasswordRequest)))
 			.andExpect(status().isNoContent())
@@ -402,7 +378,6 @@ class UserControllerTest {
 	@DisplayName("PUT /users/me/password - 현재 비밀번호 불일치")
 	void changePassword_InvalidCurrentPassword() throws Exception {
 		// given
-		String accessToken = "valid.jwt.token";
 		String tsid = "1234567890123";
 
 		String currentPassword = "WrongPass1!";
@@ -418,7 +393,6 @@ class UserControllerTest {
 
 		// when & then
 		mockMvc.perform(put("/users/me/password")
-				.cookie(new Cookie("accessToken", accessToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(changePasswordRequest)))
 			.andExpect(status().isBadRequest())
@@ -439,7 +413,6 @@ class UserControllerTest {
 	@DisplayName("PUT /users/me/password - 새 비밀번호 형식 오류")
 	void changePassword_InvalidPasswordFormat() throws Exception {
 		// given
-		String accessToken = "valid.jwt.token";
 		String tsid = "1234567890123";
 
 		String currentPassword = "OldPass1!";
@@ -455,7 +428,6 @@ class UserControllerTest {
 
 		// when & then
 		mockMvc.perform(put("/users/me/password")
-				.cookie(new Cookie("accessToken", accessToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(changePasswordRequest)))
 			.andExpect(status().isBadRequest())

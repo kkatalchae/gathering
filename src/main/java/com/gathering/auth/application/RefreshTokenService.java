@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  * RefreshToken 관리 서비스 (Redis 기반)
  * - RefreshToken 저장/조회/삭제
  * - TTL 자동 관리
- * - Refresh Token Rotation 지원
+ * - JTI를 통한 멀티 디바이스 지원
  */
 @Slf4j
 @Service
@@ -29,24 +29,26 @@ public class RefreshTokenService {
 	private static final String KEY_PREFIX = "refresh_token:";
 
 	/**
-	 * RefreshToken 저장
+	 * RefreshToken 저장 (멀티 디바이스 지원)
 	 * @param tsid 사용자 고유 ID
+	 * @param jti JWT ID (토큰 고유 ID)
 	 * @param refreshToken 리프레시 토큰
 	 */
-	public void saveRefreshToken(String tsid, String refreshToken) {
-		String key = KEY_PREFIX + tsid;
+	public void saveRefreshToken(String tsid, String jti, String refreshToken) {
+		String key = createKey(tsid, jti);
 		redisAdapter.set(key, refreshToken, Duration.ofSeconds(refreshTokenValidityInSeconds));
-		log.debug("RefreshToken 저장 완료: {}", tsid);
+		log.info("RefreshToken 저장 완료: tsid={}, jti={}", tsid, jti);
 	}
 
 	/**
 	 * RefreshToken 조회 및 검증
 	 * @param tsid 사용자 고유 ID
+	 * @param jti JWT ID (토큰 고유 ID)
 	 * @param refreshToken 검증할 토큰
 	 * @return 유효 여부
 	 */
-	public boolean validateRefreshToken(String tsid, String refreshToken) {
-		String key = KEY_PREFIX + tsid;
+	public boolean validateRefreshToken(String tsid, String jti, String refreshToken) {
+		String key = createKey(tsid, jti);
 		return redisAdapter.get(key)
 			.map(storedToken -> storedToken.equals(refreshToken))
 			.orElse(false);
@@ -55,9 +57,21 @@ public class RefreshTokenService {
 	/**
 	 * RefreshToken 삭제 (로그아웃 시 사용)
 	 * @param tsid 사용자 고유 ID
+	 * @param jti JWT ID (토큰 고유 ID)
 	 */
-	public void deleteRefreshToken(String tsid) {
-		String key = KEY_PREFIX + tsid;
-		redisAdapter.delete(key);
+	public void deleteRefreshToken(String tsid, String jti) {
+		String key = createKey(tsid, jti);
+		boolean deleted = redisAdapter.delete(key);
+		log.info("RefreshToken 삭제: tsid={}, jti={}, deleted={}", tsid, jti, deleted);
+	}
+
+	/**
+	 * Redis 키 생성 (멀티 디바이스 지원)
+	 * @param tsid 사용자 고유 ID
+	 * @param jti JWT ID (토큰 고유 ID)
+	 * @return Redis 키
+	 */
+	private String createKey(String tsid, String jti) {
+		return KEY_PREFIX + tsid + ":" + jti;
 	}
 }

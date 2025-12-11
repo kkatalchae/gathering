@@ -497,15 +497,101 @@
 
     let currentUserData = null;
 
-    // 내 정보 조회
-    async function loadMyInfo() {
+    // API 호출 유틸리티 함수
+    async function apiCall(url, options = {}) {
+        const accessToken = localStorage.getItem('accessToken');
+
+        // Authorization 헤더 추가
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+            ...options.headers
+        };
+
         try {
-            const response = await fetch('/users/me', {
-                method: 'GET',
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            // 액세스 토큰 만료 시 자동 갱신
+            if (response.status === 401) {
+                const errorData = await response.json().catch(() => ({}));
+
+                if (errorData.code === 'ACCESS_TOKEN_EXPIRED') {
+                    // 토큰 갱신 시도
+                    const refreshed = await refreshAccessToken();
+                    if (refreshed) {
+                        // 갱신 성공 시 원래 요청 재시도
+                        return apiCall(url, options);
+                    }
+                } else if (errorData.code === 'REFRESH_TOKEN_EXPIRED' || errorData.code === 'REFRESH_TOKEN_REVOKED') {
+                    // 리프레시 토큰 만료 또는 취소 - 로그인 페이지로 이동
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('tokenType');
+                    localStorage.removeItem('expiresIn');
+                    window.location.href = '/login';
+                    return null;
+                }
+
+                // 기타 401 에러
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('tokenType');
+                localStorage.removeItem('expiresIn');
+                window.location.href = '/login';
+                return null;
+            }
+
+            return response;
+        } catch (error) {
+            console.error('API 호출 실패:', error);
+            throw error;
+        }
+    }
+
+    // 액세스 토큰 갱신
+    async function refreshAccessToken() {
+        try {
+            const response = await fetch('/refresh', {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
+
+            if (response.ok) {
+                const refreshData = await response.json();
+                // 새로운 액세스 토큰 저장
+                localStorage.setItem('accessToken', refreshData.accessToken);
+                localStorage.setItem('tokenType', refreshData.tokenType);
+                localStorage.setItem('expiresIn', refreshData.expiresIn);
+                return true;
+            } else {
+                // 리프레시 실패
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('tokenType');
+                localStorage.removeItem('expiresIn');
+                window.location.href = '/login';
+                return false;
+            }
+        } catch (error) {
+            console.error('토큰 갱신 실패:', error);
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('tokenType');
+            localStorage.removeItem('expiresIn');
+            window.location.href = '/login';
+            return false;
+        }
+    }
+
+    // 내 정보 조회
+    async function loadMyInfo() {
+        try {
+            const response = await apiCall('/users/me', {
+                method: 'GET'
+            });
+
+            if (!response) return; // apiCall에서 이미 처리됨
 
             if (response.ok) {
                 currentUserData = await response.json();
@@ -621,17 +707,16 @@
         profileBtn.textContent = '수정 중...';
 
         try {
-            const response = await fetch('/users/me', {
+            const response = await apiCall('/users/me', {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     nickname: nickname || null,
                     name: name,
                     phoneNumber: phoneNumber
                 })
             });
+
+            if (!response) return; // apiCall에서 이미 처리됨
 
             if (response.ok) {
                 const updatedData = await response.json();
@@ -717,16 +802,15 @@
                 padding: CryptoJS.pad.Pkcs7
             }).toString();
 
-            const response = await fetch('/users/me/password', {
+            const response = await apiCall('/users/me/password', {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     currentPassword: encryptedCurrentPassword,
                     newPassword: encryptedNewPassword
                 })
             });
+
+            if (!response) return; // apiCall에서 이미 처리됨
 
             if (response.ok) {
                 showAlert('passwordAlert', 'success', '비밀번호가 성공적으로 변경되었습니다.');

@@ -1,21 +1,14 @@
 package com.gathering.auth.presentation.controller;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gathering.auth.application.AuthService;
-import com.gathering.auth.application.dto.AuthTokens;
-import com.gathering.auth.application.exception.InvalidTokenException;
-import com.gathering.auth.infra.AuthConstants;
-import com.gathering.auth.infra.CookieUtil;
-import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.auth.presentation.dto.LoginRequest;
 import com.gathering.auth.presentation.dto.LoginResponse;
-import com.gathering.user.domain.model.UsersEntity;
-import com.gathering.user.domain.repository.UsersRepository;
+import com.gathering.auth.presentation.dto.RefreshResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,40 +23,37 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
 	private final AuthService authService;
-	private final JwtTokenProvider jwtTokenProvider;
-	private final UsersRepository usersRepository;
-
-	@Value("${jwt.access-token-validity-in-seconds}")
-	private long accessTokenValidityInSeconds;
-
-	@Value("${jwt.refresh-token-validity-in-seconds}")
-	private long refreshTokenValidityInSeconds;
 
 	/**
-	 * 로그인 API
-	 * 인증 성공 시 JWT 토큰을 HTTP-only 쿠키로 전달
+	 * 로그인 API (OAuth 2.0 스타일)
+	 * - AccessToken: 응답 본문에 포함
+	 * - RefreshToken: HTTP-only 쿠키로 설정
 	 */
 	@PostMapping("/login")
-	public ResponseEntity<Void> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-		AuthTokens tokens = authService.login(request);
-		CookieUtil.setAuthTokens(response, tokens, (int)accessTokenValidityInSeconds,
-			(int)refreshTokenValidityInSeconds);
-		return ResponseEntity.ok().build();
+	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+		HttpServletResponse response) {
+		return ResponseEntity.ok(authService.login(request, response));
 	}
 
 	/**
-	 * 토큰 갱신 API
-	 * RefreshToken을 검증하고 새로운 AccessToken과 RefreshToken 발급 (Token Rotation)
+	 * 토큰 갱신 API (OAuth 2.0 스타일)
+	 * RefreshToken을 검증하고 새로운 AccessToken 발급
+	 * - AccessToken: 응답 본문에 포함
+	 * - RefreshToken: 변경 없음 (90일 유효기간)
 	 */
 	@PostMapping("/refresh")
-	public ResponseEntity<Void> refresh(HttpServletRequest request, HttpServletResponse response) {
-		String refreshToken = CookieUtil.getCookie(request, AuthConstants.REFRESH_TOKEN_COOKIE)
-			.orElseThrow(() -> new InvalidTokenException("RefreshToken이 없습니다"));
+	public ResponseEntity<RefreshResponse> refresh(HttpServletRequest request) {
+		return ResponseEntity.ok(authService.refresh(request));
+	}
 
-		AuthTokens tokens = authService.refresh(refreshToken);
-		CookieUtil.setAuthTokens(response, tokens, (int)accessTokenValidityInSeconds,
-			(int)refreshTokenValidityInSeconds);
-
+	/**
+	 * 로그아웃 API
+	 * Redis에서 RefreshToken을 삭제하여 토큰 갱신 불가능하도록 만듦
+	 * 특정 기기만 로그아웃 (멀티 디바이스 지원)
+	 */
+	@PostMapping("/logout")
+	public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+		authService.logout(request, response);
 		return ResponseEntity.ok().build();
 	}
 }

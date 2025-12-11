@@ -430,20 +430,86 @@
     </div>
 
     <script>
-        // 페이지 로드 시 로그인 상태 확인
-        async function checkLoginStatus() {
+        // API 호출 유틸리티 함수
+        async function apiCall(url, options = {}) {
+            const accessToken = localStorage.getItem('accessToken');
+
+            // Authorization 헤더 추가
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+                ...options.headers
+            };
+
             try {
-                const response = await fetch('/users/me', {
-                    method: 'GET',
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+
+                // 액세스 토큰 만료 시 자동 갱신
+                if (response.status === 401) {
+                    const errorData = await response.json().catch(() => ({}));
+
+                    if (errorData.code === 'ACCESS_TOKEN_EXPIRED') {
+                        // 토큰 갱신 시도
+                        const refreshed = await refreshAccessToken();
+                        if (refreshed) {
+                            // 갱신 성공 시 원래 요청 재시도
+                            return apiCall(url, options);
+                        }
+                    }
+
+                    // 기타 401 에러 - 로그인 페이지로 이동
+                    return response;
+                }
+
+                return response;
+            } catch (error) {
+                console.error('API 호출 실패:', error);
+                throw error;
+            }
+        }
+
+        // 액세스 토큰 갱신
+        async function refreshAccessToken() {
+            try {
+                const response = await fetch('/refresh', {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
-                    },
-                    credentials: 'include' // 쿠키 포함
+                    }
                 });
 
                 if (response.ok) {
+                    const refreshData = await response.json();
+                    // 새로운 액세스 토큰 저장
+                    localStorage.setItem('accessToken', refreshData.accessToken);
+                    localStorage.setItem('tokenType', refreshData.tokenType);
+                    localStorage.setItem('expiresIn', refreshData.expiresIn);
+                    return true;
+                } else {
+                    // 리프레시 실패
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('tokenType');
+                    localStorage.removeItem('expiresIn');
+                    return false;
+                }
+            } catch (error) {
+                console.error('토큰 갱신 실패:', error);
+                return false;
+            }
+        }
+
+        // 페이지 로드 시 로그인 상태 확인
+        async function checkLoginStatus() {
+            try {
+                const response = await apiCall('/users/me', {
+                    method: 'GET'
+                });
+
+                if (response && response.ok) {
                     const userInfo = await response.json();
-                    const tsid = userInfo.tsid;
 
                     // 로그인 버튼 숨기고 로그아웃 버튼과 내 정보 버튼 표시
                     document.getElementById('loginBtn').style.display = 'none';
@@ -455,10 +521,26 @@
                         window.location.href = '/my-info';
                     });
 
-                    // 로그아웃 버튼 클릭 시 (추후 로그아웃 API 연동)
+                    // 로그아웃 버튼 클릭 시
                     document.getElementById('logoutBtn').addEventListener('click', async function() {
-                        // TODO: 로그아웃 API 호출
-                        alert('로그아웃 기능은 추후 구현 예정입니다');
+                        try {
+                            const response = await apiCall('/logout', {
+                                method: 'POST'
+                            });
+
+                            if (response && response.ok) {
+                                // 로그아웃 성공 - localStorage 정리 및 로그인 페이지로 이동
+                                localStorage.removeItem('accessToken');
+                                localStorage.removeItem('tokenType');
+                                localStorage.removeItem('expiresIn');
+                                window.location.href = '/login';
+                            } else {
+                                alert('로그아웃 중 오류가 발생했습니다.');
+                            }
+                        } catch (error) {
+                            console.error('로그아웃 실패:', error);
+                            alert('로그아웃 중 오류가 발생했습니다.');
+                        }
                     });
                 }
             } catch (error) {
