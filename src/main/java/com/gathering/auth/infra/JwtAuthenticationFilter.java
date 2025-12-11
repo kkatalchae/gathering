@@ -42,71 +42,65 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-		throws ServletException, IOException {
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+		FilterChain filterChain) throws ServletException, IOException {
+
+		// 1. Authorization 헤더에서 JWT 토큰 추출
+		String jwt = extractJwtFromRequest(request);
+
+		// 2. 토큰이 있으면 검증 및 인증 정보 설정
+		if (jwt == null) {
+			log.debug("Authorization 헤더에 JWT 토큰이 없습니다");
+			sendErrorResponse(response, ErrorCode.ACCESS_TOKEN_MISSING);
+			return;
+		}
 
 		try {
-			// 1. Authorization 헤더에서 JWT 토큰 추출
-			String jwt = extractJwtFromRequest(request);
-
-			// 2. 토큰이 있으면 검증 및 인증 정보 설정
-			if (jwt != null) {
-				// 3. 액세스 토큰 검증 (BusinessException 발생)
-				jwtTokenProvider.validateAccessToken(jwt);
-
-				// 4. 토큰에서 사용자 TSID 추출
-				String tsid = jwtTokenProvider.getTsidFromToken(jwt);
-
-				// 5. TSID로 사용자 조회하여 이메일 가져오기
-				UsersEntity user = usersRepository.findById(tsid).orElse(null);
-				if (user == null) {
-					log.debug("사용자를 찾을 수 없습니다: {}", tsid);
-					filterChain.doFilter(request, response);
-					return;
-				}
-
-				String email = user.getEmail();
-
-				// 6. UserDetailsService를 통해 사용자 정보 로드
-				UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-				// 7. Authentication 객체 생성
-				UsernamePasswordAuthenticationToken authentication =
-					new UsernamePasswordAuthenticationToken(
-						userDetails,
-						null,
-						userDetails.getAuthorities()
-					);
-
-				// 8. 요청 정보 추가 (IP, Session ID 등)
-				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-				// 9. SecurityContext에 인증 정보 설정
-				SecurityContextHolder.getContext().setAuthentication(authentication);
-
-				log.debug("JWT 인증 성공: {}", email);
-			}
+			// 3. 액세스 토큰 검증 (BusinessException 발생)
+			jwtTokenProvider.validateAccessToken(jwt);
 		} catch (BusinessException e) {
 			// validateAccessToken()에서 발생한 BusinessException 처리
 			ErrorCode errorCode = e.getErrorCode();
 			log.debug("JWT 인증 실패: {} - {}", errorCode.name(), errorCode.getMessage());
 
 			// 상세한 에러 응답 전송
-			sendErrorResponse(
-				response,
-				errorCode
-			);
+			sendErrorResponse(response, errorCode);
 			return; // 필터 체인 중단!
 
 		} catch (Exception e) {
 			// 기타 예상치 못한 예외
 			log.error("JWT 인증 처리 중 예상치 못한 오류: ", e);
-			sendErrorResponse(
-				response,
-				ErrorCode.AUTHENTICATION_FAILED
-			);
+			sendErrorResponse(response, ErrorCode.AUTHENTICATION_FAILED);
 			return;
 		}
+		
+		// 4. 토큰에서 사용자 TSID 추출
+		String tsid = jwtTokenProvider.getTsidFromToken(jwt);
+
+		// 5. TSID로 사용자 조회하여 이메일 가져오기
+		UsersEntity user = usersRepository.findById(tsid).orElse(null);
+		if (user == null) {
+			log.debug("사용자를 찾을 수 없습니다: {}", tsid);
+			sendErrorResponse(response, ErrorCode.AUTHENTICATION_FAILED);
+			return;
+		}
+
+		String email = user.getEmail();
+
+		// 6. UserDetailsService를 통해 사용자 정보 로드
+		UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+		// 7. Authentication 객체 생성
+		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+			userDetails.getAuthorities());
+
+		// 8. 요청 정보 추가 (IP, Session ID 등)
+		authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+		// 9. SecurityContext에 인증 정보 설정
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+
+		log.debug("JWT 인증 성공: {}", email);
 
 		// 10. 다음 필터로 요청 전달
 		filterChain.doFilter(request, response);
@@ -115,10 +109,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	/**
 	 * 에러 응답을 JSON 형식으로 전송
 	 */
-	private void sendErrorResponse(
-		HttpServletResponse response,
-		ErrorCode errorCode
-	) throws IOException {
+	private void sendErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
 		response.setStatus(errorCode.getHttpStatus().value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding("UTF-8");
