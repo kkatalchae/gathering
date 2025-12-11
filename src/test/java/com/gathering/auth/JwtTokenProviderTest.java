@@ -46,8 +46,7 @@ class JwtTokenProviderTest {
 		String token = jwtTokenProvider.createAccessToken(tsid);
 
 		// then
-		assertThat(token).isNotNull();
-		assertThat(token).isNotEmpty();
+		assertThat(token).isNotNull().isNotEmpty();
 	}
 
 	@Test
@@ -60,8 +59,7 @@ class JwtTokenProviderTest {
 		String token = jwtTokenProvider.createRefreshToken(tsid);
 
 		// then
-		assertThat(token).isNotNull();
-		assertThat(token).isNotEmpty();
+		assertThat(token).isNotNull().isNotEmpty();
 	}
 
 	@Test
@@ -89,8 +87,7 @@ class JwtTokenProviderTest {
 		Instant expiration = jwtTokenProvider.getExpirationFromToken(token);
 
 		// then
-		assertThat(expiration).isNotNull();
-		assertThat(expiration).isAfter(Instant.now());
+		assertThat(expiration).isNotNull().isAfter(Instant.now());
 		// 만료 시간이 대략 1시간 후인지 확인 (오차 범위 ±10초)
 		long expectedExpirationSeconds = Instant.now().plus(accessTokenValidityInSeconds, ChronoUnit.SECONDS)
 			.getEpochSecond();
