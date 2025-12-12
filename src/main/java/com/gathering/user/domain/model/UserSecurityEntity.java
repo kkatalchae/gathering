@@ -30,7 +30,7 @@ public class UserSecurityEntity {
 	@Column(nullable = false, length = 13, columnDefinition = "CHAR(13)")
 	private String userTsid;
 
-	@Column(name = "password_hash", nullable = false)
+	@Column(name = "password_hash")
 	private String passwordHash;
 
 	@Column(name = "failed_login_count", nullable = false)

@@ -50,11 +50,15 @@ public class UsersEntity {
 	private String name;
 
 	// TODO 추후 문자를 통해 검증
-	@Column(nullable = false)
+	@Column
 	private String phoneNumber;
 
 	@Column(name = "profile_image_url")
 	private String profileImageUrl;
+
+	@Builder.Default
+	@Column(name = "email_verified", nullable = false)
+	private Boolean emailVerified = false;
 
 	@Builder.Default
 	@Column(nullable = false)
@@ -86,5 +90,23 @@ public class UsersEntity {
 		if (phoneNumber != null && !phoneNumber.isBlank()) {
 			this.phoneNumber = phoneNumber;
 		}
+	}
+
+	/**
+	 * 프로필 이미지 URL 업데이트
+	 *
+	 * @param profileImageUrl 프로필 이미지 URL
+	 */
+	public void updateProfileImage(String profileImageUrl) {
+		this.profileImageUrl = profileImageUrl;
+	}
+
+	/**
+	 * 이메일 인증 상태 설정
+	 *
+	 * @param emailVerified 이메일 인증 여부
+	 */
+	public void setEmailVerified(Boolean emailVerified) {
+		this.emailVerified = emailVerified;
 	}
 }
