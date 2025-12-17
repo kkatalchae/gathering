@@ -30,6 +30,8 @@ public class SecurityConfig {
 
 	private static final String[] PERMIT_ALL_URLS = {
 		"/login", "/signup", "/refresh", "/logout", "/", "/users/join", "/error", "/favicon.ico",
+		// OAuth 엔드포인트 (인증 불필요)
+		"/oauth/*/authorize", "/oauth/*/callback",
 		// API 문서
 		"/docs/**", "/redoc.html"
 	};
