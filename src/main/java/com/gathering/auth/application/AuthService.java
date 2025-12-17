@@ -16,6 +16,8 @@ import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.auth.presentation.dto.LoginRequest;
 import com.gathering.auth.presentation.dto.LoginResponse;
 import com.gathering.auth.presentation.dto.RefreshResponse;
+import com.gathering.auth.domain.OAuthUserInfo;
+import com.gathering.user.application.OAuthUserService;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 
@@ -36,6 +38,7 @@ public class AuthService {
 	private final JwtTokenProvider jwtTokenProvider;
 	private final RefreshTokenService refreshTokenService;
 	private final UsersRepository usersRepository;
+	private final OAuthUserService oauthUserService;
 
 	@Value("${jwt.access-token-validity-in-seconds}")
 	private long accessTokenValidityInSeconds;
@@ -175,6 +178,48 @@ public class AuthService {
 
 		// 4. RefreshToken 쿠키 삭제
 		CookieUtil.deleteCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE);
+	}
+
+	/**
+	 * OAuth 로그인 처리
+	 * OAuth 사용자 정보로 회원가입 또는 로그인 수행
+	 *
+	 * @param oauthUserInfo OAuth 제공자에서 받은 사용자 정보
+	 * @param response HttpServletResponse
+	 * @return 로그인 응답 (AccessToken 포함)
+	 */
+	@Transactional
+	public LoginResponse loginWithOAuth(OAuthUserInfo oauthUserInfo, HttpServletResponse response) {
+		// 1. OAuth 사용자 찾기 또는 생성
+		UsersEntity user = oauthUserService.findOrCreateUser(oauthUserInfo);
+		String tsid = user.getTsid();
+
+		// 2. JWT 토큰 생성
+		String accessToken = jwtTokenProvider.createAccessToken(tsid);
+		String refreshToken = jwtTokenProvider.createRefreshToken(tsid);
+
+		// 3. RefreshToken에서 JTI 추출
+		String jti = jwtTokenProvider.getJtiFromToken(refreshToken);
+
+		// 4. RefreshToken을 Redis에 저장
+		refreshTokenService.saveRefreshToken(tsid, jti, refreshToken);
+
+		// 5. RefreshToken을 HTTP-only 쿠키로 설정
+		CookieUtil.addSecureCookie(
+			response,
+			AuthConstants.REFRESH_TOKEN_COOKIE,
+			refreshToken,
+			(int)refreshTokenValidityInSeconds
+		);
+
+		log.info("OAuth 로그인 성공: tsid={}, provider={}", tsid, oauthUserInfo.getProvider());
+
+		// 6. AccessToken 응답
+		return LoginResponse.builder()
+			.accessToken(accessToken)
+			.tokenType("Bearer")
+			.expiresIn(accessTokenValidityInSeconds)
+			.build();
 	}
 
 	/**
