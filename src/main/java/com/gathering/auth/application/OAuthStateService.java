@@ -109,6 +109,31 @@ public class OAuthStateService {
 	}
 
 	/**
+	 * state 검증 및 session 일관성 확인 (예외 던지는 버전)
+	 * Controller에서 사용하기 편하도록 검증 실패 시 예외를 던짐
+	 *
+	 * @param state 검증할 state
+	 * @param currentUserTsid 현재 요청한 사용자 TSID (비로그인 상태면 null)
+	 * @param currentRefreshTokenJti 현재 요청한 사용자의 refreshToken JTI (비로그인 상태면 null)
+	 * @throws BusinessException state가 유효하지 않거나 session이 일치하지 않는 경우
+	 */
+	public void validateStateAndSessionOrThrow(String state, String currentUserTsid, String currentRefreshTokenJti) {
+		ValidationResult result = validateAndConsumeState(state, currentUserTsid, currentRefreshTokenJti);
+
+		switch (result) {
+			case INVALID_STATE:
+				throw new com.gathering.auth.application.exception.BusinessException(
+					com.gathering.auth.application.exception.ErrorCode.OAUTH_INVALID_STATE);
+			case SESSION_MISMATCH:
+				throw new com.gathering.auth.application.exception.BusinessException(
+					com.gathering.auth.application.exception.ErrorCode.OAUTH_SESSION_MISMATCH);
+			case VALID:
+				// 검증 성공
+				break;
+		}
+	}
+
+	/**
 	 * OAuth state 검증 결과
 	 */
 	public enum ValidationResult {

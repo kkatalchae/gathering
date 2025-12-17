@@ -244,4 +244,40 @@ public class AuthService {
 		// JWT에서 TSID 추출
 		return jwtTokenProvider.getTsidFromToken(accessToken);
 	}
+
+	/**
+	 * 현재 로그인한 사용자의 TSID 추출 (Optional)
+	 * 비로그인 상태인 경우 null 반환
+	 *
+	 * @param request HttpServletRequest
+	 * @return 사용자 TSID (비로그인 시 null)
+	 */
+	public String getCurrentUserTsidOrNull(HttpServletRequest request) {
+		try {
+			return getCurrentUserTsid(request);
+		} catch (BusinessException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * RefreshToken 쿠키에서 JTI 추출
+	 * OAuth 인증 과정에서 session 일관성 검증을 위해 사용
+	 *
+	 * @param request HttpServletRequest
+	 * @return RefreshToken의 JTI (쿠키가 없거나 유효하지 않으면 null)
+	 */
+	public String getRefreshTokenJtiOrNull(HttpServletRequest request) {
+		return CookieUtil.getCookie(request, AuthConstants.REFRESH_TOKEN_COOKIE)
+			.map(refreshToken -> {
+				try {
+					jwtTokenProvider.validateRefreshToken(refreshToken);
+					return jwtTokenProvider.getJtiFromToken(refreshToken);
+				} catch (BusinessException e) {
+					log.debug("유효하지 않은 RefreshToken: {}", e.getMessage());
+					return null;
+				}
+			})
+			.orElse(null);
+	}
 }

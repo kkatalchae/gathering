@@ -37,4 +37,20 @@ public class OAuthServiceFactory {
 		}
 		return service;
 	}
+
+	/**
+	 * String provider를 OAuthProvider enum으로 변환
+	 * Controller에서 PathVariable을 받을 때 사용
+	 *
+	 * @param provider OAuth 제공자 문자열 (예: "google", "kakao")
+	 * @return OAuthProvider enum
+	 * @throws BusinessException 지원하지 않는 제공자인 경우
+	 */
+	public OAuthProvider parseProvider(String provider) {
+		try {
+			return OAuthProvider.valueOf(provider.toUpperCase());
+		} catch (IllegalArgumentException e) {
+			throw new BusinessException(ErrorCode.OAUTH_PROVIDER_NOT_SUPPORTED);
+		}
+	}
 }

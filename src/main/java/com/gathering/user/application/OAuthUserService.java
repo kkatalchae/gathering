@@ -1,11 +1,15 @@
 package com.gathering.user.application;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gathering.auth.application.exception.BusinessException;
 import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.auth.domain.OAuthUserInfo;
+import com.gathering.auth.presentation.dto.OAuthProviderResponse;
 import com.gathering.user.domain.model.OAuthProvider;
 import com.gathering.user.domain.model.OAuthProviderEntity;
 import com.gathering.user.domain.model.UserSecurityEntity;
@@ -186,5 +190,24 @@ public class OAuthUserService {
 		// 2. 다른 OAuth 계정이 연동되어 있는지 확인
 		long oauthCount = oauthProviderRepository.countByUserTsid(userTsid);
 		return oauthCount > 1;
+	}
+
+	/**
+	 * 사용자의 연동된 OAuth 제공자 목록 조회
+	 *
+	 * @param userTsid 사용자 TSID
+	 * @return 연동된 OAuth 제공자 목록
+	 */
+	@Transactional(readOnly = true)
+	public List<OAuthProviderResponse> getLinkedProviders(String userTsid) {
+		List<OAuthProviderEntity> providers = oauthProviderRepository.findAllByUserTsid(userTsid);
+
+		return providers.stream()
+			.map(entity -> OAuthProviderResponse.builder()
+				.provider(entity.getProvider())
+				.email(entity.getEmail())
+				.linkedAt(entity.getCreatedAt())
+				.build())
+			.collect(Collectors.toList());
 	}
 }
