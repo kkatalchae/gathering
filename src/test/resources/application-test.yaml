@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: gathering
+
+  # 테스트용 H2 인메모리 데이터베이스
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  # Thymeleaf 설정
+  thymeleaf:
+    enabled: true
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    cache: false
+    check-template-location: true
+
+  # OAuth2 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: id
+            client-secret: secret
+
+crypto:
+  aes:
+    key: gatheringkey1234
+
+jwt:
+  secret: gatheringSecretKeyForJwtTokenGenerationMustBeLongEnoughForHS256Algorithm
+  access-token-validity-in-seconds: 3600 # 1시간
+  refresh-token-validity-in-seconds: 7776000 # 90일
