@@ -91,22 +91,4 @@ public class UsersEntity {
 			this.phoneNumber = phoneNumber;
 		}
 	}
-
-	/**
-	 * 프로필 이미지 URL 업데이트
-	 *
-	 * @param profileImageUrl 프로필 이미지 URL
-	 */
-	public void updateProfileImage(String profileImageUrl) {
-		this.profileImageUrl = profileImageUrl;
-	}
-
-	/**
-	 * 이메일 인증 상태 설정
-	 *
-	 * @param emailVerified 이메일 인증 여부
-	 */
-	public void setEmailVerified(Boolean emailVerified) {
-		this.emailVerified = emailVerified;
-	}
 }

@@ -1,8 +1,5 @@
 package com.gathering.auth.infra;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -11,11 +8,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.gathering.auth.application.CustomOAuth2UserService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,17 +20,20 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-	private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
-	private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
 	private static final String[] PERMIT_ALL_URLS = {
 		"/login", "/signup", "/refresh", "/logout", "/", "/users/join", "/error", "/favicon.ico",
 		// OAuth 엔드포인트 (인증 불필요)
-		"/oauth/*/authorize", "/oauth/*/callback",
+		"/oauth/**", "/login/oauth2/**",
 		// API 문서
 		"/docs/**", "/redoc.html"
 	};
+
+	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final CustomOAuth2UserService customOAuth2UserService;
+	private final OAuthSuccessHandler oAuthSuccessHandler;
+	private final OAuthFailureHandler oAuthFailureHandler;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -43,8 +42,23 @@ public class SecurityConfig {
 		configureSecurityFeatures(http);
 		configureExceptionHandling(http);
 		configureJwtFilter(http);
+		configureOAuth2(http);
 
 		return http.build();
+	}
+
+	/**
+	 * AuthenticationManager 빈 등록
+	 * 로그인 처리 시 인증을 담당하는 핵심 컴포넌트
+	 * AuthenticationConfiguration이 자동으로 다음을 수행합니다:
+	 * - UserDetailsService 를 구현한 빈을 찾아서 DaoAuthenticationProvider에 설정
+	 * - PasswordEncoder 빈을 찾아서 DaoAuthenticationProvider에 설정
+	 * - 구성된 DaoAuthenticationProvider를 AuthenticationManager에 등록
+	 */
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+		throws Exception {
+		return authenticationConfiguration.getAuthenticationManager();
 	}
 
 	/**
@@ -98,30 +112,20 @@ public class SecurityConfig {
 	 * 4. formLogin을 disabled 했으므로 UsernamePasswordAuthenticationFilter는 실제로 동작하지 않음
 	 *    (단지 필터 체인에서의 "위치 참조점"으로 사용)
 	 */
-	private void configureJwtFilter(HttpSecurity http) throws Exception {
+	private void configureJwtFilter(HttpSecurity http) {
 		http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 	}
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		String idForEncode = "bcrypt"; // 신규 가입/변경 시 사용할 기본 알고리즘
-		Map<String, PasswordEncoder> encoders = new HashMap<>();
-		encoders.put("bcrypt", new BCryptPasswordEncoder());
-
-		return new DelegatingPasswordEncoder(idForEncode, encoders);
-	}
-
 	/**
-	 * AuthenticationManager 빈 등록
-	 * 로그인 처리 시 인증을 담당하는 핵심 컴포넌트
-	 * AuthenticationConfiguration이 자동으로 다음을 수행합니다:
-	 * - UserDetailsService 를 구현한 빈을 찾아서 DaoAuthenticationProvider에 설정
-	 * - PasswordEncoder 빈을 찾아서 DaoAuthenticationProvider에 설정
-	 * - 구성된 DaoAuthenticationProvider를 AuthenticationManager에 등록
+	 * OAuth2 로그인 설정
+	 * @param http HttpSecurity 객체
 	 */
-	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-		throws Exception {
-		return authenticationConfiguration.getAuthenticationManager();
+	private void configureOAuth2(HttpSecurity http) throws Exception {
+		http.oauth2Login(configurer ->
+			configurer
+				.userInfoEndpoint(endpoint -> endpoint.userService(customOAuth2UserService))
+				.successHandler(oAuthSuccessHandler)
+				.failureHandler(oAuthFailureHandler)
+		);
 	}
 }

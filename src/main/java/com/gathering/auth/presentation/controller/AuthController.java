@@ -1,6 +1,8 @@
 package com.gathering.auth.presentation.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
 	private final AuthService authService;
+	private final AuthenticationManager authenticationManager;
 
 	/**
 	 * 로그인 API (OAuth 2.0 스타일)
@@ -32,6 +35,14 @@ public class AuthController {
 	@PostMapping("/login")
 	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
 		HttpServletResponse response) {
+
+		authenticationManager.authenticate(
+			new UsernamePasswordAuthenticationToken(
+				request.getEmail(),
+				request.getPassword()
+			)
+		);
+
 		return ResponseEntity.ok(authService.login(request, response));
 	}
 

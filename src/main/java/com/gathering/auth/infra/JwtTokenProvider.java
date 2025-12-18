@@ -10,8 +10,8 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -50,7 +50,15 @@ public class JwtTokenProvider {
 	 * 액세스 토큰 생성
 	 */
 	public String createAccessToken(String tsid) {
-		return createToken(tsid, accessTokenValidityInSeconds);
+		Instant now = Instant.now();
+		Instant expiryDate = now.plusSeconds(accessTokenValidityInSeconds);
+
+		return Jwts.builder()
+			.subject(tsid)
+			.issuedAt(Date.from(now))
+			.expiration(Date.from(expiryDate))
+			.signWith(key)
+			.compact();
 	}
 
 	/**
@@ -65,21 +73,6 @@ public class JwtTokenProvider {
 		return Jwts.builder()
 			.subject(tsid)
 			.id(jti)  // JTI 추가
-			.issuedAt(Date.from(now))
-			.expiration(Date.from(expiryDate))
-			.signWith(key)
-			.compact();
-	}
-
-	/**
-	 * JWT 토큰 생성 (공통 로직 - 액세스 토큰용)
-	 */
-	private String createToken(String subject, long validityInSeconds) {
-		Instant now = Instant.now();
-		Instant expiryDate = now.plusSeconds(validityInSeconds);
-
-		return Jwts.builder()
-			.subject(subject)
 			.issuedAt(Date.from(now))
 			.expiration(Date.from(expiryDate))
 			.signWith(key)

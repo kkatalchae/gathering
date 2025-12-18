@@ -3,8 +3,9 @@ package com.gathering.user.application;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
+import com.gathering.auth.domain.OAuthUserInfo;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
 import com.gathering.user.domain.model.UserSecurityEntity;
 import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
@@ -29,7 +30,6 @@ public class UserService {
 
 	/**
 	 * 회원가입 처리
-	 *
 	 * Note: 비밀번호는 @AesEncrypted 어노테이션에 의해 DTO 바인딩 시점에 자동으로 복호화됨
 	 */
 	@Transactional
@@ -43,6 +43,27 @@ public class UserService {
 			passwordEncoder.encode(request.getPassword())
 		);
 		userSecurityRepository.save(userSecurityEntity);
+	}
+
+	/**
+	 * 소셜 회원가입 처리
+	 *
+	 * @param oAuthUserInfo OAuth 제공자에서 받은 사용자 정보
+	 * @return 생성된 사용자 엔티티
+	 */
+	public UsersEntity socialJoin(OAuthUserInfo oAuthUserInfo) {
+
+		UsersEntity usersEntity = OAuthUserInfo.toUsersEntity(oAuthUserInfo);
+
+		userValidator.validateForSocialJoin(usersEntity);
+
+		usersRepository.save(usersEntity);
+
+		UserSecurityEntity userSecurityEntity = UserSecurityEntity.of(usersEntity.getTsid(), null);
+
+		userSecurityRepository.save(userSecurityEntity);
+
+		return usersEntity;
 	}
 
 	/**
@@ -121,26 +142,23 @@ public class UserService {
 	 */
 	@Transactional
 	public void changePassword(String tsid, ChangePasswordRequest request) {
-		// 1. request에서 값 추출
+		// request에서 값 추출
 		String currentPassword = request.getCurrentPassword();
 		String newPassword = request.getNewPassword();
 
-		// 2. 사용자 존재 확인
-		UsersEntity user = getUserInfo(tsid);
-
-		// 3. 보안 정보 조회
+		// 보안 정보 조회
 		UserSecurityEntity security = userSecurityRepository.findById(tsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-		// 4. 현재 비밀번호 검증 (AES 복호화는 이미 완료됨)
+		// 현재 비밀번호 검증 (AES 복호화는 이미 완료됨)
 		if (!passwordEncoder.matches(currentPassword, security.getPasswordHash())) {
 			throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
 		}
 
-		// 5. 새 비밀번호 정책 검증
+		// 새 비밀번호 정책 검증
 		userValidator.validatePasswordFormat(newPassword);
 
-		// 6. 비밀번호 업데이트 (JPA dirty checking으로 자동 UPDATE)
+		// 비밀번호 업데이트 (JPA dirty checking으로 자동 UPDATE)
 		security.updatePassword(passwordEncoder.encode(newPassword));
 	}
 }

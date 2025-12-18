@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.auth.infra.JwtTokenProvider;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
 
 /**
  * JwtTokenProvider 단위 테스트

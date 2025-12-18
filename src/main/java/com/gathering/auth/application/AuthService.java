@@ -2,22 +2,17 @@ package com.gathering.auth.application;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.auth.infra.AuthConstants;
-import com.gathering.auth.infra.CookieUtil;
 import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.auth.presentation.dto.LoginRequest;
 import com.gathering.auth.presentation.dto.LoginResponse;
 import com.gathering.auth.presentation.dto.RefreshResponse;
-import com.gathering.auth.domain.OAuthUserInfo;
-import com.gathering.user.application.OAuthUserService;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
+import com.gathering.common.utility.CookieUtil;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 
@@ -34,70 +29,36 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AuthService {
 
-	private final AuthenticationManager authenticationManager;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final RefreshTokenService refreshTokenService;
 	private final UsersRepository usersRepository;
-	private final OAuthUserService oauthUserService;
 
 	@Value("${jwt.access-token-validity-in-seconds}")
 	private long accessTokenValidityInSeconds;
 
 	@Value("${jwt.refresh-token-validity-in-seconds}")
 	private long refreshTokenValidityInSeconds;
+	private static final String TOKEN_TYPE = "Bearer";
 
 	/**
 	 * 로그인 처리 (OAuth 2.0 스타일)
 	 * Spring Security의 AuthenticationManager를 사용하여 인증 수행
 	 * - AccessToken: 응답 본문에 포함
 	 * - RefreshToken: HTTP-only 쿠키로 설정
-	 *
 	 * Note: 비밀번호는 @AesEncrypted 어노테이션에 의해 DTO 바인딩 시점에 자동으로 복호화됨
 	 */
 	@Transactional(readOnly = true)
 	public LoginResponse login(LoginRequest request, HttpServletResponse response) {
-		// 1. 인증 시도 (비밀번호는 이미 복호화되어 있음)
-		Authentication authentication = authenticationManager.authenticate(
-			new UsernamePasswordAuthenticationToken(
-				request.getEmail(),
-				request.getPassword()
-			)
-		);
 
 		// 2. 인증 성공 시 사용자 정보 추출
-		String email = authentication.getName();
+		String email = request.getEmail();
 
 		// 3. 이메일로 사용자 조회하여 TSID 가져오기
 		UsersEntity user = usersRepository.findByEmail(email)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 		String tsid = user.getTsid();
 
-		// 4. JWT 토큰 생성 (TSID를 subject로 사용, RefreshToken에는 JTI 포함)
-		String accessToken = jwtTokenProvider.createAccessToken(tsid);
-		String refreshToken = jwtTokenProvider.createRefreshToken(tsid);
-
-		// 5. RefreshToken에서 JTI 추출
-		String jti = jwtTokenProvider.getJtiFromToken(refreshToken);
-
-		// 6. RefreshToken을 Redis에 저장 (멀티 디바이스 지원)
-		refreshTokenService.saveRefreshToken(tsid, jti, refreshToken);
-
-		// 7. RefreshToken을 HTTP-only 쿠키로 설정
-		CookieUtil.addSecureCookie(
-			response,
-			AuthConstants.REFRESH_TOKEN_COOKIE,
-			refreshToken,
-			(int)refreshTokenValidityInSeconds
-		);
-
-		log.info("로그인 성공: tsid={}, jti={}", tsid, jti);
-
-		// 8. AccessToken은 응답 본문으로 반환
-		return LoginResponse.builder()
-			.accessToken(accessToken)
-			.tokenType("Bearer")
-			.expiresIn(accessTokenValidityInSeconds)
-			.build();
+		return login(response, tsid);
 	}
 
 	/**
@@ -137,7 +98,7 @@ public class AuthService {
 		// 6. 새로운 AccessToken은 응답 본문으로 반환
 		return RefreshResponse.builder()
 			.accessToken(newAccessToken)
-			.tokenType("Bearer")
+			.tokenType(TOKEN_TYPE)
 			.expiresIn(accessTokenValidityInSeconds)
 			.build();
 	}
@@ -180,19 +141,7 @@ public class AuthService {
 		CookieUtil.deleteCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE);
 	}
 
-	/**
-	 * OAuth 로그인 처리
-	 * OAuth 사용자 정보로 회원가입 또는 로그인 수행
-	 *
-	 * @param oauthUserInfo OAuth 제공자에서 받은 사용자 정보
-	 * @param response HttpServletResponse
-	 * @return 로그인 응답 (AccessToken 포함)
-	 */
-	@Transactional
-	public LoginResponse loginWithOAuth(OAuthUserInfo oauthUserInfo, HttpServletResponse response) {
-		// 1. OAuth 사용자 찾기 또는 생성
-		UsersEntity user = oauthUserService.findOrCreateUser(oauthUserInfo);
-		String tsid = user.getTsid();
+	public LoginResponse login(HttpServletResponse response, String tsid) {
 
 		// 2. JWT 토큰 생성
 		String accessToken = jwtTokenProvider.createAccessToken(tsid);
@@ -212,12 +161,10 @@ public class AuthService {
 			(int)refreshTokenValidityInSeconds
 		);
 
-		log.info("OAuth 로그인 성공: tsid={}, provider={}", tsid, oauthUserInfo.getProvider());
-
 		// 6. AccessToken 응답
 		return LoginResponse.builder()
 			.accessToken(accessToken)
-			.tokenType("Bearer")
+			.tokenType(TOKEN_TYPE)
 			.expiresIn(accessTokenValidityInSeconds)
 			.build();
 	}

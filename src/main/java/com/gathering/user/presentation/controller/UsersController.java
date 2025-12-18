@@ -1,7 +1,5 @@
 package com.gathering.user.presentation.controller;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -13,8 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gathering.auth.application.AuthService;
-import com.gathering.auth.presentation.dto.OAuthProviderResponse;
-import com.gathering.user.application.OAuthUserService;
 import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.presentation.dto.ChangePasswordRequest;
@@ -34,7 +30,6 @@ public class UsersController {
 
 	private final UserService userService;
 	private final AuthService authService;
-	private final OAuthUserService oauthUserService;
 
 	@PostMapping("/join")
 	public ResponseEntity<Void> join(@Valid @RequestBody UserJoinRequest request) {
@@ -83,16 +78,6 @@ public class UsersController {
 		String tsid = authService.getCurrentUserTsid(request);
 		userService.changePassword(tsid, changePasswordRequest);
 		return ResponseEntity.noContent().build();
-	}
-
-	/**
-	 * 현재 로그인한 사용자의 연동된 OAuth 제공자 목록 조회
-	 */
-	@GetMapping("/me/oauth-providers")
-	public ResponseEntity<List<OAuthProviderResponse>> getMyOAuthProviders(HttpServletRequest request) {
-		String tsid = authService.getCurrentUserTsid(request);
-		List<OAuthProviderResponse> providers = oauthUserService.getLinkedProviders(tsid);
-		return ResponseEntity.ok(providers);
 	}
 
 }
