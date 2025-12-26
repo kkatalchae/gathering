@@ -7,6 +7,8 @@ import com.gathering.common.exception.ErrorCode;
 import com.gathering.user.domain.model.OAuthProvider;
 import com.gathering.user.domain.model.UsersEntity;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -18,9 +20,13 @@ import lombok.Getter;
 @Builder
 public class OAuthUserInfo {
 
+	@NotNull
 	private final OAuthProvider provider;
+	@NotBlank
 	private final String providerId; // OAuth 제공자의 고유 사용자 ID (Google: sub, Kakao: id 등)
+	@NotBlank
 	private final String email;
+	@NotBlank
 	private final String name;
 	private final String profileImageUrl;
 
