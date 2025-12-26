@@ -11,7 +11,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/gathering_db
     username: gathering_user
-    password: gathering1234  # TODO: [운영] application-prod.yaml에서 ${DB_PASSWORD}로 변경
+    password: ${DATABASE_PASSWORD}
     # 드라이버 클래스 지정 (기본적으로 자동 설정되지만, 여러개인 경우 명시 필요)
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
@@ -57,14 +57,14 @@ spring:
       client:
         registration:
           google:
-            client-id: id
-            client-secret: secret
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
 crypto:
   aes:
-    key: gatheringkey1234  # TODO: [운영] ${AES_KEY}로 변경, 강력한 키로 교체 필요
+    key: ${SECRET_KEY_AES}
 
 jwt:
-  secret: gatheringSecretKeyForJwtTokenGenerationMustBeLongEnoughForHS256Algorithm  # TODO: [운영] ${JWT_SECRET}로 변경, 보안 강도 높은 키로 교체 필수
+  secret: ${JWT_SECRET_KEY}
   access-token-validity-in-seconds: 3600 # 1시간
   refresh-token-validity-in-seconds: 7776000 # 90일
 
