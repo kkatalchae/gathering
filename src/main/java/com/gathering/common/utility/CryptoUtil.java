@@ -1,4 +1,4 @@
-package com.gathering.util;
+package com.gathering.common.utility;
 
 import java.nio.charset.StandardCharsets;
 

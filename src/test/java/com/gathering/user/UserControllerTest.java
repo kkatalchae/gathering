@@ -25,9 +25,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.AuthService;
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.auth.infra.JwtTokenProvider;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
+import com.gathering.common.utility.CryptoUtil;
 import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
@@ -35,7 +36,6 @@ import com.gathering.user.presentation.dto.ChangePasswordRequest;
 import com.gathering.user.presentation.dto.MyInfoResponse;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
-import com.gathering.util.CryptoUtil;
 
 /**
  * UsersController Spring REST Docs 테스트

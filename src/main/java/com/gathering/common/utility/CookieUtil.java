@@ -1,11 +1,9 @@
-package com.gathering.auth.infra;
+package com.gathering.common.utility;
 
 import java.util.Arrays;
 import java.util.Optional;
 
 import org.springframework.http.ResponseCookie;
-
-import com.gathering.auth.application.dto.AuthTokens;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,21 +67,5 @@ public final class CookieUtil {
 			.filter(cookie -> name.equals(cookie.getName()))
 			.map(Cookie::getValue)
 			.findFirst();
-	}
-
-	/**
-	 * 인증 토큰들을 쿠키에 설정
-	 *
-	 * @param response HttpServletResponse
-	 * @param tokens 인증 토큰 (AccessToken, RefreshToken)
-	 * @param accessTokenValidityInSeconds AccessToken 만료 시간 (초)
-	 * @param refreshTokenValidityInSeconds RefreshToken 만료 시간 (초)
-	 */
-	public static void setAuthTokens(HttpServletResponse response, AuthTokens tokens,
-		int accessTokenValidityInSeconds, int refreshTokenValidityInSeconds) {
-		addSecureCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE, tokens.getAccessToken(),
-			accessTokenValidityInSeconds);
-		addSecureCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE, tokens.getRefreshToken(),
-			refreshTokenValidityInSeconds);
 	}
 }

@@ -2,6 +2,7 @@ package com.gathering.auth.infra;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -44,7 +45,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 		// 3. UserDetails 객체 생성
 		return User.builder()
 			.username(user.getEmail())
-			.password(userSecurity.getPasswordHash())
+			.password(Optional.ofNullable(userSecurity.getPasswordHash()).orElse("oauth2_user"))
 			.authorities(getAuthorities())
 			.build();
 	}

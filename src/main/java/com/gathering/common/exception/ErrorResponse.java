@@ -1,6 +1,4 @@
-package com.gathering.auth.presentation.dto;
-
-import com.gathering.auth.application.exception.ErrorCode;
+package com.gathering.common.exception;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

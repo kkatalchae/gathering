@@ -324,7 +324,7 @@
             <span>💬</span>
             카카오
         </a>
-        <a href="#" class="social-btn google">
+        <a href="http://localhost:8080/oauth2/authorization/google" class="social-btn google">
             <span>🔍</span>
             구글
         </a>
@@ -465,13 +465,25 @@
     });
 
     // 소셜 로그인 버튼 이벤트
-    document.querySelectorAll('.social-btn').forEach(btn => {
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const provider = this.textContent.trim();
-            console.log(`${provider} 로그인 시도`);
-            // 여기서 소셜 로그인 처리
-        });
+    // document.querySelectorAll('.social-btn').forEach(btn => {
+    //     btn.addEventListener('click', function (e) {
+    //         e.preventDefault();
+    //         const provider = this.textContent.trim();
+    //         console.log(`${provider} 로그인 시도`);
+    //         // 여기서 소셜 로그인 처리
+    //     });
+    // });
+
+    // OAuth 로그인 에러 메시지 표시
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const message = urlParams.get('message');
+
+        if (error === 'oauth_failed' && message) {
+            // 이메일 입력 필드에 에러 메시지 표시 (기존 showError 함수 재사용)
+            showError(emailInput, 'emailError', decodeURIComponent(message));
+        }
     });
 </script>
 </body>

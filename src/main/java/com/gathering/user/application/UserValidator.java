@@ -2,8 +2,9 @@ package com.gathering.user.application;
 
 import org.springframework.stereotype.Service;
 
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
+import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 
@@ -30,6 +31,18 @@ public class UserValidator {
 		validatePhoneNumberFormat(request.getPhoneNumber());
 		validatePhoneNumberUnique(request.getPhoneNumber());
 		validatePasswordFormat(request.getPassword());
+	}
+
+	/**
+	 * 소셜 회원가입 시 사용자 정보 검증
+	 *
+	 * @param usersEntity 사용자 엔티티
+	 */
+	public void validateForSocialJoin(UsersEntity usersEntity) {
+
+		validateEmailFormat(usersEntity.getEmail());
+		validateEmailUnique(usersEntity.getEmail());
+
 	}
 
 	/**

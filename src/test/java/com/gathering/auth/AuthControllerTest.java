@@ -8,30 +8,27 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.AuthService;
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.auth.presentation.dto.LoginRequest;
 import com.gathering.auth.presentation.dto.LoginResponse;
 import com.gathering.auth.presentation.dto.RefreshResponse;
-import com.gathering.util.CryptoUtil;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
+import com.gathering.common.utility.CryptoUtil;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,28 +42,17 @@ import jakarta.servlet.http.HttpServletResponse;
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
 
-	@TestConfiguration
-	static class TestConfig {
-		@Bean
-		@Primary
-		public AuthService authService() {
-			return Mockito.mock(AuthService.class);
-		}
-	}
-
 	@Autowired
 	private MockMvc mockMvc;
 
 	@Autowired
 	private ObjectMapper objectMapper;
 
-	@Autowired
+	@MockBean
 	private AuthService authService;
 
-	@BeforeEach
-	void setUp() {
-		Mockito.reset(authService);
-	}
+	@MockBean
+	private AuthenticationManager authenticationManager;
 
 	@Test
 	@DisplayName("유효한_자격증명으로_로그인하면_액세스_토큰이_발급된다")
@@ -87,6 +73,9 @@ class AuthControllerTest {
 			.tokenType("Bearer")
 			.expiresIn(3600L)
 			.build();
+
+		// AuthenticationManager가 정상적으로 인증 성공하도록 Mock 설정
+		when(authenticationManager.authenticate(any())).thenReturn(null);
 
 		when(authService.login(any(LoginRequest.class), any(HttpServletResponse.class)))
 			.thenReturn(response);
@@ -126,7 +115,8 @@ class AuthControllerTest {
 			.password(encryptedPassword)
 			.build();
 
-		when(authService.login(any(LoginRequest.class), any(HttpServletResponse.class)))
+		// AuthenticationManager가 UsernameNotFoundException을 던지도록 Mock 설정
+		when(authenticationManager.authenticate(any()))
 			.thenThrow(new UsernameNotFoundException("사용자를 찾을 수 없습니다"));
 
 		// when & then
@@ -145,7 +135,7 @@ class AuthControllerTest {
 				)
 			));
 
-		verify(authService, times(1)).login(any(LoginRequest.class), any(HttpServletResponse.class));
+		// authenticationManager에서 예외가 발생하므로 authService.login()은 호출되지 않음
 	}
 
 	@Test
@@ -160,7 +150,8 @@ class AuthControllerTest {
 			.password(encryptedPassword)
 			.build();
 
-		when(authService.login(any(LoginRequest.class), any(HttpServletResponse.class)))
+		// AuthenticationManager가 BadCredentialsException을 던지도록 Mock 설정
+		when(authenticationManager.authenticate(any()))
 			.thenThrow(new BadCredentialsException("비밀번호가 일치하지 않습니다"));
 
 		// when & then
@@ -179,7 +170,7 @@ class AuthControllerTest {
 				)
 			));
 
-		verify(authService, times(1)).login(any(LoginRequest.class), any(HttpServletResponse.class));
+		// authenticationManager에서 예외가 발생하므로 authService.login()은 호출되지 않음
 	}
 
 	@Test

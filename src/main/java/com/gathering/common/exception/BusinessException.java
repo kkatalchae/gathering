@@ -1,4 +1,4 @@
-package com.gathering.auth.application.exception;
+package com.gathering.common.exception;
 
 import lombok.Getter;
 

@@ -2,20 +2,17 @@ package com.gathering.auth.application;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
 import com.gathering.auth.infra.AuthConstants;
-import com.gathering.auth.infra.CookieUtil;
 import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.auth.presentation.dto.LoginRequest;
 import com.gathering.auth.presentation.dto.LoginResponse;
 import com.gathering.auth.presentation.dto.RefreshResponse;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
+import com.gathering.common.utility.CookieUtil;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 
@@ -32,7 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AuthService {
 
-	private final AuthenticationManager authenticationManager;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final RefreshTokenService refreshTokenService;
 	private final UsersRepository usersRepository;
@@ -42,59 +38,27 @@ public class AuthService {
 
 	@Value("${jwt.refresh-token-validity-in-seconds}")
 	private long refreshTokenValidityInSeconds;
+	private static final String TOKEN_TYPE = "Bearer";
 
 	/**
 	 * 로그인 처리 (OAuth 2.0 스타일)
 	 * Spring Security의 AuthenticationManager를 사용하여 인증 수행
 	 * - AccessToken: 응답 본문에 포함
 	 * - RefreshToken: HTTP-only 쿠키로 설정
-	 *
 	 * Note: 비밀번호는 @AesEncrypted 어노테이션에 의해 DTO 바인딩 시점에 자동으로 복호화됨
 	 */
 	@Transactional(readOnly = true)
 	public LoginResponse login(LoginRequest request, HttpServletResponse response) {
-		// 1. 인증 시도 (비밀번호는 이미 복호화되어 있음)
-		Authentication authentication = authenticationManager.authenticate(
-			new UsernamePasswordAuthenticationToken(
-				request.getEmail(),
-				request.getPassword()
-			)
-		);
 
 		// 2. 인증 성공 시 사용자 정보 추출
-		String email = authentication.getName();
+		String email = request.getEmail();
 
 		// 3. 이메일로 사용자 조회하여 TSID 가져오기
 		UsersEntity user = usersRepository.findByEmail(email)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 		String tsid = user.getTsid();
 
-		// 4. JWT 토큰 생성 (TSID를 subject로 사용, RefreshToken에는 JTI 포함)
-		String accessToken = jwtTokenProvider.createAccessToken(tsid);
-		String refreshToken = jwtTokenProvider.createRefreshToken(tsid);
-
-		// 5. RefreshToken에서 JTI 추출
-		String jti = jwtTokenProvider.getJtiFromToken(refreshToken);
-
-		// 6. RefreshToken을 Redis에 저장 (멀티 디바이스 지원)
-		refreshTokenService.saveRefreshToken(tsid, jti, refreshToken);
-
-		// 7. RefreshToken을 HTTP-only 쿠키로 설정
-		CookieUtil.addSecureCookie(
-			response,
-			AuthConstants.REFRESH_TOKEN_COOKIE,
-			refreshToken,
-			(int)refreshTokenValidityInSeconds
-		);
-
-		log.info("로그인 성공: tsid={}, jti={}", tsid, jti);
-
-		// 8. AccessToken은 응답 본문으로 반환
-		return LoginResponse.builder()
-			.accessToken(accessToken)
-			.tokenType("Bearer")
-			.expiresIn(accessTokenValidityInSeconds)
-			.build();
+		return login(response, tsid);
 	}
 
 	/**
@@ -134,7 +98,7 @@ public class AuthService {
 		// 6. 새로운 AccessToken은 응답 본문으로 반환
 		return RefreshResponse.builder()
 			.accessToken(newAccessToken)
-			.tokenType("Bearer")
+			.tokenType(TOKEN_TYPE)
 			.expiresIn(accessTokenValidityInSeconds)
 			.build();
 	}
@@ -177,6 +141,34 @@ public class AuthService {
 		CookieUtil.deleteCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE);
 	}
 
+	public LoginResponse login(HttpServletResponse response, String tsid) {
+
+		// 2. JWT 토큰 생성
+		String accessToken = jwtTokenProvider.createAccessToken(tsid);
+		String refreshToken = jwtTokenProvider.createRefreshToken(tsid);
+
+		// 3. RefreshToken에서 JTI 추출
+		String jti = jwtTokenProvider.getJtiFromToken(refreshToken);
+
+		// 4. RefreshToken을 Redis에 저장
+		refreshTokenService.saveRefreshToken(tsid, jti, refreshToken);
+
+		// 5. RefreshToken을 HTTP-only 쿠키로 설정
+		CookieUtil.addSecureCookie(
+			response,
+			AuthConstants.REFRESH_TOKEN_COOKIE,
+			refreshToken,
+			(int)refreshTokenValidityInSeconds
+		);
+
+		// 6. AccessToken 응답
+		return LoginResponse.builder()
+			.accessToken(accessToken)
+			.tokenType(TOKEN_TYPE)
+			.expiresIn(accessTokenValidityInSeconds)
+			.build();
+	}
+
 	/**
 	 * 현재 로그인한 사용자의 TSID 추출
 	 * Authorization 헤더에서 Access Token을 읽어 JWT를 파싱하여 TSID 반환
@@ -198,5 +190,41 @@ public class AuthService {
 
 		// JWT에서 TSID 추출
 		return jwtTokenProvider.getTsidFromToken(accessToken);
+	}
+
+	/**
+	 * 현재 로그인한 사용자의 TSID 추출 (Optional)
+	 * 비로그인 상태인 경우 null 반환
+	 *
+	 * @param request HttpServletRequest
+	 * @return 사용자 TSID (비로그인 시 null)
+	 */
+	public String getCurrentUserTsidOrNull(HttpServletRequest request) {
+		try {
+			return getCurrentUserTsid(request);
+		} catch (BusinessException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * RefreshToken 쿠키에서 JTI 추출
+	 * OAuth 인증 과정에서 session 일관성 검증을 위해 사용
+	 *
+	 * @param request HttpServletRequest
+	 * @return RefreshToken의 JTI (쿠키가 없거나 유효하지 않으면 null)
+	 */
+	public String getRefreshTokenJtiOrNull(HttpServletRequest request) {
+		return CookieUtil.getCookie(request, AuthConstants.REFRESH_TOKEN_COOKIE)
+			.map(refreshToken -> {
+				try {
+					jwtTokenProvider.validateRefreshToken(refreshToken);
+					return jwtTokenProvider.getJtiFromToken(refreshToken);
+				} catch (BusinessException e) {
+					log.debug("유효하지 않은 RefreshToken: {}", e.getMessage());
+					return null;
+				}
+			})
+			.orElse(null);
 	}
 }

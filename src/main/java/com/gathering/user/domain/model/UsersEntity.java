@@ -50,11 +50,15 @@ public class UsersEntity {
 	private String name;
 
 	// TODO 추후 문자를 통해 검증
-	@Column(nullable = false)
+	@Column
 	private String phoneNumber;
 
 	@Column(name = "profile_image_url")
 	private String profileImageUrl;
+
+	@Builder.Default
+	@Column(name = "email_verified", nullable = false)
+	private Boolean emailVerified = false;
 
 	@Builder.Default
 	@Column(nullable = false)

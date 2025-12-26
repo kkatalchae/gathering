@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.gathering.util.CryptoUtil;
+import com.gathering.common.utility.CryptoUtil;
 
 import lombok.extern.slf4j.Slf4j;
 

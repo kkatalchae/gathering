@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,7 +36,7 @@
         .logo {
             font-size: 2rem;
             font-weight: 700;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .auth-buttons {
@@ -45,9 +45,9 @@
         }
 
         .btn {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             color: white;
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             padding: 10px 20px;
             border-radius: 25px;
             font-size: 0.9rem;
@@ -79,7 +79,7 @@
             background: white;
             border-radius: 16px;
             padding: 30px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
         .section-title {
@@ -111,7 +111,7 @@
 
         .gathering-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
 
         .gathering-header {
@@ -267,324 +267,359 @@
             animation: fadeInUp 0.6s ease forwards;
         }
 
-        .gathering-card:nth-child(1) { animation-delay: 0.1s; }
-        .gathering-card:nth-child(2) { animation-delay: 0.2s; }
-        .gathering-card:nth-child(3) { animation-delay: 0.3s; }
-        .gathering-card:nth-child(4) { animation-delay: 0.4s; }
-        .gathering-card:nth-child(5) { animation-delay: 0.5s; }
+        .gathering-card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .gathering-card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .gathering-card:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .gathering-card:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .gathering-card:nth-child(5) {
+            animation-delay: 0.5s;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 헤더 -->
-        <header class="header">
-            <div class="logo">🎉 Gathering</div>
-            <div class="auth-buttons">
-                <button id="myInfoBtn" class="btn" style="display:none;">내 정보</button>
-                <a id="loginBtn" href="/login" class="btn">로그인</a>
-                <button id="logoutBtn" class="btn" style="display:none;">로그아웃</button>
-            </div>
-        </header>
-        <!-- 메인 콘텐츠 -->
-        <main class="main-content">
-            <h1 class="section-title">
-                📅 진행 중인 모임
-                <span style="font-size: 1rem; color: #666; font-weight: normal;">
+<div class="container">
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="logo">🎉 Gathering</div>
+        <div class="auth-buttons">
+            <button id="myInfoBtn" class="btn" style="display:none;">내 정보</button>
+            <a id="loginBtn" href="/login" class="btn">로그인</a>
+            <button id="logoutBtn" class="btn" style="display:none;">로그아웃</button>
+        </div>
+    </header>
+    <!-- 메인 콘텐츠 -->
+    <main class="main-content">
+        <h1 class="section-title">
+            📅 진행 중인 모임
+            <span style="font-size: 1rem; color: #666; font-weight: normal;">
                     (총 5개)
                 </span>
-            </h1>
+        </h1>
 
-            <!-- 모임 리스트 -->
-            <div class="gatherings-grid">
-                <div class="gathering-card">
-                    <div class="gathering-header">
-                        <div>
-                            <h3 class="gathering-title">한강 러닝 모임</h3>
-                            <div class="gathering-category">
-                                <span>🏃‍♂️</span>
-                                <span>운동/스포츠</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <p class="gathering-description">한강에서 함께 뛰어요! 초보자도 환영합니다.</p>
-                    
-                    <div class="gathering-details">
-                        <div class="gathering-location">
-                            📍 여의도 한강공원
-                        </div>
-                        <div class="gathering-time">
-                            🕐 2024-01-15 07:00
-                        </div>
-                        <div class="gathering-participants">
-                            👥 3/10
+        <!-- 모임 리스트 -->
+        <div class="gatherings-grid">
+            <div class="gathering-card">
+                <div class="gathering-header">
+                    <div>
+                        <h3 class="gathering-title">한강 러닝 모임</h3>
+                        <div class="gathering-category">
+                            <span>🏃‍♂️</span>
+                            <span>운동/스포츠</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="gathering-card">
-                    <div class="gathering-header">
-                        <div>
-                            <h3 class="gathering-title">독서 토론 모임</h3>
-                            <div class="gathering-category">
-                                <span>📚</span>
-                                <span>독서/토론</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <p class="gathering-description">이번 달 읽은 책에 대해 이야기해봐요.</p>
-                    
-                    <div class="gathering-details">
-                        <div class="gathering-location">
-                            📍 강남역 스타벅스
-                        </div>
-                        <div class="gathering-time">
-                            🕐 2024-01-20 19:00
-                        </div>
-                        <div class="gathering-participants">
-                            👥 5/8
-                        </div>
-                    </div>
-                </div>
+                <p class="gathering-description">한강에서 함께 뛰어요! 초보자도 환영합니다.</p>
 
-                <div class="gathering-card">
-                    <div class="gathering-header">
-                        <div>
-                            <h3 class="gathering-title">맛집 탐방</h3>
-                            <div class="gathering-category">
-                                <span>🍽️</span>
-                                <span>맛집/요리</span>
-                            </div>
-                        </div>
+                <div class="gathering-details">
+                    <div class="gathering-location">
+                        📍 여의도 한강공원
                     </div>
-                    
-                    <p class="gathering-description">강남 맛집을 함께 탐방해봐요!</p>
-                    
-                    <div class="gathering-details">
-                        <div class="gathering-location">
-                            📍 강남역
-                        </div>
-                        <div class="gathering-time">
-                            🕐 2024-01-25 18:00
-                        </div>
-                        <div class="gathering-participants">
-                            👥 4/6
-                        </div>
+                    <div class="gathering-time">
+                        🕐 2024-01-15 07:00
                     </div>
-                </div>
-
-                <div class="gathering-card">
-                    <div class="gathering-header">
-                        <div>
-                            <h3 class="gathering-title">보드게임 모임</h3>
-                            <div class="gathering-category">
-                                <span>🎮</span>
-                                <span>게임/취미</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <p class="gathering-description">재미있는 보드게임을 함께 즐겨봐요!</p>
-                    
-                    <div class="gathering-details">
-                        <div class="gathering-location">
-                            📍 홍대입구
-                        </div>
-                        <div class="gathering-time">
-                            🕐 2024-01-30 14:00
-                        </div>
-                        <div class="gathering-participants">
-                            👥 8/12
-                        </div>
-                    </div>
-                </div>
-
-                <div class="gathering-card">
-                    <div class="gathering-header">
-                        <div>
-                            <h3 class="gathering-title">클래식 음악 감상</h3>
-                            <div class="gathering-category">
-                                <span>🎵</span>
-                                <span>음악/예술</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <p class="gathering-description">클래식 음악을 함께 감상해봐요.</p>
-                    
-                    <div class="gathering-details">
-                        <div class="gathering-location">
-                            📍 예술의전당
-                        </div>
-                        <div class="gathering-time">
-                            🕐 2024-02-05 20:00
-                        </div>
-                        <div class="gathering-participants">
-                            👥 7/15
-                        </div>
+                    <div class="gathering-participants">
+                        👥 3/10
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
 
-    <script>
-        // API 호출 유틸리티 함수
-        async function apiCall(url, options = {}) {
-            const accessToken = localStorage.getItem('accessToken');
+            <div class="gathering-card">
+                <div class="gathering-header">
+                    <div>
+                        <h3 class="gathering-title">독서 토론 모임</h3>
+                        <div class="gathering-category">
+                            <span>📚</span>
+                            <span>독서/토론</span>
+                        </div>
+                    </div>
+                </div>
 
-            // Authorization 헤더 추가
-            const headers = {
-                'Content-Type': 'application/json',
-                ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
-                ...options.headers
-            };
+                <p class="gathering-description">이번 달 읽은 책에 대해 이야기해봐요.</p>
 
-            try {
-                const response = await fetch(url, {
-                    ...options,
-                    headers
-                });
+                <div class="gathering-details">
+                    <div class="gathering-location">
+                        📍 강남역 스타벅스
+                    </div>
+                    <div class="gathering-time">
+                        🕐 2024-01-20 19:00
+                    </div>
+                    <div class="gathering-participants">
+                        👥 5/8
+                    </div>
+                </div>
+            </div>
 
-                // 액세스 토큰 만료 시 자동 갱신
-                if (response.status === 401) {
-                    const errorData = await response.json().catch(() => ({}));
+            <div class="gathering-card">
+                <div class="gathering-header">
+                    <div>
+                        <h3 class="gathering-title">맛집 탐방</h3>
+                        <div class="gathering-category">
+                            <span>🍽️</span>
+                            <span>맛집/요리</span>
+                        </div>
+                    </div>
+                </div>
 
-                    if (errorData.code === 'ACCESS_TOKEN_EXPIRED') {
-                        // 토큰 갱신 시도
-                        const refreshed = await refreshAccessToken();
-                        if (refreshed) {
-                            // 갱신 성공 시 원래 요청 재시도
-                            return apiCall(url, options);
-                        }
-                    }
+                <p class="gathering-description">강남 맛집을 함께 탐방해봐요!</p>
 
-                    // 기타 401 에러 - 로그인 페이지로 이동
-                    return response;
-                }
+                <div class="gathering-details">
+                    <div class="gathering-location">
+                        📍 강남역
+                    </div>
+                    <div class="gathering-time">
+                        🕐 2024-01-25 18:00
+                    </div>
+                    <div class="gathering-participants">
+                        👥 4/6
+                    </div>
+                </div>
+            </div>
 
-                return response;
-            } catch (error) {
-                console.error('API 호출 실패:', error);
-                throw error;
-            }
+            <div class="gathering-card">
+                <div class="gathering-header">
+                    <div>
+                        <h3 class="gathering-title">보드게임 모임</h3>
+                        <div class="gathering-category">
+                            <span>🎮</span>
+                            <span>게임/취미</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="gathering-description">재미있는 보드게임을 함께 즐겨봐요!</p>
+
+                <div class="gathering-details">
+                    <div class="gathering-location">
+                        📍 홍대입구
+                    </div>
+                    <div class="gathering-time">
+                        🕐 2024-01-30 14:00
+                    </div>
+                    <div class="gathering-participants">
+                        👥 8/12
+                    </div>
+                </div>
+            </div>
+
+            <div class="gathering-card">
+                <div class="gathering-header">
+                    <div>
+                        <h3 class="gathering-title">클래식 음악 감상</h3>
+                        <div class="gathering-category">
+                            <span>🎵</span>
+                            <span>음악/예술</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="gathering-description">클래식 음악을 함께 감상해봐요.</p>
+
+                <div class="gathering-details">
+                    <div class="gathering-location">
+                        📍 예술의전당
+                    </div>
+                    <div class="gathering-time">
+                        🕐 2024-02-05 20:00
+                    </div>
+                    <div class="gathering-participants">
+                        👥 7/15
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // OAuth 로그인 성공 후 URL 파라미터 처리
+    (function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('accessToken');
+        const tokenType = urlParams.get('tokenType');
+        const expiresIn = urlParams.get('expiresIn');
+
+        if (accessToken && tokenType && expiresIn) {
+            // localStorage에 저장
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('tokenType', tokenType);
+            localStorage.setItem('expiresIn', expiresIn);
+
+            // URL에서 쿼리 파라미터 제거 (브라우저 히스토리 정리)
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+
+            console.log('OAuth 로그인 성공: 토큰이 저장되었습니다.');
         }
+    })();
 
-        // 액세스 토큰 갱신
-        async function refreshAccessToken() {
-            try {
-                const response = await fetch('/refresh', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+    // API 호출 유틸리티 함수
+    async function apiCall(url, options = {}) {
+        const accessToken = localStorage.getItem('accessToken');
 
-                if (response.ok) {
-                    const refreshData = await response.json();
-                    // 새로운 액세스 토큰 저장
-                    localStorage.setItem('accessToken', refreshData.accessToken);
-                    localStorage.setItem('tokenType', refreshData.tokenType);
-                    localStorage.setItem('expiresIn', refreshData.expiresIn);
-                    return true;
-                } else {
-                    // 리프레시 실패
-                    localStorage.removeItem('accessToken');
-                    localStorage.removeItem('tokenType');
-                    localStorage.removeItem('expiresIn');
-                    return false;
-                }
-            } catch (error) {
-                console.error('토큰 갱신 실패:', error);
-                return false;
-            }
-        }
-
-        // 페이지 로드 시 로그인 상태 확인
-        async function checkLoginStatus() {
-            try {
-                const response = await apiCall('/users/me', {
-                    method: 'GET'
-                });
-
-                if (response && response.ok) {
-                    const userInfo = await response.json();
-
-                    // 로그인 버튼 숨기고 로그아웃 버튼과 내 정보 버튼 표시
-                    document.getElementById('loginBtn').style.display = 'none';
-                    document.getElementById('logoutBtn').style.display = 'inline-block';
-                    document.getElementById('myInfoBtn').style.display = 'inline-block';
-
-                    // "내 정보" 버튼 클릭 시 내 정보 페이지로 이동
-                    document.getElementById('myInfoBtn').addEventListener('click', function() {
-                        window.location.href = '/my-info';
-                    });
-
-                    // 로그아웃 버튼 클릭 시
-                    document.getElementById('logoutBtn').addEventListener('click', async function() {
-                        try {
-                            const response = await apiCall('/logout', {
-                                method: 'POST'
-                            });
-
-                            if (response && response.ok) {
-                                // 로그아웃 성공 - localStorage 정리 및 로그인 페이지로 이동
-                                localStorage.removeItem('accessToken');
-                                localStorage.removeItem('tokenType');
-                                localStorage.removeItem('expiresIn');
-                                window.location.href = '/login';
-                            } else {
-                                alert('로그아웃 중 오류가 발생했습니다.');
-                            }
-                        } catch (error) {
-                            console.error('로그아웃 실패:', error);
-                            alert('로그아웃 중 오류가 발생했습니다.');
-                        }
-                    });
-                }
-            } catch (error) {
-                console.log('Not logged in');
-            }
-        }
-
-        // 페이지 로드 시 실행
-        document.addEventListener('DOMContentLoaded', checkLoginStatus);
-
-        // 카드 클릭 이벤트
-        document.querySelectorAll('.gathering-card').forEach(card => {
-            card.addEventListener('click', function() {
-                // 클릭 효과
-                this.style.transform = 'scale(0.98)';
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 150);
-
-                // 추후 모임 상세 페이지로 이동
-                // const gatheringId = this.dataset.id;
-                // window.location.href = `/gatherings/${gatheringId}`;
-            });
-        });
-
-        // 스크롤 애니메이션
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
+        // Authorization 헤더 추가
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(accessToken && {'Authorization': `Bearer ${accessToken}`}),
+            ...options.headers
         };
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            // 액세스 토큰 만료 시 자동 갱신
+            if (response.status === 401) {
+                const errorData = await response.json().catch(() => ({}));
+
+                if (errorData.code === 'ACCESS_TOKEN_EXPIRED') {
+                    // 토큰 갱신 시도
+                    const refreshed = await refreshAccessToken();
+                    if (refreshed) {
+                        // 갱신 성공 시 원래 요청 재시도
+                        return apiCall(url, options);
+                    }
+                }
+
+                // 기타 401 에러 - 로그인 페이지로 이동
+                return response;
+            }
+
+            return response;
+        } catch (error) {
+            console.error('API 호출 실패:', error);
+            throw error;
+        }
+    }
+
+    // 액세스 토큰 갱신
+    async function refreshAccessToken() {
+        try {
+            const response = await fetch('/refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
             });
-        }, observerOptions);
 
-        // 모든 카드를 관찰
-        document.querySelectorAll('.gathering-card').forEach(el => {
-            observer.observe(el);
+            if (response.ok) {
+                const refreshData = await response.json();
+                // 새로운 액세스 토큰 저장
+                localStorage.setItem('accessToken', refreshData.accessToken);
+                localStorage.setItem('tokenType', refreshData.tokenType);
+                localStorage.setItem('expiresIn', refreshData.expiresIn);
+                return true;
+            } else {
+                // 리프레시 실패
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('tokenType');
+                localStorage.removeItem('expiresIn');
+                return false;
+            }
+        } catch (error) {
+            console.error('토큰 갱신 실패:', error);
+            return false;
+        }
+    }
+
+    // 페이지 로드 시 로그인 상태 확인
+    async function checkLoginStatus() {
+        try {
+            const response = await apiCall('/users/me', {
+                method: 'GET'
+            });
+
+            if (response && response.ok) {
+                const userInfo = await response.json();
+
+                // 로그인 버튼 숨기고 로그아웃 버튼과 내 정보 버튼 표시
+                document.getElementById('loginBtn').style.display = 'none';
+                document.getElementById('logoutBtn').style.display = 'inline-block';
+                document.getElementById('myInfoBtn').style.display = 'inline-block';
+
+                // "내 정보" 버튼 클릭 시 내 정보 페이지로 이동
+                document.getElementById('myInfoBtn').addEventListener('click', function () {
+                    window.location.href = '/my-info';
+                });
+
+                // 로그아웃 버튼 클릭 시
+                document.getElementById('logoutBtn').addEventListener('click', async function () {
+                    try {
+                        const response = await apiCall('/logout', {
+                            method: 'POST'
+                        });
+
+                        if (response && response.ok) {
+                            // 로그아웃 성공 - localStorage 정리 및 로그인 페이지로 이동
+                            localStorage.removeItem('accessToken');
+                            localStorage.removeItem('tokenType');
+                            localStorage.removeItem('expiresIn');
+                            window.location.href = '/login';
+                        } else {
+                            alert('로그아웃 중 오류가 발생했습니다.');
+                        }
+                    } catch (error) {
+                        console.error('로그아웃 실패:', error);
+                        alert('로그아웃 중 오류가 발생했습니다.');
+                    }
+                });
+            }
+        } catch (error) {
+            console.log('Not logged in');
+        }
+    }
+
+    // 페이지 로드 시 실행
+    document.addEventListener('DOMContentLoaded', checkLoginStatus);
+
+    // 카드 클릭 이벤트
+    document.querySelectorAll('.gathering-card').forEach(card => {
+        card.addEventListener('click', function () {
+            // 클릭 효과
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
+
+            // 추후 모임 상세 페이지로 이동
+            // const gatheringId = this.dataset.id;
+            // window.location.href = `/gatherings/${gatheringId}`;
         });
-    </script>
+    });
+
+    // 스크롤 애니메이션
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // 모든 카드를 관찰
+    document.querySelectorAll('.gathering-card').forEach(el => {
+        observer.observe(el);
+    });
+</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-package com.gathering.auth.presentation.exception;
+package com.gathering.common.exception;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -7,10 +7,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
-import com.gathering.auth.presentation.dto.ErrorResponse;
 
 import lombok.extern.slf4j.Slf4j;
 

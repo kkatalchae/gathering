@@ -1,4 +1,8 @@
 spring:
+  config:
+    activate:
+      on-profile: test
+
   application:
     name: gathering
 
@@ -27,6 +31,15 @@ spring:
     mode: HTML
     cache: false
     check-template-location: true
+
+  # OAuth2 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: id
+            client-secret: secret
 
 crypto:
   aes:

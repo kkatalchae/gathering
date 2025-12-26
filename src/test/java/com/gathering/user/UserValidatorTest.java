@@ -12,8 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
 import com.gathering.user.application.UserValidator;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;

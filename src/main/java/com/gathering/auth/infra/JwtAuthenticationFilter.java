@@ -13,9 +13,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gathering.auth.application.exception.BusinessException;
-import com.gathering.auth.application.exception.ErrorCode;
-import com.gathering.auth.presentation.dto.ErrorResponse;
+import com.gathering.common.exception.BusinessException;
+import com.gathering.common.exception.ErrorCode;
+import com.gathering.common.exception.ErrorResponse;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 
@@ -23,6 +23,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,16 +43,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-		FilterChain filterChain) throws ServletException, IOException {
+	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+		@NonNull FilterChain filterChain) throws ServletException, IOException {
 
 		// 1. Authorization 헤더에서 JWT 토큰 추출
 		String jwt = extractJwtFromRequest(request);
 
 		// 2. 토큰이 있으면 검증 및 인증 정보 설정
 		if (jwt == null) {
-			log.debug("Authorization 헤더에 JWT 토큰이 없습니다");
-			sendErrorResponse(response, ErrorCode.ACCESS_TOKEN_MISSING);
+			filterChain.doFilter(request, response);
 			return;
 		}
 
@@ -73,7 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			sendErrorResponse(response, ErrorCode.AUTHENTICATION_FAILED);
 			return;
 		}
-		
+
 		// 4. 토큰에서 사용자 TSID 추출
 		String tsid = jwtTokenProvider.getTsidFromToken(jwt);
 

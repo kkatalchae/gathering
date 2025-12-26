@@ -1,4 +1,4 @@
-package com.gathering.auth.infra;
+package com.gathering.common.adapter;
 
 import java.time.Duration;
 import java.util.Optional;

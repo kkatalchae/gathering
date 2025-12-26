@@ -1,9 +1,7 @@
-package com.gathering.auth.application.exception;
+package com.gathering.common.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import com.gathering.auth.presentation.dto.ErrorResponse;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +45,18 @@ public enum ErrorCode {
 
 	// 중복 에러 (409 Conflict)
 	EMAIL_DUPLICATE(HttpStatus.CONFLICT, "이미 사용중인 이메일입니다."),
-	PHONE_NUMBER_DUPLICATE(HttpStatus.CONFLICT, "이미 사용중인 전화번호입니다.");
+	PHONE_NUMBER_DUPLICATE(HttpStatus.CONFLICT, "이미 사용중인 전화번호입니다."),
+	EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입된 이메일입니다. 기존 계정으로 로그인 후 설정에서 소셜 계정을 연동해주세요."),
+	OAUTH_ACCOUNT_ALREADY_LINKED(HttpStatus.CONFLICT, "이미 다른 사용자에게 연동된 소셜 계정입니다."),
+
+	// OAuth 관련 에러
+	OAUTH_INVALID_STATE(HttpStatus.UNAUTHORIZED, "OAuth 인증 요청이 유효하지 않습니다."),
+	OAUTH_SESSION_MISMATCH(HttpStatus.UNAUTHORIZED, "OAuth 인증 세션이 일치하지 않습니다. 다시 시도해주세요."),
+	OAUTH_CODE_EXCHANGE_FAILED(HttpStatus.BAD_REQUEST, "OAuth 인증 코드 교환에 실패했습니다."),
+	OAUTH_USER_INFO_FETCH_FAILED(HttpStatus.BAD_REQUEST, "OAuth 사용자 정보 조회에 실패했습니다."),
+	OAUTH_CANNOT_UNLINK_LAST_AUTH(HttpStatus.BAD_REQUEST, "마지막 인증 수단은 해제할 수 없습니다. 비밀번호를 설정하거나 다른 소셜 계정을 연동해주세요."),
+	OAUTH_PROVIDER_NOT_LINKED(HttpStatus.NOT_FOUND, "연동되지 않은 소셜 로그인 제공자입니다."),
+	OAUTH_PROVIDER_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 제공자입니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;
