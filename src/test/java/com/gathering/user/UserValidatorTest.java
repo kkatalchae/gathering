@@ -120,40 +120,6 @@ class UserValidatorTest {
 	}
 
 	@Nested
-	@DisplayName("전화번호 중복 검증")
-	class PhoneNumberDuplicateValidation {
-
-		@Test
-		@DisplayName("전화번호 중복")
-		void duplicatePhoneNumber() {
-			// given
-			String phoneNumber = "01012345678";
-			UsersEntity user = UsersEntity.builder()
-				.email("test@example.com")
-				.name("홍길동")
-				.phoneNumber(phoneNumber)
-				.build();
-			usersRepository.save(user);
-
-			// when & then
-			assertThatThrownBy(() -> userValidator.validatePhoneNumberUnique(phoneNumber))
-				.isInstanceOf(BusinessException.class)
-				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.PHONE_NUMBER_DUPLICATE);
-		}
-
-		@Test
-		@DisplayName("전화번호 사용 가능")
-		void availablePhoneNumber() {
-			// given
-			String phoneNumber = "01087654321";
-
-			// when & then
-			assertThatCode(() -> userValidator.validatePhoneNumberUnique(phoneNumber))
-				.doesNotThrowAnyException();
-		}
-	}
-
-	@Nested
 	@DisplayName("비밀번호 형식 검증")
 	class PasswordFormatValidation {
 
@@ -251,31 +217,6 @@ class UserValidatorTest {
 			assertThatThrownBy(() -> userValidator.validateForJoin(request))
 				.isInstanceOf(BusinessException.class)
 				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_DUPLICATE);
-		}
-
-		@Test
-		@DisplayName("회원가입 실패 - 전화번호 중복")
-		void validateForJoin_DuplicatePhoneNumber() {
-			// given
-			String phoneNumber = "01012345678";
-			UsersEntity user = UsersEntity.builder()
-				.email("existing@example.com")
-				.name("기존유저")
-				.phoneNumber(phoneNumber)
-				.build();
-			usersRepository.save(user);
-
-			UserJoinRequest request = UserJoinRequest.builder()
-				.email("new@example.com")
-				.password("Password1!")
-				.name("신규유저")
-				.phoneNumber(phoneNumber)
-				.build();
-
-			// when & then
-			assertThatThrownBy(() -> userValidator.validateForJoin(request))
-				.isInstanceOf(BusinessException.class)
-				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.PHONE_NUMBER_DUPLICATE);
 		}
 	}
 }

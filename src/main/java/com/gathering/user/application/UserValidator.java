@@ -8,6 +8,7 @@ import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 
+import io.netty.util.internal.StringUtil;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -28,8 +29,10 @@ public class UserValidator {
 	public void validateForJoin(UserJoinRequest request) {
 		validateEmailFormat(request.getEmail());
 		validateEmailUnique(request.getEmail());
-		validatePhoneNumberFormat(request.getPhoneNumber());
-		validatePhoneNumberUnique(request.getPhoneNumber());
+		String phoneNumber = request.getPhoneNumber();
+		if (!StringUtil.isNullOrEmpty(phoneNumber)) {
+			validatePhoneNumberFormat(request.getPhoneNumber());
+		}
 		validatePasswordFormat(request.getPassword());
 	}
 
@@ -89,17 +92,6 @@ public class UserValidator {
 		String passwordRegex = "^(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$";
 		if (password == null || !password.matches(passwordRegex)) {
 			throw new BusinessException(ErrorCode.INVALID_PASSWORD_FORMAT);
-		}
-	}
-
-	/**
-	 * 전화번호 중복 검증
-	 *
-	 * @param phoneNumber 검증할 전화번호
-	 */
-	public void validatePhoneNumberUnique(String phoneNumber) {
-		if (usersRepository.existsByPhoneNumber(phoneNumber)) {
-			throw new BusinessException(ErrorCode.PHONE_NUMBER_DUPLICATE);
 		}
 	}
 

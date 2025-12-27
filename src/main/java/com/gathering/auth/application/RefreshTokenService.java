@@ -66,6 +66,19 @@ public class RefreshTokenService {
 	}
 
 	/**
+	 * 사용자의 모든 RefreshToken 삭제 (회원 탈퇴 시 사용)
+	 * 멀티 디바이스 환경에서 해당 사용자의 모든 디바이스 토큰을 삭제
+	 * @param tsid 사용자 고유 ID
+	 * @return 삭제된 토큰 개수
+	 */
+	public long deleteAllRefreshTokensByTsid(String tsid) {
+		String pattern = KEY_PREFIX + tsid + ":*";
+		long deletedCount = redisAdapter.deleteByPattern(pattern);
+		log.info("사용자의 모든 RefreshToken 삭제: tsid={}, deletedCount={}", tsid, deletedCount);
+		return deletedCount;
+	}
+
+	/**
 	 * Redis 키 생성 (멀티 디바이스 지원)
 	 * @param tsid 사용자 고유 ID
 	 * @param jti JWT ID (토큰 고유 ID)

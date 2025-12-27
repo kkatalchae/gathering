@@ -22,19 +22,16 @@ public enum ErrorCode {
 	ACCESS_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "액세스 토큰이 필요합니다"),
 	ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "액세스 토큰이 만료되었습니다. 토큰을 갱신해주세요"),
 	ACCESS_TOKEN_MALFORMED(HttpStatus.UNAUTHORIZED, "액세스 토큰 형식이 올바르지 않습니다"),
-	ACCESS_TOKEN_INVALID_SIGNATURE(HttpStatus.UNAUTHORIZED, "액세스 토큰 서명이 유효하지 않습니다"),
 
 	// Refresh Token Errors
 	REFRESH_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 필요합니다"),
 	REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 만료되었습니다. 다시 로그인해주세요"),
 	REFRESH_TOKEN_MALFORMED(HttpStatus.UNAUTHORIZED, "리프레시 토큰 형식이 올바르지 않습니다"),
-	REFRESH_TOKEN_INVALID_SIGNATURE(HttpStatus.UNAUTHORIZED, "리프레시 토큰 서명이 유효하지 않습니다"),
 	REFRESH_TOKEN_REVOKED(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 취소되었습니다. 다시 로그인해주세요"),
 
 	// 사용자 관련 에러 (404 Not Found)
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
 	USER_DELETED(HttpStatus.NOT_FOUND, "삭제된 사용자입니다."),
-	USER_BANNED(HttpStatus.NOT_FOUND, "사용이 제한된 사용자입니다."),
 
 	// 유효성 검증 에러 (400 Bad Request)
 	INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "올바른 형식의 이메일이 아닙니다."),
@@ -45,17 +42,9 @@ public enum ErrorCode {
 
 	// 중복 에러 (409 Conflict)
 	EMAIL_DUPLICATE(HttpStatus.CONFLICT, "이미 사용중인 이메일입니다."),
-	PHONE_NUMBER_DUPLICATE(HttpStatus.CONFLICT, "이미 사용중인 전화번호입니다."),
 	EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입된 이메일입니다. 기존 계정으로 로그인 후 설정에서 소셜 계정을 연동해주세요."),
-	OAUTH_ACCOUNT_ALREADY_LINKED(HttpStatus.CONFLICT, "이미 다른 사용자에게 연동된 소셜 계정입니다."),
 
 	// OAuth 관련 에러
-	OAUTH_INVALID_STATE(HttpStatus.UNAUTHORIZED, "OAuth 인증 요청이 유효하지 않습니다."),
-	OAUTH_SESSION_MISMATCH(HttpStatus.UNAUTHORIZED, "OAuth 인증 세션이 일치하지 않습니다. 다시 시도해주세요."),
-	OAUTH_CODE_EXCHANGE_FAILED(HttpStatus.BAD_REQUEST, "OAuth 인증 코드 교환에 실패했습니다."),
-	OAUTH_USER_INFO_FETCH_FAILED(HttpStatus.BAD_REQUEST, "OAuth 사용자 정보 조회에 실패했습니다."),
-	OAUTH_CANNOT_UNLINK_LAST_AUTH(HttpStatus.BAD_REQUEST, "마지막 인증 수단은 해제할 수 없습니다. 비밀번호를 설정하거나 다른 소셜 계정을 연동해주세요."),
-	OAUTH_PROVIDER_NOT_LINKED(HttpStatus.NOT_FOUND, "연동되지 않은 소셜 로그인 제공자입니다."),
 	OAUTH_PROVIDER_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 제공자입니다.");
 
 	private final HttpStatus httpStatus;

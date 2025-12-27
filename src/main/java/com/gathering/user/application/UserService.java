@@ -3,11 +3,11 @@ package com.gathering.user.application;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.gathering.auth.application.RefreshTokenService;
 import com.gathering.auth.domain.OAuthUserInfo;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.user.domain.model.UserSecurityEntity;
-import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UserSecurityRepository;
 import com.gathering.user.domain.repository.UsersRepository;
@@ -15,6 +15,7 @@ import com.gathering.user.presentation.dto.ChangePasswordRequest;
 import com.gathering.user.presentation.dto.MyInfoResponse;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
+import com.gathering.user.presentation.dto.WithdrawRequest;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class UserService {
 	private final UserSecurityRepository userSecurityRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final UserValidator userValidator;
+	private final RefreshTokenService refreshTokenService;
 
 	/**
 	 * 회원가입 처리
@@ -71,21 +73,11 @@ public class UserService {
 	 *
 	 * @param tsid 사용자 고유 ID
 	 * @return 사용자 엔티티
-	 * @throws BusinessException 사용자가 존재하지 않거나 삭제/정지된 경우
+	 * @throws BusinessException 사용자가 존재않은 경우
 	 */
-	public UsersEntity getUserInfo(String tsid) {
-		UsersEntity user = usersRepository.findById(tsid)
+	public UsersEntity getUsersEntityByTsid(String tsid) {
+		return usersRepository.findById(tsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-		if (user.getStatus() == UserStatus.DELETED) {
-			throw new BusinessException(ErrorCode.USER_DELETED);
-		}
-
-		if (user.getStatus() == UserStatus.BANNED) {
-			throw new BusinessException(ErrorCode.USER_BANNED);
-		}
-
-		return user;
 	}
 
 	/**
@@ -95,7 +87,7 @@ public class UserService {
 	 * @return 사용자 상세 정보 (email, phoneNumber 포함)
 	 */
 	public MyInfoResponse getMyInfo(String tsid) {
-		UsersEntity user = getUserInfo(tsid);
+		UsersEntity user = getUsersEntityByTsid(tsid);
 		return MyInfoResponse.from(user);
 	}
 
@@ -114,17 +106,14 @@ public class UserService {
 		String phoneNumber = request.getPhoneNumber();
 
 		// 2. 사용자 조회 및 상태 검증
-		UsersEntity user = getUserInfo(tsid);
+		UsersEntity user = getUsersEntityByTsid(tsid);
 
 		// 3. 이름 검증
 		userValidator.validateName(name);
 
-		// 4. 전화번호 검증 (변경 시에만 형식 및 중복 체크)
+		// 4. 전화번호 형식 검증
 		if (phoneNumber != null) {
 			userValidator.validatePhoneNumberFormat(phoneNumber);
-			if (!phoneNumber.equals(user.getPhoneNumber())) {
-				userValidator.validatePhoneNumberUnique(phoneNumber);
-			}
 		}
 
 		// 5. 엔티티 업데이트 (JPA dirty checking으로 자동 UPDATE)
@@ -160,5 +149,37 @@ public class UserService {
 
 		// 비밀번호 업데이트 (JPA dirty checking으로 자동 UPDATE)
 		security.updatePassword(passwordEncoder.encode(newPassword));
+	}
+
+	/**
+	 * 회원 탈퇴 (hard delete)
+	 * 개인정보보호법에 따라 사용자 데이터를 완전히 삭제
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @param request 회원 탈퇴 요청 (비밀번호 포함)
+	 * @throws BusinessException 사용자가 존재하지 않거나 비밀번호가 일치하지 않는 경우
+	 */
+	@Transactional
+	public void withdraw(String tsid, WithdrawRequest request) {
+		// 1. 사용자 존재 확인
+		getUsersEntityByTsid(tsid);
+
+		// 2. 보안 정보 조회
+		UserSecurityEntity security = userSecurityRepository.findById(tsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+		// 3. 비밀번호 검증 (일반 회원가입 사용자만 해당)
+		if (!passwordEncoder.matches(request.getPassword(), security.getPasswordHash())) {
+			throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
+		}
+
+		// 4. user_security 테이블 삭제 (FK 제약 때문에 먼저 삭제)
+		userSecurityRepository.deleteById(tsid);
+
+		// 5. users 테이블 삭제
+		usersRepository.deleteById(tsid);
+
+		// 6. Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
+		refreshTokenService.deleteAllRefreshTokensByTsid(tsid);
 	}
 }

@@ -2,6 +2,7 @@ package com.gathering.common.adapter;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -44,5 +45,19 @@ public class RedisAdapter {
 	 */
 	public boolean delete(String key) {
 		return Boolean.TRUE.equals(redisTemplate.delete(key));
+	}
+
+	/**
+	 * 패턴과 일치하는 모든 키 삭제
+	 * @param pattern 키 패턴 (예: "refresh_token:123456:*")
+	 * @return 삭제된 키 개수
+	 */
+	public long deleteByPattern(String pattern) {
+		Set<String> keys = redisTemplate.keys(pattern);
+		if (keys == null || keys.isEmpty()) {
+			return 0;
+		}
+		Long deletedCount = redisTemplate.delete(keys);
+		return deletedCount != null ? deletedCount : 0;
 	}
 }
