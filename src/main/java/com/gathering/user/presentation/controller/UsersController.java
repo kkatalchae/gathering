@@ -19,6 +19,7 @@ import com.gathering.user.presentation.dto.MyInfoResponse;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserInfoResponse;
 import com.gathering.user.presentation.dto.UserJoinRequest;
+import com.gathering.user.presentation.dto.WithdrawRequest;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -85,9 +86,11 @@ public class UsersController {
 	 * 회원 탈퇴
 	 */
 	@DeleteMapping("/me")
-	public ResponseEntity<Void> withdraw(HttpServletRequest request) {
+	public ResponseEntity<Void> withdraw(
+		HttpServletRequest request,
+		@Valid @RequestBody WithdrawRequest withdrawRequest) {
 		String tsid = authService.getCurrentUserTsid(request);
-		userService.withdraw(tsid);
+		userService.withdraw(tsid, withdrawRequest);
 		return ResponseEntity.noContent().build();
 	}
 

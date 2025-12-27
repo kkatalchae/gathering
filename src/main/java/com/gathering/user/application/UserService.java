@@ -15,6 +15,7 @@ import com.gathering.user.presentation.dto.ChangePasswordRequest;
 import com.gathering.user.presentation.dto.MyInfoResponse;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
+import com.gathering.user.presentation.dto.WithdrawRequest;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -155,17 +156,29 @@ public class UserService {
 	 * 개인정보보호법에 따라 사용자 데이터를 완전히 삭제
 	 *
 	 * @param tsid 사용자 고유 ID
-	 * @throws BusinessException 사용자가 존재하지 않는 경우
+	 * @param request 회원 탈퇴 요청 (비밀번호 포함)
+	 * @throws BusinessException 사용자가 존재하지 않거나 비밀번호가 일치하지 않는 경우
 	 */
 	@Transactional
-	public void withdraw(String tsid) {
-		// 사용자 존재 확인
+	public void withdraw(String tsid, WithdrawRequest request) {
+		// 1. 사용자 존재 확인
 		getUsersEntityByTsid(tsid);
-		// user_security 테이블 삭제 (FK 제약 때문에 먼저 삭제)
+
+		// 2. 비밀번호 검증
+		UserSecurityEntity security = userSecurityRepository.findById(tsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+		if (!passwordEncoder.matches(request.getPassword(), security.getPasswordHash())) {
+			throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
+		}
+
+		// 3. user_security 테이블 삭제 (FK 제약 때문에 먼저 삭제)
 		userSecurityRepository.deleteById(tsid);
-		// users 테이블 삭제
+
+		// 4. users 테이블 삭제
 		usersRepository.deleteById(tsid);
-		// Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
+
+		// 5. Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
 		refreshTokenService.deleteAllRefreshTokensByTsid(tsid);
 	}
 }

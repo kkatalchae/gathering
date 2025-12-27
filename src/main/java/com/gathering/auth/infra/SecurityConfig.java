@@ -25,7 +25,7 @@ public class SecurityConfig {
 		// OAuth 엔드포인트 (인증 불필요)
 		"/oauth/**", "/login/oauth2/**",
 		// API 문서
-		"/docs/**", "/redoc.html"
+		"/docs/**", "/redoc.html", "/my-info"
 	};
 
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;

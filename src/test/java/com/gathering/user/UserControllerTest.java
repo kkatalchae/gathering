@@ -36,6 +36,7 @@ import com.gathering.user.presentation.dto.ChangePasswordRequest;
 import com.gathering.user.presentation.dto.MyInfoResponse;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
+import com.gathering.user.presentation.dto.WithdrawRequest;
 
 /**
  * UsersController Spring REST Docs 테스트
@@ -393,17 +394,26 @@ class UserControllerTest {
 	void withdrawSuccess() throws Exception {
 		// given
 		String tsid = "1234567890123";
+		String plainPassword = "Password1!";
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+
+		WithdrawRequest request = new WithdrawRequest(encryptedPassword);
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
-		doNothing().when(userService).withdraw(tsid);
+		doNothing().when(userService).withdraw(eq(tsid), any(WithdrawRequest.class));
 
 		// when & then
 		mockMvc.perform(delete("/users/me")
-				.contentType(MediaType.APPLICATION_JSON))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isNoContent())
-			.andDo(document("DELETE /users/me - 회원 탈퇴"));
+			.andDo(document("DELETE /users/me - 회원 탈퇴",
+				requestFields(
+					fieldWithPath("password").description("비밀번호 (AES 암호화, 본인 확인용)")
+				)
+			));
 
 		verify(authService, times(1)).getCurrentUserTsid(any());
-		verify(userService, times(1)).withdraw(tsid);
+		verify(userService, times(1)).withdraw(eq(tsid), any(WithdrawRequest.class));
 	}
 }
