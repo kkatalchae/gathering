@@ -1,6 +1,7 @@
 package com.gathering.user.presentation.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,7 +42,7 @@ public class UsersController {
 
 	@GetMapping("/{tsid}")
 	public ResponseEntity<UserInfoResponse> getUserInfo(@PathVariable String tsid) {
-		UsersEntity user = userService.getUserInfo(tsid);
+		UsersEntity user = userService.getUsersEntityByTsid(tsid);
 		UserInfoResponse response = UserInfoResponse.from(user);
 		return ResponseEntity.ok(response);
 	}
@@ -77,6 +78,16 @@ public class UsersController {
 		@Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
 		String tsid = authService.getCurrentUserTsid(request);
 		userService.changePassword(tsid, changePasswordRequest);
+		return ResponseEntity.noContent().build();
+	}
+
+	/**
+	 * 회원 탈퇴
+	 */
+	@DeleteMapping("/me")
+	public ResponseEntity<Void> withdraw(HttpServletRequest request) {
+		String tsid = authService.getCurrentUserTsid(request);
+		userService.withdraw(tsid);
 		return ResponseEntity.noContent().build();
 	}
 

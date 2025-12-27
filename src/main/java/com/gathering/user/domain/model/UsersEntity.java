@@ -29,8 +29,7 @@ import lombok.NoArgsConstructor;
 @Table(
 	name = "users",
 	uniqueConstraints = {
-		@UniqueConstraint(name = "uk_user_email", columnNames = "email"),
-		@UniqueConstraint(name = "uk_user_phone_number", columnNames = "phone_number")
+		@UniqueConstraint(name = "uk_user_email", columnNames = "email")
 	}
 )
 public class UsersEntity {
@@ -68,9 +67,6 @@ public class UsersEntity {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	@CreatedDate
 	private Instant createdAt;
-
-	@Column(name = "deleted_at")
-	private Instant deletedAt;
 
 	/**
 	 * 프로필 정보 업데이트

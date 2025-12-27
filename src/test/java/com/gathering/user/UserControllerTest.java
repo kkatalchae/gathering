@@ -139,7 +139,7 @@ class UserControllerTest {
 			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
 			.build();
 
-		when(userService.getUserInfo(tsid)).thenReturn(user);
+		when(userService.getUsersEntityByTsid(tsid)).thenReturn(user);
 
 		// when & then
 		mockMvc.perform(get("/users/{tsid}", tsid)
@@ -159,7 +159,7 @@ class UserControllerTest {
 				)
 			));
 
-		verify(userService, times(1)).getUserInfo(tsid);
+		verify(userService, times(1)).getUsersEntityByTsid(tsid);
 	}
 
 	@Test
@@ -168,7 +168,7 @@ class UserControllerTest {
 		// given
 		String tsid = "1234567890123";
 
-		when(userService.getUserInfo(tsid))
+		when(userService.getUsersEntityByTsid(tsid))
 			.thenThrow(new BusinessException(ErrorCode.USER_DELETED));
 
 		// when & then
@@ -184,32 +184,7 @@ class UserControllerTest {
 				)
 			));
 
-		verify(userService, times(1)).getUserInfo(tsid);
-	}
-
-	@Test
-	@DisplayName("GET /users/{tsid} - 정지된 사용자 조회")
-	void getUserInfo_Banned() throws Exception {
-		// given
-		String tsid = "1234567890123";
-
-		when(userService.getUserInfo(tsid))
-			.thenThrow(new BusinessException(ErrorCode.USER_BANNED));
-
-		// when & then
-		mockMvc.perform(get("/users/{tsid}", tsid)
-				.contentType(MediaType.APPLICATION_JSON))
-			.andExpect(status().isNotFound())
-			.andExpect(jsonPath("$.code").value("USER_BANNED"))
-			.andExpect(jsonPath("$.message").value("사용이 제한된 사용자입니다."))
-			.andDo(document("users-get-banned",
-				responseFields(
-					fieldWithPath("code").description("에러 코드"),
-					fieldWithPath("message").description("에러 메시지")
-				)
-			));
-
-		verify(userService, times(1)).getUserInfo(tsid);
+		verify(userService, times(1)).getUsersEntityByTsid(tsid);
 	}
 
 	@Test
@@ -251,7 +226,7 @@ class UserControllerTest {
 					fieldWithPath("name").description("사용자 이름"),
 					fieldWithPath("phoneNumber").description("전화번호"),
 					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional(),
-					fieldWithPath("status").description("계정 상태 (ACTIVE, BANNED, DELETED)"),
+					fieldWithPath("status").description("계정 상태 (ACTIVE, DELETED)"),
 					fieldWithPath("createdAt").description("가입일시")
 				)
 			));
@@ -310,36 +285,6 @@ class UserControllerTest {
 
 		verify(authService, times(1)).getCurrentUserTsid(any());
 		verify(userService, times(1)).updateMyInfo(eq(tsid), any(UpdateMyInfoRequest.class));
-	}
-
-	@Test
-	@DisplayName("PATCH /users/me - 전화번호 중복")
-	void updateMyInfo_DuplicatePhoneNumber() throws Exception {
-		// given
-		String tsid = "1234567890123";
-
-		UpdateMyInfoRequest updateRequest = new UpdateMyInfoRequest(null, null, "01012345678");
-
-		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
-		when(userService.updateMyInfo(eq(tsid), any()))
-			.thenThrow(new BusinessException(ErrorCode.PHONE_NUMBER_DUPLICATE));
-
-		// when & then
-		mockMvc.perform(patch("/users/me")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(updateRequest)))
-			.andExpect(status().isConflict())
-			.andExpect(jsonPath("$.code").value("PHONE_NUMBER_DUPLICATE"))
-			.andExpect(jsonPath("$.message").value("이미 사용중인 전화번호입니다."))
-			.andDo(document("users-update-me-duplicate-phone",
-				responseFields(
-					fieldWithPath("code").description("에러 코드"),
-					fieldWithPath("message").description("에러 메시지")
-				)
-			));
-
-		verify(authService, times(1)).getCurrentUserTsid(any());
-		verify(userService, times(1)).updateMyInfo(eq(tsid), any());
 	}
 
 	@Test
@@ -441,5 +386,24 @@ class UserControllerTest {
 
 		verify(authService, times(1)).getCurrentUserTsid(any());
 		verify(userService, times(1)).changePassword(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("정상적으로 회원 탈퇴하면 204 응답을 반환한다")
+	void withdrawSuccess() throws Exception {
+		// given
+		String tsid = "1234567890123";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		doNothing().when(userService).withdraw(tsid);
+
+		// when & then
+		mockMvc.perform(delete("/users/me")
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isNoContent())
+			.andDo(document("DELETE /users/me - 회원 탈퇴"));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).withdraw(tsid);
 	}
 }
