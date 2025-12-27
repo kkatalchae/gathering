@@ -298,6 +298,145 @@
             margin-bottom: 20px;
         }
 
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .modal-header h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-warning {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #721c24;
+            margin-bottom: 15px;
+        }
+
+        .modal-warning-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 25px 0;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px 20px;
+        }
+
+        .modal-warning-list li {
+            color: #721c24;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .modal-warning-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-warning-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        .modal-password-section {
+            margin-top: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 20px 30px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .modal-footer .btn {
+            flex: 1;
+            margin: 0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -488,6 +627,58 @@
                 비밀번호 변경
             </button>
         </form>
+
+        <!-- 구분선 -->
+        <div class="section-divider"></div>
+
+        <!-- 회원 탈퇴 섹션 -->
+        <div class="section-title">회원 탈퇴</div>
+
+        <div class="info-note" style="background: #f8d7da; border-color: #f5c6cb; color: #721c24;">
+            ⚠️ 회원 탈퇴 시 모든 데이터가 즉시 삭제되며 복구할 수 없습니다.<br>
+            신중하게 결정해주시기 바랍니다.
+        </div>
+
+        <button type="button" class="btn btn-danger" id="withdrawBtn">
+            회원 탈퇴
+        </button>
+    </div>
+</div>
+
+<!-- 회원 탈퇴 확인 모달 -->
+<div id="withdrawModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>회원 탈퇴 확인</h2>
+            <button class="modal-close" id="modalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-warning">
+                ⚠️ 회원 탈퇴 시 다음 사항에 유의해주세요:
+            </p>
+            <ul class="modal-warning-list">
+                <li>모든 개인정보가 즉시 삭제됩니다</li>
+                <li>탈퇴 후 같은 이메일로 재가입이 가능합니다</li>
+                <li>작성한 콘텐츠는 '알 수 없는 사용자'로 표시됩니다</li>
+                <li>삭제된 데이터는 복구할 수 없습니다</li>
+            </ul>
+            <div class="modal-password-section">
+                <label for="withdrawPassword" class="form-label">
+                    비밀번호를 입력하여 본인 확인을 해주세요 <span style="color:red">*</span>
+                </label>
+                <input
+                    type="password"
+                    id="withdrawPassword"
+                    class="form-input"
+                    placeholder="비밀번호를 입력하세요"
+                >
+                <div class="error-message" id="withdrawPasswordError"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="modalCancel">취소</button>
+            <button type="button" class="btn btn-danger" id="confirmWithdrawBtn">탈퇴하기</button>
+        </div>
     </div>
 </div>
 
@@ -875,6 +1066,101 @@
             } else {
                 document.getElementById('confirmNewPasswordSuccess').style.display = 'none';
             }
+        }
+    });
+
+    // 회원 탈퇴 모달 관련
+    const withdrawModal = document.getElementById('withdrawModal');
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    const modalClose = document.getElementById('modalClose');
+    const modalCancel = document.getElementById('modalCancel');
+    const confirmWithdrawBtn = document.getElementById('confirmWithdrawBtn');
+    const withdrawPasswordInput = document.getElementById('withdrawPassword');
+
+    // 회원 탈퇴 버튼 클릭 - 모달 열기
+    withdrawBtn.addEventListener('click', function() {
+        withdrawModal.classList.add('active');
+        withdrawPasswordInput.value = '';
+        hideInputError(withdrawPasswordInput, 'withdrawPasswordError');
+    });
+
+    // 모달 닫기 - X 버튼
+    modalClose.addEventListener('click', function() {
+        withdrawModal.classList.remove('active');
+    });
+
+    // 모달 닫기 - 취소 버튼
+    modalCancel.addEventListener('click', function() {
+        withdrawModal.classList.remove('active');
+    });
+
+    // 모달 배경 클릭 시 닫기
+    withdrawModal.addEventListener('click', function(e) {
+        if (e.target === withdrawModal) {
+            withdrawModal.classList.remove('active');
+        }
+    });
+
+    // 회원 탈퇴 비밀번호 입력 이벤트
+    withdrawPasswordInput.addEventListener('input', function() {
+        if (this.value) {
+            hideInputError(this, 'withdrawPasswordError');
+        }
+    });
+
+    // 회원 탈퇴 확인 버튼
+    confirmWithdrawBtn.addEventListener('click', async function() {
+        const password = withdrawPasswordInput.value;
+
+        // 비밀번호 입력 확인
+        if (!password) {
+            showInputError(withdrawPasswordInput, 'withdrawPasswordError', '비밀번호를 입력해주세요.');
+            return;
+        }
+
+        hideInputError(withdrawPasswordInput, 'withdrawPasswordError');
+
+        // 버튼 비활성화
+        confirmWithdrawBtn.disabled = true;
+        confirmWithdrawBtn.textContent = '탈퇴 처리 중...';
+
+        try {
+            // 비밀번호 AES 암호화
+            const encryptedPassword = CryptoJS.AES.encrypt(password, AES_KEY, {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.Pkcs7
+            }).toString();
+
+            const response = await apiCall('/users/me', {
+                method: 'DELETE',
+                body: JSON.stringify({
+                    password: encryptedPassword
+                })
+            });
+
+            if (!response) return; // apiCall에서 이미 처리됨
+
+            if (response.ok) {
+                // 탈퇴 성공 - 로컬 스토리지 클리어 및 로그인 페이지로 이동
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('tokenType');
+                localStorage.removeItem('expiresIn');
+
+                alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
+                window.location.href = '/login';
+            } else if (response.status === 401 || response.status === 400) {
+                const errorData = await response.json().catch(() => null);
+                const errorMessage = errorData?.message || '비밀번호가 일치하지 않습니다.';
+                showInputError(withdrawPasswordInput, 'withdrawPasswordError', errorMessage);
+            } else {
+                alert('회원 탈퇴 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            }
+        } catch (error) {
+            console.error('회원 탈퇴 실패:', error);
+            alert('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        } finally {
+            confirmWithdrawBtn.disabled = false;
+            confirmWithdrawBtn.textContent = '탈퇴하기';
         }
     });
 
