@@ -54,18 +54,20 @@ class UserServiceTest {
 		// given
 		String tsid = "1234567890123";
 		String password = "Password1!";
+		String encodedPassword = "$2a$10$encoded_password";
+
 		UsersEntity user = UsersEntity.builder()
 			.tsid(tsid)
 			.email("test@example.com")
 			.name("홍길동")
 			.build();
 
-		UserSecurityEntity security = UserSecurityEntity.of(tsid, passwordEncoder.encode(password));
+		UserSecurityEntity security = UserSecurityEntity.of(tsid, encodedPassword);
 		WithdrawRequest request = new WithdrawRequest(password);
 
 		when(usersRepository.findById(tsid)).thenReturn(Optional.of(user));
 		when(userSecurityRepository.findById(tsid)).thenReturn(Optional.of(security));
-		when(passwordEncoder.matches(password, security.getPasswordHash())).thenReturn(true);
+		when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
 		when(refreshTokenService.deleteAllRefreshTokensByTsid(tsid)).thenReturn(1L);
 
 		// when
@@ -74,7 +76,7 @@ class UserServiceTest {
 		// then
 		verify(usersRepository, times(1)).findById(tsid);
 		verify(userSecurityRepository, times(1)).findById(tsid);
-		verify(passwordEncoder, times(1)).matches(password, security.getPasswordHash());
+		verify(passwordEncoder, times(1)).matches(password, encodedPassword);
 		verify(userSecurityRepository, times(1)).deleteById(tsid);
 		verify(usersRepository, times(1)).deleteById(tsid);
 		verify(refreshTokenService, times(1)).deleteAllRefreshTokensByTsid(tsid);
@@ -108,6 +110,7 @@ class UserServiceTest {
 		String tsid = "1234567890123";
 		String correctPassword = "Password1!";
 		String wrongPassword = "WrongPass1!";
+		String encodedPassword = "$2a$10$encoded_password";
 
 		UsersEntity user = UsersEntity.builder()
 			.tsid(tsid)
@@ -115,12 +118,12 @@ class UserServiceTest {
 			.name("홍길동")
 			.build();
 
-		UserSecurityEntity security = UserSecurityEntity.of(tsid, passwordEncoder.encode(correctPassword));
+		UserSecurityEntity security = UserSecurityEntity.of(tsid, encodedPassword);
 		WithdrawRequest request = new WithdrawRequest(wrongPassword);
 
 		when(usersRepository.findById(tsid)).thenReturn(Optional.of(user));
 		when(userSecurityRepository.findById(tsid)).thenReturn(Optional.of(security));
-		when(passwordEncoder.matches(wrongPassword, security.getPasswordHash())).thenReturn(false);
+		when(passwordEncoder.matches(wrongPassword, encodedPassword)).thenReturn(false);
 
 		// when & then
 		assertThatThrownBy(() -> userService.withdraw(tsid, request))
@@ -129,7 +132,70 @@ class UserServiceTest {
 
 		verify(usersRepository, times(1)).findById(tsid);
 		verify(userSecurityRepository, times(1)).findById(tsid);
-		verify(passwordEncoder, times(1)).matches(wrongPassword, security.getPasswordHash());
+		verify(passwordEncoder, times(1)).matches(wrongPassword, encodedPassword);
+		verify(userSecurityRepository, never()).deleteById(anyString());
+		verify(usersRepository, never()).deleteById(anyString());
+		verify(refreshTokenService, never()).deleteAllRefreshTokensByTsid(anyString());
+	}
+
+	@Test
+	@DisplayName("소셜 로그인 사용자는 비밀번호 없이 탈퇴가 가능하다")
+	void withdrawSocialUser() {
+		// given
+		String tsid = "1234567890123";
+		UsersEntity user = UsersEntity.builder()
+			.tsid(tsid)
+			.email("social@example.com")
+			.name("구글사용자")
+			.build();
+
+		// 소셜 로그인 사용자는 passwordHash가 null
+		UserSecurityEntity security = UserSecurityEntity.of(tsid, null);
+		WithdrawRequest request = new WithdrawRequest(null);
+
+		when(usersRepository.findById(tsid)).thenReturn(Optional.of(user));
+		when(userSecurityRepository.findById(tsid)).thenReturn(Optional.of(security));
+		when(refreshTokenService.deleteAllRefreshTokensByTsid(tsid)).thenReturn(1L);
+
+		// when
+		userService.withdraw(tsid, request);
+
+		// then
+		verify(usersRepository, times(1)).findById(tsid);
+		verify(userSecurityRepository, times(1)).findById(tsid);
+		verify(passwordEncoder, never()).matches(anyString(), anyString());
+		verify(userSecurityRepository, times(1)).deleteById(tsid);
+		verify(usersRepository, times(1)).deleteById(tsid);
+		verify(refreshTokenService, times(1)).deleteAllRefreshTokensByTsid(tsid);
+	}
+
+	@Test
+	@DisplayName("일반 회원가입 사용자가 비밀번호 없이 탈퇴 시도하면 INVALID_CURRENT_PASSWORD 예외가 발생한다")
+	void withdrawRegularUserWithoutPassword() {
+		// given
+		String tsid = "1234567890123";
+		String encodedPassword = "$2a$10$encoded_password";
+
+		UsersEntity user = UsersEntity.builder()
+			.tsid(tsid)
+			.email("test@example.com")
+			.name("홍길동")
+			.build();
+
+		UserSecurityEntity security = UserSecurityEntity.of(tsid, encodedPassword);
+		WithdrawRequest request = new WithdrawRequest(null);
+
+		when(usersRepository.findById(tsid)).thenReturn(Optional.of(user));
+		when(userSecurityRepository.findById(tsid)).thenReturn(Optional.of(security));
+
+		// when & then
+		assertThatThrownBy(() -> userService.withdraw(tsid, request))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CURRENT_PASSWORD);
+
+		verify(usersRepository, times(1)).findById(tsid);
+		verify(userSecurityRepository, times(1)).findById(tsid);
+		verify(passwordEncoder, never()).matches(anyString(), anyString());
 		verify(userSecurityRepository, never()).deleteById(anyString());
 		verify(usersRepository, never()).deleteById(anyString());
 		verify(refreshTokenService, never()).deleteAllRefreshTokensByTsid(anyString());

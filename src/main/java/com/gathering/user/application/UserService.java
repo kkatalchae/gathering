@@ -164,21 +164,30 @@ public class UserService {
 		// 1. 사용자 존재 확인
 		getUsersEntityByTsid(tsid);
 
-		// 2. 비밀번호 검증
+		// 2. 보안 정보 조회
 		UserSecurityEntity security = userSecurityRepository.findById(tsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-		if (!passwordEncoder.matches(request.getPassword(), security.getPasswordHash())) {
-			throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
+		// 3. 비밀번호 검증 (일반 회원가입 사용자만 해당)
+		// 소셜 로그인 사용자는 passwordHash가 null이므로 검증 스킵
+		if (security.getPasswordHash() != null) {
+			// 일반 회원가입 사용자: 비밀번호 필수
+			if (request.getPassword() == null || request.getPassword().isBlank()) {
+				throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
+			}
+			if (!passwordEncoder.matches(request.getPassword(), security.getPasswordHash())) {
+				throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
+			}
 		}
+		// 소셜 로그인 사용자는 비밀번호 검증 없이 바로 탈퇴 처리
 
-		// 3. user_security 테이블 삭제 (FK 제약 때문에 먼저 삭제)
+		// 4. user_security 테이블 삭제 (FK 제약 때문에 먼저 삭제)
 		userSecurityRepository.deleteById(tsid);
 
-		// 4. users 테이블 삭제
+		// 5. users 테이블 삭제
 		usersRepository.deleteById(tsid);
 
-		// 5. Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
+		// 6. Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
 		refreshTokenService.deleteAllRefreshTokensByTsid(tsid);
 	}
 }

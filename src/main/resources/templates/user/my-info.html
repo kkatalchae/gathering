@@ -662,15 +662,18 @@
                 <li>작성한 콘텐츠는 '알 수 없는 사용자'로 표시됩니다</li>
                 <li>삭제된 데이터는 복구할 수 없습니다</li>
             </ul>
+            <div class="info-note" style="background: #d1ecf1; border-color: #bee5eb; color: #0c5460;">
+                ℹ️ 소셜 로그인(구글 등)으로 가입한 경우 비밀번호를 입력하지 않아도 됩니다.
+            </div>
             <div class="modal-password-section">
                 <label for="withdrawPassword" class="form-label">
-                    비밀번호를 입력하여 본인 확인을 해주세요 <span style="color:red">*</span>
+                    비밀번호 (일반 회원가입 사용자만 입력)
                 </label>
                 <input
                     type="password"
                     id="withdrawPassword"
                     class="form-input"
-                    placeholder="비밀번호를 입력하세요"
+                    placeholder="소셜 로그인 사용자는 입력하지 않아도 됩니다"
                 >
                 <div class="error-message" id="withdrawPasswordError"></div>
             </div>
@@ -1112,12 +1115,6 @@
     confirmWithdrawBtn.addEventListener('click', async function() {
         const password = withdrawPasswordInput.value;
 
-        // 비밀번호 입력 확인
-        if (!password) {
-            showInputError(withdrawPasswordInput, 'withdrawPasswordError', '비밀번호를 입력해주세요.');
-            return;
-        }
-
         hideInputError(withdrawPasswordInput, 'withdrawPasswordError');
 
         // 버튼 비활성화
@@ -1125,11 +1122,11 @@
         confirmWithdrawBtn.textContent = '탈퇴 처리 중...';
 
         try {
-            // 비밀번호 AES 암호화
-            const encryptedPassword = CryptoJS.AES.encrypt(password, AES_KEY, {
+            // 비밀번호가 입력된 경우에만 AES 암호화
+            const encryptedPassword = password ? CryptoJS.AES.encrypt(password, AES_KEY, {
                 mode: CryptoJS.mode.ECB,
                 padding: CryptoJS.pad.Pkcs7
-            }).toString();
+            }).toString() : null;
 
             const response = await apiCall('/users/me', {
                 method: 'DELETE',

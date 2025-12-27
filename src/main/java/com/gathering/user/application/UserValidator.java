@@ -28,7 +28,10 @@ public class UserValidator {
 	public void validateForJoin(UserJoinRequest request) {
 		validateEmailFormat(request.getEmail());
 		validateEmailUnique(request.getEmail());
-		validatePhoneNumberFormat(request.getPhoneNumber());
+		String phoneNumber = request.getPhoneNumber();
+		if (phoneNumber != null) {
+			validatePhoneNumberFormat(request.getPhoneNumber());
+		}
 		validatePasswordFormat(request.getPassword());
 	}
 
