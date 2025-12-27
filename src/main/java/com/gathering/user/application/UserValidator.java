@@ -8,6 +8,7 @@ import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 
+import io.netty.util.internal.StringUtil;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -29,7 +30,7 @@ public class UserValidator {
 		validateEmailFormat(request.getEmail());
 		validateEmailUnique(request.getEmail());
 		String phoneNumber = request.getPhoneNumber();
-		if (phoneNumber != null) {
+		if (!StringUtil.isNullOrEmpty(phoneNumber)) {
 			validatePhoneNumberFormat(request.getPhoneNumber());
 		}
 		validatePasswordFormat(request.getPassword());
