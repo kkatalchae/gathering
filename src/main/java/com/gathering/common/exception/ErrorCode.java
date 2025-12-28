@@ -45,7 +45,11 @@ public enum ErrorCode {
 	EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입된 이메일입니다. 기존 계정으로 로그인 후 설정에서 소셜 계정을 연동해주세요."),
 
 	// OAuth 관련 에러
-	OAUTH_PROVIDER_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 제공자입니다.");
+	OAUTH_PROVIDER_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 제공자입니다."),
+	OAUTH_DIFFERENT_ACCOUNT(
+		HttpStatus.CONFLICT,
+		"해당 이메일로 가입된 다른 계정이 있습니다. 기존 계정으로 로그인 후 소셜 계정 연동을 진행해주세요."
+	);
 
 	private final HttpStatus httpStatus;
 	private final String message;

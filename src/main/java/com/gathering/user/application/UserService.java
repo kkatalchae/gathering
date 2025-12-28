@@ -9,6 +9,7 @@ import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.user.domain.model.UserSecurityEntity;
 import com.gathering.user.domain.model.UsersEntity;
+import com.gathering.user.domain.repository.UserOAuthConnectionRepository;
 import com.gathering.user.domain.repository.UserSecurityRepository;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.ChangePasswordRequest;
@@ -26,6 +27,7 @@ public class UserService {
 
 	private final UsersRepository usersRepository;
 	private final UserSecurityRepository userSecurityRepository;
+	private final UserOAuthConnectionRepository oauthConnectionRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final UserValidator userValidator;
 	private final RefreshTokenService refreshTokenService;
@@ -168,18 +170,26 @@ public class UserService {
 		UserSecurityEntity security = userSecurityRepository.findById(tsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-		// 3. 비밀번호 검증 (일반 회원가입 사용자만 해당)
-		if (!passwordEncoder.matches(request.getPassword(), security.getPasswordHash())) {
+		// 3. 비밀번호 검증 (일반 회원가입 사용자만, 소셜 로그인 사용자는 password_hash가 null)
+		if (security.getPasswordHash() != null && !passwordEncoder.matches(request.getPassword(),
+			security.getPasswordHash())) {
 			throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
 		}
 
-		// 4. user_security 테이블 삭제 (FK 제약 때문에 먼저 삭제)
+		deleteUsersByTsid(tsid);
+
+		// 7. Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
+		refreshTokenService.deleteAllRefreshTokensByTsid(tsid);
+	}
+
+	private void deleteUsersByTsid(String tsid) {
+		// 소셜 연동 정보 삭제 (FK 제약으로 인해 먼저 삭제)
+		oauthConnectionRepository.deleteByUserTsid(tsid);
+
+		// user_security 테이블 삭제
 		userSecurityRepository.deleteById(tsid);
 
-		// 5. users 테이블 삭제
+		// users 테이블 삭제
 		usersRepository.deleteById(tsid);
-
-		// 6. Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
-		refreshTokenService.deleteAllRefreshTokensByTsid(tsid);
 	}
 }
