@@ -20,6 +20,7 @@ import com.gathering.user.application.UserService;
 import com.gathering.user.application.UserValidator;
 import com.gathering.user.domain.model.UserSecurityEntity;
 import com.gathering.user.domain.model.UsersEntity;
+import com.gathering.user.domain.repository.UserOAuthConnectionRepository;
 import com.gathering.user.domain.repository.UserSecurityRepository;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.WithdrawRequest;
@@ -38,6 +39,9 @@ class UserServiceTest {
 
 	@Mock
 	private UserSecurityRepository userSecurityRepository;
+
+	@Mock
+	private UserOAuthConnectionRepository oauthConnectionRepository;
 
 	@Mock
 	private PasswordEncoder passwordEncoder;
@@ -77,8 +81,11 @@ class UserServiceTest {
 		verify(usersRepository, times(1)).findById(tsid);
 		verify(userSecurityRepository, times(1)).findById(tsid);
 		verify(passwordEncoder, times(1)).matches(password, encodedPassword);
+		// user entitiy 가 삭제 되면서 함께 사라져야하는 데이터가 잘 삭제되는가?
+		verify(oauthConnectionRepository, times(1)).deleteByUserTsid(tsid);
 		verify(userSecurityRepository, times(1)).deleteById(tsid);
 		verify(usersRepository, times(1)).deleteById(tsid);
+		// users 삭제 이후 세션에 대한 부분도 삭제되는가?
 		verify(refreshTokenService, times(1)).deleteAllRefreshTokensByTsid(tsid);
 	}
 
@@ -108,7 +115,6 @@ class UserServiceTest {
 	void withdrawInvalidPassword() {
 		// given
 		String tsid = "1234567890123";
-		String correctPassword = "Password1!";
 		String wrongPassword = "WrongPass1!";
 		String encodedPassword = "$2a$10$encoded_password";
 
@@ -164,6 +170,7 @@ class UserServiceTest {
 		verify(usersRepository, times(1)).findById(tsid);
 		verify(userSecurityRepository, times(1)).findById(tsid);
 		verify(passwordEncoder, never()).matches(anyString(), anyString());
+		verify(oauthConnectionRepository, times(1)).deleteByUserTsid(tsid);
 		verify(userSecurityRepository, times(1)).deleteById(tsid);
 		verify(usersRepository, times(1)).deleteById(tsid);
 		verify(refreshTokenService, times(1)).deleteAllRefreshTokensByTsid(tsid);
