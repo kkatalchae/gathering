@@ -203,6 +203,8 @@ class UserControllerTest {
 			.profileImageUrl("https://example.com/profile.jpg")
 			.status(UserStatus.ACTIVE)
 			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
+			.hasPassword(true)
+			.connectedProviders(java.util.List.of())
 			.build();
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
@@ -219,6 +221,8 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.phoneNumber").value("01012345678"))
 			.andExpect(jsonPath("$.profileImageUrl").value("https://example.com/profile.jpg"))
 			.andExpect(jsonPath("$.status").value("ACTIVE"))
+			.andExpect(jsonPath("$.hasPassword").value(true))
+			.andExpect(jsonPath("$.connectedProviders").isArray())
 			.andDo(document("users-me",
 				responseFields(
 					fieldWithPath("tsid").description("사용자 고유 ID"),
@@ -228,7 +232,9 @@ class UserControllerTest {
 					fieldWithPath("phoneNumber").description("전화번호"),
 					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional(),
 					fieldWithPath("status").description("계정 상태 (ACTIVE, DELETED)"),
-					fieldWithPath("createdAt").description("가입일시")
+					fieldWithPath("createdAt").description("가입일시"),
+					fieldWithPath("hasPassword").description("비밀번호 설정 여부"),
+					fieldWithPath("connectedProviders").description("연동된 소셜 계정 목록 (GOOGLE 등)")
 				)
 			));
 
@@ -253,6 +259,8 @@ class UserControllerTest {
 			.profileImageUrl("https://example.com/profile.jpg")
 			.status(UserStatus.ACTIVE)
 			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
+			.hasPassword(true)
+			.connectedProviders(java.util.List.of())
 			.build();
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
@@ -266,6 +274,8 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.nickname").value("새닉네임"))
 			.andExpect(jsonPath("$.name").value("새이름"))
 			.andExpect(jsonPath("$.phoneNumber").value("01087654321"))
+			.andExpect(jsonPath("$.hasPassword").value(true))
+			.andExpect(jsonPath("$.connectedProviders").isArray())
 			.andDo(document("users-update-me",
 				requestFields(
 					fieldWithPath("nickname").description("닉네임 (null이면 변경하지 않음)").optional(),
@@ -280,7 +290,9 @@ class UserControllerTest {
 					fieldWithPath("phoneNumber").description("전화번호"),
 					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional(),
 					fieldWithPath("status").description("계정 상태"),
-					fieldWithPath("createdAt").description("가입일시")
+					fieldWithPath("createdAt").description("가입일시"),
+					fieldWithPath("hasPassword").description("비밀번호 설정 여부"),
+					fieldWithPath("connectedProviders").description("연동된 소셜 계정 목록 (GOOGLE 등)")
 				)
 			));
 

@@ -1,5 +1,7 @@
 package com.gathering.user.application;
 
+import java.util.List;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -7,6 +9,8 @@ import com.gathering.auth.application.RefreshTokenService;
 import com.gathering.auth.domain.OAuthUserInfo;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
+import com.gathering.user.domain.model.OAuthProvider;
+import com.gathering.user.domain.model.UserOAuthConnectionEntity;
 import com.gathering.user.domain.model.UserSecurityEntity;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UserOAuthConnectionRepository;
@@ -90,7 +94,7 @@ public class UserService {
 	 */
 	public MyInfoResponse getMyInfo(String tsid) {
 		UsersEntity user = getUsersEntityByTsid(tsid);
-		return MyInfoResponse.from(user);
+		return buildMyInfoResponse(user);
 	}
 
 	/**
@@ -122,7 +126,7 @@ public class UserService {
 		user.updateProfile(nickname, name, phoneNumber);
 
 		// 6. 업데이트된 정보 반환
-		return MyInfoResponse.from(user);
+		return buildMyInfoResponse(user);
 	}
 
 	/**
@@ -191,5 +195,29 @@ public class UserService {
 
 		// users 테이블 삭제
 		usersRepository.deleteById(tsid);
+	}
+
+	/**
+	 * 사용자 엔티티로부터 MyInfoResponse 생성
+	 * 비밀번호 설정 여부와 연동된 소셜 계정 목록 조회 로직을 캡슐화
+	 *
+	 * @param user 사용자 엔티티
+	 * @return 사용자 상세 정보 응답
+	 */
+	private MyInfoResponse buildMyInfoResponse(UsersEntity user) {
+		String tsid = user.getTsid();
+
+		// passwordHash 존재 여부 확인
+		UserSecurityEntity security = userSecurityRepository.findById(tsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+		Boolean hasPassword = security.getPasswordHash() != null;
+
+		// 연동된 소셜 계정 목록 조회
+		List<OAuthProvider> connectedProviders = oauthConnectionRepository.findAllByUserTsid(tsid)
+			.stream()
+			.map(UserOAuthConnectionEntity::getProvider)
+			.toList();
+
+		return MyInfoResponse.from(user, hasPassword, connectedProviders);
 	}
 }
