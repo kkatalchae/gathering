@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.restdocs.request.RequestDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.time.Instant;
@@ -461,6 +462,115 @@ class UserControllerTest {
 
 		verify(authService, times(1)).getCurrentUserTsid(any());
 		verify(userService, times(1)).setPassword(eq(tsid), any(SetPasswordRequest.class));
+	}
+
+	@Test
+	@DisplayName("비밀번호가 있는 사용자가 소셜 연동을 해제하면 204 응답을 반환한다")
+	void unlinkOAuthWithPasswordSuccess() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		String provider = "GOOGLE";
+
+		// when: authService.getCurrentUserTsid() 호출 시 tsid 반환하도록 Mock 설정
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		// when: userService.unlinkOAuth() 호출 시 정상 동작하도록 Mock 설정 (void 메서드)
+		doNothing().when(userService).unlinkOAuth(eq(tsid), any());
+
+		// when: MockMvc로 DELETE /users/me/oauth/{provider} HTTP 요청 수행
+		// then: 응답 상태 코드 및 REST Docs 문서화 검증
+		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
+			.andExpect(status().isNoContent())
+			.andDo(document("DELETE /users/me/oauth/{provider}",
+				pathParameters(
+					parameterWithName("provider").description("OAuth 제공자 (GOOGLE, KAKAO 등)")
+				)
+			));
+
+		// then: Mock 메서드들이 정확히 1번씩 호출되었는지 검증
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).unlinkOAuth(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("다른 소셜 연동이 있는 사용자가 하나를 해제하면 204 응답을 반환한다")
+	void unlinkOAuthWithOtherConnectionsSuccess() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		String provider = "GOOGLE";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		doNothing().when(userService).unlinkOAuth(eq(tsid), any());
+
+		// when & then
+		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
+			.andExpect(status().isNoContent());
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).unlinkOAuth(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("비밀번호 없고 마지막 소셜 연동을 해제하려 하면 400 에러가 발생한다")
+	void unlinkOAuthLastLoginMethodFails() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		String provider = "GOOGLE";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		// when: userService.unlinkOAuth() 호출 시 BusinessException 발생하도록 Mock 설정
+		doThrow(new BusinessException(ErrorCode.CANNOT_UNLINK_LAST_LOGIN_METHOD))
+			.when(userService).unlinkOAuth(eq(tsid), any());
+
+		// when: HTTP 요청 수행
+		// then: 400 응답과 에러 메시지 검증 (ErrorCode에서 직접 참조)
+		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value(ErrorCode.CANNOT_UNLINK_LAST_LOGIN_METHOD.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.CANNOT_UNLINK_LAST_LOGIN_METHOD.getMessage()))
+			.andDo(document("DELETE /users/me/oauth/{provider} - 400",
+				pathParameters(
+					parameterWithName("provider").description("OAuth 제공자")
+				),
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).unlinkOAuth(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("연동되지 않은 제공자를 해제하려 하면 404 에러가 발생한다")
+	void unlinkOAuthNotFoundFails() throws Exception {
+		// given: 사용자가 GOOGLE 연동이 없는 상태에서 GOOGLE 연동 해제를 시도
+		String tsid = "1234567890123";
+		String provider = "GOOGLE";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		// when: userService.unlinkOAuth() 호출 시 OAUTH_CONNECTION_NOT_FOUND 예외 발생하도록 설정
+		doThrow(new BusinessException(ErrorCode.OAUTH_CONNECTION_NOT_FOUND))
+			.when(userService).unlinkOAuth(eq(tsid), any());
+
+		// when: HTTP 요청 수행
+		// then: 404 응답과 에러 메시지 검증 (ErrorCode에서 직접 참조)
+		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.OAUTH_CONNECTION_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.OAUTH_CONNECTION_NOT_FOUND.getMessage()))
+			.andDo(document("DELETE /users/me/oauth/{provider} - 404",
+				pathParameters(
+					parameterWithName("provider").description("OAuth 제공자")
+				),
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).unlinkOAuth(eq(tsid), any());
 	}
 
 	@Test

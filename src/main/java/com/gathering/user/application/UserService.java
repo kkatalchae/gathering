@@ -182,6 +182,56 @@ public class UserService {
 	}
 
 	/**
+	 * 소셜 계정 연동 해제
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @param provider OAuth 제공자 (GOOGLE 등)
+	 * @throws BusinessException 연동 정보가 없거나 마지막 로그인 수단인 경우
+	 */
+	@Transactional
+	public void unlinkOAuth(String tsid, OAuthProvider provider) {
+		// 1. 사용자 존재 확인
+		getUsersEntityByTsid(tsid);
+
+		// 2. 연동 정보 조회
+		UserOAuthConnectionEntity connection = oauthConnectionRepository
+			.findById(new UserOAuthConnectionEntity.ConnectionId(tsid, provider))
+			.orElseThrow(() -> new BusinessException(ErrorCode.OAUTH_CONNECTION_NOT_FOUND));
+
+		// 3. 안전성 검증: 마지막 로그인 수단인지 확인
+		validateCanUnlink(tsid, provider);
+
+		// 4. 연동 해제
+		oauthConnectionRepository.delete(connection);
+	}
+
+	/**
+	 * 소셜 계정 연동 해제 가능 여부 검증
+	 * 비밀번호가 없고 다른 소셜 연동도 없으면 해제 불가 (마지막 로그인 수단)
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @param provider 해제하려는 OAuth 제공자
+	 * @throws BusinessException 마지막 로그인 수단인 경우
+	 */
+	private void validateCanUnlink(String tsid, OAuthProvider provider) {
+		// 비밀번호 있는지 확인
+		UserSecurityEntity security = userSecurityRepository.findById(tsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+		// 다른 연동된 소셜 계정이 있는지 확인
+		List<UserOAuthConnectionEntity> connections = oauthConnectionRepository
+			.findAllByUserTsid(tsid);
+		long otherConnectionsCount = connections.stream()
+			.filter(c -> c.getProvider() != provider)
+			.count();
+
+		// 검증: 비밀번호 없고 다른 연동도 없으면 해제 불가
+		if (security.getPasswordHash() == null && otherConnectionsCount == 0) {
+			throw new BusinessException(ErrorCode.CANNOT_UNLINK_LAST_LOGIN_METHOD);
+		}
+	}
+
+	/**
 	 * 회원 탈퇴 (hard delete)
 	 * 개인정보보호법에 따라 사용자 데이터를 완전히 삭제
 	 *
