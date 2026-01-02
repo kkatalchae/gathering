@@ -16,6 +16,7 @@ import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.presentation.dto.ChangePasswordRequest;
 import com.gathering.user.presentation.dto.MyInfoResponse;
+import com.gathering.user.presentation.dto.SetPasswordRequest;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserInfoResponse;
 import com.gathering.user.presentation.dto.UserJoinRequest;
@@ -79,6 +80,19 @@ public class UsersController {
 		@Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
 		String tsid = authService.getCurrentUserTsid(request);
 		userService.changePassword(tsid, changePasswordRequest);
+		return ResponseEntity.noContent().build();
+	}
+
+	/**
+	 * 비밀번호 설정 (최초 설정 또는 재설정)
+	 * 소셜 로그인 사용자가 비밀번호를 설정하거나, 기존 비밀번호를 재설정할 때 사용
+	 */
+	@PostMapping("/me/password")
+	public ResponseEntity<Void> setPassword(
+		HttpServletRequest request,
+		@Valid @RequestBody SetPasswordRequest setPasswordRequest) {
+		String tsid = authService.getCurrentUserTsid(request);
+		userService.setPassword(tsid, setPasswordRequest);
 		return ResponseEntity.noContent().build();
 	}
 
