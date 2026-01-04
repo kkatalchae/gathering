@@ -18,7 +18,6 @@ import com.gathering.user.domain.repository.UserSecurityRepository;
 import com.gathering.user.domain.repository.UsersRepository;
 import com.gathering.user.presentation.dto.ChangePasswordRequest;
 import com.gathering.user.presentation.dto.MyInfoResponse;
-import com.gathering.user.presentation.dto.SetPasswordRequest;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 import com.gathering.user.presentation.dto.WithdrawRequest;
@@ -156,29 +155,6 @@ public class UserService {
 
 		// 비밀번호 업데이트 (JPA dirty checking으로 자동 UPDATE)
 		security.updatePassword(passwordEncoder.encode(newPassword));
-	}
-
-	/**
-	 * 비밀번호 설정 (최초 설정 또는 재설정)
-	 * 소셜 로그인 사용자가 비밀번호를 최초 설정하거나, 기존 비밀번호를 덮어쓸 수 있음
-	 *
-	 * @param tsid 사용자 고유 ID (JWT에서 추출)
-	 * @param request 설정할 비밀번호
-	 */
-	@Transactional
-	public void setPassword(String tsid, SetPasswordRequest request) {
-		// 사용자 존재 확인
-		getUsersEntityByTsid(tsid);
-
-		// 보안 정보 조회
-		UserSecurityEntity security = userSecurityRepository.findById(tsid)
-			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-		// 새 비밀번호 정책 검증
-		userValidator.validatePasswordFormat(request.getPassword());
-
-		// 비밀번호 업데이트 (기존 비밀번호 덮어쓰기 허용)
-		security.updatePassword(passwordEncoder.encode(request.getPassword()));
 	}
 
 	/**

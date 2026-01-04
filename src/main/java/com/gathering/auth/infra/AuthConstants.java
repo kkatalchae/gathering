@@ -17,6 +17,5 @@ public final class AuthConstants {
 	/**
 	 * 쿠키 이름
 	 */
-	public static final String ACCESS_TOKEN_COOKIE = "accessToken";
 	public static final String REFRESH_TOKEN_COOKIE = "refreshToken";
 }

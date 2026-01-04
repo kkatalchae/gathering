@@ -36,7 +36,6 @@ import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.presentation.dto.ChangePasswordRequest;
 import com.gathering.user.presentation.dto.MyInfoResponse;
-import com.gathering.user.presentation.dto.SetPasswordRequest;
 import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 import com.gathering.user.presentation.dto.WithdrawRequest;
@@ -404,65 +403,6 @@ class UserControllerTest {
 		verify(userService, times(1)).changePassword(eq(tsid), any());
 	}
 
-	@Test
-	@DisplayName("유효한 비밀번호로 비밀번호를 설정하면 204 응답을 반환한다")
-	void setPasswordSuccess() throws Exception {
-		// given
-		String tsid = "1234567890123";
-		String newPassword = "NewPassword1!";
-		String encryptedPassword = CryptoUtil.encryptAES(newPassword, aesKey);
-
-		SetPasswordRequest request = new SetPasswordRequest(encryptedPassword);
-
-		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
-		doNothing().when(userService).setPassword(eq(tsid), any(SetPasswordRequest.class));
-
-		// when & then
-		mockMvc.perform(post("/users/me/password")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
-			.andExpect(status().isNoContent())
-			.andDo(document("POST /users/me/password - 비밀번호 설정",
-				requestFields(
-					fieldWithPath("password").description("설정할 비밀번호 (AES 암호화, 최소 8자, 숫자+특수문자 포함)")
-				)
-			));
-
-		verify(authService, times(1)).getCurrentUserTsid(any());
-		verify(userService, times(1)).setPassword(eq(tsid), any(SetPasswordRequest.class));
-	}
-
-	@Test
-	@DisplayName("형식이 잘못된 비밀번호로 비밀번호를 설정하면 400 에러를 반환한다")
-	void setPasswordWithInvalidFormat() throws Exception {
-		// given
-		String tsid = "1234567890123";
-		String weakPassword = "weak"; // 8자 미만, 숫자/특수문자 없음
-		String encryptedPassword = CryptoUtil.encryptAES(weakPassword, aesKey);
-
-		SetPasswordRequest request = new SetPasswordRequest(encryptedPassword);
-
-		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
-		doThrow(new BusinessException(ErrorCode.INVALID_PASSWORD_FORMAT))
-			.when(userService).setPassword(eq(tsid), any(SetPasswordRequest.class));
-
-		// when & then
-		mockMvc.perform(post("/users/me/password")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("INVALID_PASSWORD_FORMAT"))
-			.andExpect(jsonPath("$.message").value("비밀번호는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다."))
-			.andDo(document("POST /users/me/password - 비밀번호 형식 검증 실패",
-				responseFields(
-					fieldWithPath("code").description("에러 코드"),
-					fieldWithPath("message").description("에러 메시지")
-				)
-			));
-
-		verify(authService, times(1)).getCurrentUserTsid(any());
-		verify(userService, times(1)).setPassword(eq(tsid), any(SetPasswordRequest.class));
-	}
 
 	@Test
 	@DisplayName("비밀번호가 있는 사용자가 소셜 연동을 해제하면 204 응답을 반환한다")

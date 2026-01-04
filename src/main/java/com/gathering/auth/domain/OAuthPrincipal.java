@@ -10,13 +10,30 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import com.gathering.user.domain.model.UsersEntity;
 
-import lombok.RequiredArgsConstructor;
+import lombok.Getter;
 
-@RequiredArgsConstructor
+@Getter
 public class OAuthPrincipal implements UserDetails, OAuth2User {
 
 	private final UsersEntity user;
 	private final Map<String, Object> attributes;
+	private final boolean linkMode;
+
+	/**
+	 * 기본 생성자 (로그인/가입 모드)
+	 */
+	public OAuthPrincipal(UsersEntity user, Map<String, Object> attributes) {
+		this(user, attributes, false);
+	}
+
+	/**
+	 * 연동 모드 생성자
+	 */
+	public OAuthPrincipal(UsersEntity user, Map<String, Object> attributes, boolean linkMode) {
+		this.user = user;
+		this.attributes = attributes;
+		this.linkMode = linkMode;
+	}
 
 	@Override
 	public Map<String, Object> getAttributes() {
