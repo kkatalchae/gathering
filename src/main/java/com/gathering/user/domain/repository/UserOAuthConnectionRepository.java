@@ -30,4 +30,6 @@ public interface UserOAuthConnectionRepository extends
 	 * 특정 사용자의 모든 소셜 연동 정보 삭제 (회원 탈퇴 시 사용)
 	 */
 	void deleteByUserTsid(String userTsid);
+
+	long countByUserTsidAndProviderNot(String userTsid, OAuthProvider provider);
 }

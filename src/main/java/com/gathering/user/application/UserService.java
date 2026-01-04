@@ -195,11 +195,7 @@ public class UserService {
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
 		// 다른 연동된 소셜 계정이 있는지 확인
-		List<UserOAuthConnectionEntity> connections = oauthConnectionRepository
-			.findAllByUserTsid(tsid);
-		long otherConnectionsCount = connections.stream()
-			.filter(c -> c.getProvider() != provider)
-			.count();
+		long otherConnectionsCount = oauthConnectionRepository.countByUserTsidAndProviderNot(tsid, provider);
 
 		// 검증: 비밀번호 없고 다른 연동도 없으면 해제 불가
 		if (security.getPasswordHash() == null && otherConnectionsCount == 0) {
