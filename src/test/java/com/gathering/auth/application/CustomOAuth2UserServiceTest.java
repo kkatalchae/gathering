@@ -95,13 +95,16 @@ class CustomOAuth2UserServiceTest {
 		doReturn(mockOAuth2User).when(customOAuth2UserService).callSuperLoadUser(any());
 	}
 
+	// NOTE: OAuth 연동 테스트는 Redis, RequestContext 의존성으로 인해 단위 테스트로 작성하기 어려움
+	// 실제 Google OAuth 플로우로 수동 테스트 필요
+
 	@Nested
 	@DisplayName("소셜 로그인 처리")
 	class SocialLoginHandling {
 
 		@Test
-		@DisplayName("기존_연동된_계정으로_로그인하면_해당_사용자의_OAuthPrincipal을_반환한다")
-		void 기존_연동된_계정으로_로그인하면_해당_사용자의_OAuthPrincipal을_반환한다() {
+		@DisplayName("기존 연동된 계정으로 로그인하면 해당 사용자의 OAuthPrincipal을 반환한다")
+		void loginWithExistingOAuthAccountSuccess() {
 			// given
 			String userTsid = "01HQXYZ123456";
 
@@ -145,8 +148,8 @@ class CustomOAuth2UserServiceTest {
 		}
 
 		@Test
-		@DisplayName("신규_사용자_회원가입_후_연동정보를_저장하고_OAuthPrincipal을_반환한다")
-		void 신규_사용자_회원가입_후_연동정보를_저장하고_OAuthPrincipal을_반환한다() {
+		@DisplayName("신규 사용자 회원가입 후 연동정보를 저장하고 OAuthPrincipal을 반환한다")
+		void signupNewUserAndSaveOAuthConnectionSuccess() {
 			// given
 			UsersEntity newUser = UsersEntity.builder()
 				.tsid("01HQXYZ999999")
@@ -182,8 +185,8 @@ class CustomOAuth2UserServiceTest {
 		}
 
 		@Test
-		@DisplayName("이메일_중복_다른_계정이_있으면_OAUTH_DIFFERENT_ACCOUNT_예외가_발생한다")
-		void 이메일_중복_다른_계정이_있으면_OAUTH_DIFFERENT_ACCOUNT_예외가_발생한다() {
+		@DisplayName("이메일 중복 다른 계정이 있으면 OAUTH_DIFFERENT_ACCOUNT 예외가 발생한다")
+		void loginWithDuplicateEmailAccountFails() {
 			// given
 			UsersEntity existingUser = UsersEntity.builder()
 				.tsid("01HQXYZ123456")

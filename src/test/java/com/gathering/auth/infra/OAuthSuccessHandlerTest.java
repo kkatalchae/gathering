@@ -5,6 +5,8 @@ import static org.mockito.Mockito.*;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,8 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gathering.auth.application.AuthService;
+import com.gathering.auth.domain.OAuthPrincipal;
 import com.gathering.auth.presentation.dto.LoginResponse;
+import com.gathering.user.domain.model.UsersEntity;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +32,9 @@ class OAuthSuccessHandlerTest {
 
 	@Mock
 	private AuthService authService;
+
+	@Mock
+	private ObjectMapper objectMapper;
 
 	@InjectMocks
 	private OAuthSuccessHandler oAuthSuccessHandler;
@@ -46,13 +54,22 @@ class OAuthSuccessHandlerTest {
 	}
 
 	@Test
-	@DisplayName("OAuth_인증_성공_시_JWT_토큰_발급_및_리다이렉트한다")
-	void OAuth_인증_성공_시_JWT_토큰_발급_및_리다이렉트한다() throws Exception {
+	@DisplayName("OAuth_로그인_모드_시_JWT_토큰_발급_및_리다이렉트한다")
+	void OAuth_로그인_모드_시_JWT_토큰_발급_및_리다이렉트한다() throws Exception {
 		// ===== Given: 테스트에 필요한 데이터 준비 및 Mock 동작 정의 =====
 		String tsid = "1234567890123";
 		String accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
 		String tokenType = "Bearer";
 		long expiresIn = 3600L;
+
+		// OAuthPrincipal 생성 (linkMode = false, 로그인 모드)
+		UsersEntity user = UsersEntity.builder()
+			.tsid(tsid)
+			.email("test@gmail.com")
+			.name("테스트사용자")
+			.build();
+		Map<String, Object> attributes = new HashMap<>();
+		OAuthPrincipal principal = new OAuthPrincipal(user, attributes, false); // linkMode = false
 
 		// AuthService.login()이 반환할 LoginResponse 객체 생성
 		LoginResponse loginResponse = LoginResponse.builder()
@@ -62,29 +79,21 @@ class OAuthSuccessHandlerTest {
 			.build();
 
 		// Mock 동작 정의:
-		// - authentication.getName()이 호출되면 tsid 반환
-		when(authentication.getName()).thenReturn(tsid);
-		// - authService.login(response, tsid)이 호출되면 loginResponse 반환
+		when(authentication.getPrincipal()).thenReturn(principal);
 		when(authService.login(any(HttpServletResponse.class), eq(tsid))).thenReturn(loginResponse);
 
 		// ===== When: 실제 테스트 대상 메서드 실행 =====
-		// OAuthSuccessHandler의 onAuthenticationSuccess() 메서드 호출
-		// 이 메서드 내부에서:
-		// 1. authentication.getName()을 호출하여 tsid 추출
-		// 2. authService.login(response, tsid)을 호출하여 JWT 토큰 발급
-		// 3. 토큰 정보를 쿼리 파라미터로 포함한 URL로 리다이렉트
 		oAuthSuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
 		// ===== Then: 예상한 대로 동작했는지 검증 =====
 
-		// 1. authentication.getName()이 정확히 1번 호출되었는지 검증
-		verify(authentication, times(1)).getName();
+		// 1. authentication.getPrincipal()이 호출되었는지 검증
+		verify(authentication, times(1)).getPrincipal();
 
 		// 2. authService.login()이 올바른 파라미터로 1번 호출되었는지 검증
 		verify(authService, times(1)).login(eq(response), eq(tsid));
 
 		// 3. response.sendRedirect()가 올바른 URL로 호출되었는지 검증
-		// 실제 구현과 동일하게 URLEncoder를 사용하여 예상 URL 생성
 		String expectedRedirectUrl = String.format("/?accessToken=%s&tokenType=%s&expiresIn=%d",
 			URLEncoder.encode(accessToken, StandardCharsets.UTF_8),
 			URLEncoder.encode(tokenType, StandardCharsets.UTF_8),

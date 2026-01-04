@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -54,6 +55,9 @@ class AuthControllerTest {
 	@MockBean
 	private AuthenticationManager authenticationManager;
 
+	@Value("${crypto.aes.key}")
+	private String aesKey;
+
 	@Test
 	@DisplayName("유효한_자격증명으로_로그인하면_액세스_토큰이_발급된다")
 	void 유효한_자격증명으로_로그인하면_액세스_토큰이_발급된다() throws Exception {
@@ -61,7 +65,7 @@ class AuthControllerTest {
 		// @AesEncrypted 어노테이션이 HTTP 요청 역직렬화 시 복호화를 수행하므로
 		// 테스트에서는 암호화된 비밀번호를 전달해야 함
 		String plainPassword = "Password1!";
-		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, aesKey);
 
 		LoginRequest request = LoginRequest.builder()
 			.email("test@example.com")
@@ -108,7 +112,7 @@ class AuthControllerTest {
 	void 존재하지_않는_사용자로_로그인하면_401_에러가_발생한다() throws Exception {
 		// given
 		String plainPassword = "Password1!";
-		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, aesKey);
 
 		LoginRequest request = LoginRequest.builder()
 			.email("notfound@example.com")
@@ -143,7 +147,7 @@ class AuthControllerTest {
 	void 잘못된_비밀번호로_로그인하면_401_에러가_발생한다() throws Exception {
 		// given
 		String plainPassword = "WrongPass1!";
-		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, aesKey);
 
 		LoginRequest request = LoginRequest.builder()
 			.email("test@example.com")

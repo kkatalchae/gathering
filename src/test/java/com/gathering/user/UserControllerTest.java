@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.restdocs.request.RequestDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.time.Instant;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -79,8 +81,8 @@ class UserControllerTest {
 	@Autowired
 	private AuthService authService;
 
-	@Autowired
-	private JwtTokenProvider jwtTokenProvider;
+	@Value("${crypto.aes.key}")
+	private String aesKey;
 
 	@BeforeEach
 	void setUp() {
@@ -94,7 +96,7 @@ class UserControllerTest {
 		// @AesEncrypted 어노테이션이 HTTP 요청 역직렬화 시 복호화를 수행하므로
 		// 테스트에서는 암호화된 비밀번호를 전달해야 함
 		String plainPassword = "Password1!";
-		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, aesKey);
 
 		UserJoinRequest request = UserJoinRequest.builder()
 			.email("test@example.com")
@@ -203,6 +205,8 @@ class UserControllerTest {
 			.profileImageUrl("https://example.com/profile.jpg")
 			.status(UserStatus.ACTIVE)
 			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
+			.hasPassword(true)
+			.connectedProviders(java.util.List.of())
 			.build();
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
@@ -219,16 +223,20 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.phoneNumber").value("01012345678"))
 			.andExpect(jsonPath("$.profileImageUrl").value("https://example.com/profile.jpg"))
 			.andExpect(jsonPath("$.status").value("ACTIVE"))
+			.andExpect(jsonPath("$.hasPassword").value(true))
+			.andExpect(jsonPath("$.connectedProviders").isArray())
 			.andDo(document("users-me",
 				responseFields(
 					fieldWithPath("tsid").description("사용자 고유 ID"),
 					fieldWithPath("email").description("이메일"),
 					fieldWithPath("nickname").description("닉네임").optional(),
 					fieldWithPath("name").description("사용자 이름"),
-					fieldWithPath("phoneNumber").description("전화번호"),
+					fieldWithPath("phoneNumber").description("전화번호").optional(),
 					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional(),
-					fieldWithPath("status").description("계정 상태 (ACTIVE, DELETED)"),
-					fieldWithPath("createdAt").description("가입일시")
+					fieldWithPath("status").description("계정 상태"),
+					fieldWithPath("createdAt").description("가입일시"),
+					fieldWithPath("hasPassword").description("비밀번호 설정 여부"),
+					fieldWithPath("connectedProviders").description("연동된 소셜 계정 목록 (GOOGLE 등)").optional()
 				)
 			));
 
@@ -253,6 +261,8 @@ class UserControllerTest {
 			.profileImageUrl("https://example.com/profile.jpg")
 			.status(UserStatus.ACTIVE)
 			.createdAt(Instant.parse("2024-01-01T00:00:00Z"))
+			.hasPassword(true)
+			.connectedProviders(java.util.List.of())
 			.build();
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
@@ -266,6 +276,8 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.nickname").value("새닉네임"))
 			.andExpect(jsonPath("$.name").value("새이름"))
 			.andExpect(jsonPath("$.phoneNumber").value("01087654321"))
+			.andExpect(jsonPath("$.hasPassword").value(true))
+			.andExpect(jsonPath("$.connectedProviders").isArray())
 			.andDo(document("users-update-me",
 				requestFields(
 					fieldWithPath("nickname").description("닉네임 (null이면 변경하지 않음)").optional(),
@@ -277,10 +289,12 @@ class UserControllerTest {
 					fieldWithPath("email").description("이메일 (변경 불가)"),
 					fieldWithPath("nickname").description("닉네임").optional(),
 					fieldWithPath("name").description("사용자 이름"),
-					fieldWithPath("phoneNumber").description("전화번호"),
+					fieldWithPath("phoneNumber").description("전화번호").optional(),
 					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional(),
 					fieldWithPath("status").description("계정 상태"),
-					fieldWithPath("createdAt").description("가입일시")
+					fieldWithPath("createdAt").description("가입일시"),
+					fieldWithPath("hasPassword").description("비밀번호 설정 여부"),
+					fieldWithPath("connectedProviders").description("연동된 소셜 계정 목록 (GOOGLE 등)").optional()
 				)
 			));
 
@@ -296,8 +310,8 @@ class UserControllerTest {
 
 		String currentPassword = "OldPass1!";
 		String newPassword = "NewPass1!";
-		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, "gatheringkey1234");
-		String encryptedNew = CryptoUtil.encryptAES(newPassword, "gatheringkey1234");
+		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, aesKey);
+		String encryptedNew = CryptoUtil.encryptAES(newPassword, aesKey);
 
 		ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest(encryptedCurrent, encryptedNew);
 
@@ -328,8 +342,8 @@ class UserControllerTest {
 
 		String currentPassword = "WrongPass1!";
 		String newPassword = "NewPass1!";
-		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, "gatheringkey1234");
-		String encryptedNew = CryptoUtil.encryptAES(newPassword, "gatheringkey1234");
+		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, aesKey);
+		String encryptedNew = CryptoUtil.encryptAES(newPassword, aesKey);
 
 		ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest(encryptedCurrent, encryptedNew);
 
@@ -363,8 +377,8 @@ class UserControllerTest {
 
 		String currentPassword = "OldPass1!";
 		String newPassword = "weak"; // 비밀번호 정책 위반
-		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, "gatheringkey1234");
-		String encryptedNew = CryptoUtil.encryptAES(newPassword, "gatheringkey1234");
+		String encryptedCurrent = CryptoUtil.encryptAES(currentPassword, aesKey);
+		String encryptedNew = CryptoUtil.encryptAES(newPassword, aesKey);
 
 		ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest(encryptedCurrent, encryptedNew);
 
@@ -389,13 +403,123 @@ class UserControllerTest {
 		verify(userService, times(1)).changePassword(eq(tsid), any());
 	}
 
+
+	@Test
+	@DisplayName("비밀번호가 있는 사용자가 소셜 연동을 해제하면 204 응답을 반환한다")
+	void unlinkOAuthWithPasswordSuccess() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		String provider = "GOOGLE";
+
+		// when: authService.getCurrentUserTsid() 호출 시 tsid 반환하도록 Mock 설정
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		// when: userService.unlinkOAuth() 호출 시 정상 동작하도록 Mock 설정 (void 메서드)
+		doNothing().when(userService).unlinkOAuth(eq(tsid), any());
+
+		// when: MockMvc로 DELETE /users/me/oauth/{provider} HTTP 요청 수행
+		// then: 응답 상태 코드 및 REST Docs 문서화 검증
+		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
+			.andExpect(status().isNoContent())
+			.andDo(document("DELETE /users/me/oauth/{provider}",
+				pathParameters(
+					parameterWithName("provider").description("OAuth 제공자 (GOOGLE, KAKAO 등)")
+				)
+			));
+
+		// then: Mock 메서드들이 정확히 1번씩 호출되었는지 검증
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).unlinkOAuth(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("다른 소셜 연동이 있는 사용자가 하나를 해제하면 204 응답을 반환한다")
+	void unlinkOAuthWithOtherConnectionsSuccess() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		String provider = "GOOGLE";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		doNothing().when(userService).unlinkOAuth(eq(tsid), any());
+
+		// when & then
+		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
+			.andExpect(status().isNoContent());
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).unlinkOAuth(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("비밀번호 없고 마지막 소셜 연동을 해제하려 하면 400 에러가 발생한다")
+	void unlinkOAuthLastLoginMethodFails() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		String provider = "GOOGLE";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		// when: userService.unlinkOAuth() 호출 시 BusinessException 발생하도록 Mock 설정
+		doThrow(new BusinessException(ErrorCode.CANNOT_UNLINK_LAST_LOGIN_METHOD))
+			.when(userService).unlinkOAuth(eq(tsid), any());
+
+		// when: HTTP 요청 수행
+		// then: 400 응답과 에러 메시지 검증 (ErrorCode에서 직접 참조)
+		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value(ErrorCode.CANNOT_UNLINK_LAST_LOGIN_METHOD.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.CANNOT_UNLINK_LAST_LOGIN_METHOD.getMessage()))
+			.andDo(document("DELETE /users/me/oauth/{provider} - 400",
+				pathParameters(
+					parameterWithName("provider").description("OAuth 제공자")
+				),
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).unlinkOAuth(eq(tsid), any());
+	}
+
+	@Test
+	@DisplayName("연동되지 않은 제공자를 해제하려 하면 404 에러가 발생한다")
+	void unlinkOAuthNotFoundFails() throws Exception {
+		// given: 사용자가 GOOGLE 연동이 없는 상태에서 GOOGLE 연동 해제를 시도
+		String tsid = "1234567890123";
+		String provider = "GOOGLE";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		// when: userService.unlinkOAuth() 호출 시 OAUTH_CONNECTION_NOT_FOUND 예외 발생하도록 설정
+		doThrow(new BusinessException(ErrorCode.OAUTH_CONNECTION_NOT_FOUND))
+			.when(userService).unlinkOAuth(eq(tsid), any());
+
+		// when: HTTP 요청 수행
+		// then: 404 응답과 에러 메시지 검증 (ErrorCode에서 직접 참조)
+		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.OAUTH_CONNECTION_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.OAUTH_CONNECTION_NOT_FOUND.getMessage()))
+			.andDo(document("DELETE /users/me/oauth/{provider} - 404",
+				pathParameters(
+					parameterWithName("provider").description("OAuth 제공자")
+				),
+				responseFields(
+					fieldWithPath("code").description("에러 코드"),
+					fieldWithPath("message").description("에러 메시지")
+				)
+			));
+
+		verify(authService, times(1)).getCurrentUserTsid(any());
+		verify(userService, times(1)).unlinkOAuth(eq(tsid), any());
+	}
+
 	@Test
 	@DisplayName("정상적으로 회원 탈퇴하면 204 응답을 반환한다")
 	void withdrawSuccess() throws Exception {
 		// given
 		String tsid = "1234567890123";
 		String plainPassword = "Password1!";
-		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, "gatheringkey1234");
+		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, aesKey);
 
 		WithdrawRequest request = new WithdrawRequest(encryptedPassword);
 

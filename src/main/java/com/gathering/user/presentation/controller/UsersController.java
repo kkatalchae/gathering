@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gathering.auth.application.AuthService;
 import com.gathering.user.application.UserService;
+import com.gathering.user.domain.model.OAuthProvider;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.presentation.dto.ChangePasswordRequest;
 import com.gathering.user.presentation.dto.MyInfoResponse;
@@ -79,6 +80,18 @@ public class UsersController {
 		@Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
 		String tsid = authService.getCurrentUserTsid(request);
 		userService.changePassword(tsid, changePasswordRequest);
+		return ResponseEntity.noContent().build();
+	}
+
+	/**
+	 * 소셜 계정 연동 해제
+	 */
+	@DeleteMapping("/me/oauth/{provider}")
+	public ResponseEntity<Void> unlinkOAuth(
+		HttpServletRequest request,
+		@PathVariable OAuthProvider provider) {
+		String tsid = authService.getCurrentUserTsid(request);
+		userService.unlinkOAuth(tsid, provider);
 		return ResponseEntity.noContent().build();
 	}
 

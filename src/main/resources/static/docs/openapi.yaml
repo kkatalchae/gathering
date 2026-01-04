@@ -18,10 +18,46 @@ paths:
             schema:
               $ref: "#/components/schemas/login-733236850"
             examples:
+              auth-login-fail-invalid-email:
+                value: "{\"email\":\"invalid-email\",\"password\":\"\"}"
+              auth-login-fail-user-not-found:
+                value: "{\"email\":\"notfound@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
+                  }"
+              auth-login-fail-empty-password:
+                value: "{\"email\":\"test@example.com\",\"password\":\"\"}"
+              auth-login-fail-bad-credentials:
+                value: "{\"email\":\"test@example.com\",\"password\":\"JM/lt9NkRjpaPL2HuukTEQ==\"\
+                  }"
               auth-login:
                 value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
                   }"
       responses:
+        "400":
+          description: "400"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/users-tsid-1331249008"
+              examples:
+                auth-login-fail-invalid-email:
+                  value: "{\"code\":\"INVALID_EMAIL_FORMAT\",\"message\":\"올바른 형식의\
+                    \ 이메일이 아닙니다.\"}"
+                auth-login-fail-empty-password:
+                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
+                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
+        "401":
+          description: "401"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/users-tsid-1331249008"
+              examples:
+                auth-login-fail-user-not-found:
+                  value: "{\"code\":\"INVALID_CREDENTIALS\",\"message\":\"이메일 또는 비\
+                    밀번호가 올바르지 않습니다\"}"
+                auth-login-fail-bad-credentials:
+                  value: "{\"code\":\"INVALID_CREDENTIALS\",\"message\":\"이메일 또는 비\
+                    밀번호가 올바르지 않습니다\"}"
         "200":
           description: "200"
           content:
@@ -31,6 +67,49 @@ paths:
               examples:
                 auth-login:
                   value: "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\
+                    ,\"tokenType\":\"Bearer\",\"expiresIn\":3600}"
+  /logout:
+    post:
+      tags:
+      - logout
+      operationId: auth-logout
+      responses:
+        "200":
+          description: "200"
+  /refresh:
+    post:
+      tags:
+      - refresh
+      operationId: auth-refresh
+      responses:
+        "401":
+          description: "401"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/refresh388130491"
+              examples:
+                auth-refresh-fail-expired:
+                  value: "{\"code\":\"REFRESH_TOKEN_EXPIRED\",\"message\":\"리프레시 토\
+                    큰이 만료되었습니다. 다시 로그인해주세요\"}"
+                auth-refresh-fail-revoked:
+                  value: "{\"code\":\"REFRESH_TOKEN_REVOKED\",\"message\":\"리프레시 토\
+                    큰이 취소되었습니다. 다시 로그인해주세요\"}"
+                auth-refresh-fail-malformed:
+                  value: "{\"code\":\"REFRESH_TOKEN_MALFORMED\",\"message\":\"리프레시\
+                    \ 토큰 형식이 올바르지 않습니다\"}"
+                auth-refresh-fail-missing-token:
+                  value: "{\"code\":\"REFRESH_TOKEN_MISSING\",\"message\":\"리프레시 토\
+                    큰이 필요합니다\"}"
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/refresh-542310961"
+              examples:
+                auth-refresh:
+                  value: "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new-access-token\"\
                     ,\"tokenType\":\"Bearer\",\"expiresIn\":3600}"
   /users/join:
     post:
@@ -61,13 +140,29 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me-770296423"
+                $ref: "#/components/schemas/users-me-656631050"
               examples:
                 users-me:
                   value: "{\"tsid\":\"1234567890123\",\"email\":\"test@example.com\"\
                     ,\"nickname\":\"테스터\",\"name\":\"홍길동\",\"phoneNumber\":\"01012345678\"\
                     ,\"profileImageUrl\":\"https://example.com/profile.jpg\",\"status\"\
-                    :\"ACTIVE\",\"createdAt\":\"2024-01-01T00:00:00Z\"}"
+                    :\"ACTIVE\",\"createdAt\":\"2024-01-01T00:00:00Z\",\"hasPassword\"\
+                    :true,\"connectedProviders\":[]}"
+    delete:
+      tags:
+      - users
+      operationId: DELETE /users/me - 회원 탈퇴
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/users-me192728359"
+            examples:
+              DELETE /users/me - 회원 탈퇴:
+                value: "{\"password\":\"qARwtu22gWm4DtnttjuQbg==\"}"
+      responses:
+        "204":
+          description: "204"
     patch:
       tags:
       - users
@@ -81,32 +176,20 @@ paths:
               users-update-me:
                 value: "{\"nickname\":\"새닉네임\",\"name\":\"새이름\",\"phoneNumber\":\"\
                   01087654321\"}"
-              users-update-me-duplicate-phone:
-                value: "{\"nickname\":null,\"name\":null,\"phoneNumber\":\"01012345678\"\
-                  }"
       responses:
         "200":
           description: "200"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me1485310139"
+                $ref: "#/components/schemas/users-me54274076"
               examples:
                 users-update-me:
                   value: "{\"tsid\":\"1234567890123\",\"email\":\"test@example.com\"\
                     ,\"nickname\":\"새닉네임\",\"name\":\"새이름\",\"phoneNumber\":\"01087654321\"\
                     ,\"profileImageUrl\":\"https://example.com/profile.jpg\",\"status\"\
-                    :\"ACTIVE\",\"createdAt\":\"2024-01-01T00:00:00Z\"}"
-        "409":
-          description: "409"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/users-me-password-1331249008"
-              examples:
-                users-update-me-duplicate-phone:
-                  value: "{\"code\":\"PHONE_NUMBER_DUPLICATE\",\"message\":\"이미 사용\
-                    중인 전화번호입니다.\"}"
+                    :\"ACTIVE\",\"createdAt\":\"2024-01-01T00:00:00Z\",\"hasPassword\"\
+                    :true,\"connectedProviders\":[]}"
   /users/{tsid}:
     get:
       tags:
@@ -125,13 +208,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me-password-1331249008"
+                $ref: "#/components/schemas/users-tsid-1331249008"
               examples:
                 users-get-deleted:
                   value: "{\"code\":\"USER_DELETED\",\"message\":\"삭제된 사용자입니다.\"}"
-                users-get-banned:
-                  value: "{\"code\":\"USER_BANNED\",\"message\":\"사용이 제한된 사용자입니다.\"\
-                    }"
         "200":
           description: "200"
           content:
@@ -168,7 +248,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me-password-1331249008"
+                $ref: "#/components/schemas/users-tsid-1331249008"
               examples:
                 users-change-password-invalid-current:
                   value: "{\"code\":\"INVALID_CURRENT_PASSWORD\",\"message\":\"현재\
@@ -178,9 +258,121 @@ paths:
                     는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
         "204":
           description: "204"
+    post:
+      tags:
+      - users
+      operationId: 'POST /users/me/password - 비밀번호 '
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/users-me-password-1261319377"
+            examples:
+              POST /users/me/password - 비밀번호 형식 검증 실패:
+                value: "{\"password\":\"dJwb2UTy6KwYeaWtaoKWZQ==\"}"
+              POST /users/me/password - 비밀번호 설정:
+                value: "{\"password\":\"n+Teyz0VQBmCIg9CA/NcTg==\"}"
+      responses:
+        "400":
+          description: "400"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/users-tsid-1331249008"
+              examples:
+                POST /users/me/password - 비밀번호 형식 검증 실패:
+                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
+                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
+        "204":
+          description: "204"
+  /users/me/oauth/{provider}:
+    delete:
+      tags:
+      - users
+      operationId: "DELETE /users/me/oauth/{provider}"
+      parameters:
+      - name: provider
+        in: path
+        description: "OAuth 제공자 (GOOGLE, KAKAO 등)"
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: "204"
+        "404":
+          description: "404"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/users-tsid-1331249008"
+              examples:
+                DELETE /users/me/oauth/{provider} - 404:
+                  value: "{\"code\":\"OAUTH_CONNECTION_NOT_FOUND\",\"message\":\"연\
+                    동되지 않은 소셜 계정입니다.\"}"
+        "400":
+          description: "400"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/users-tsid-1331249008"
+              examples:
+                DELETE /users/me/oauth/{provider} - 400:
+                  value: "{\"code\":\"CANNOT_UNLINK_LAST_LOGIN_METHOD\",\"message\"\
+                    :\"마지막 로그인 수단입니다. 비밀번호를 설정하거나 다른 소셜 계정을 연동한 후 해제할 수 있습니다.\"}"
 components:
   schemas:
-    login1168052559:
+    users-me54274076:
+      required:
+      - createdAt
+      - email
+      - hasPassword
+      - name
+      - status
+      - tsid
+      type: object
+      properties:
+        createdAt:
+          type: string
+          description: 가입일시
+        connectedProviders:
+          type: array
+          description: 연동된 소셜 계정 목록 (GOOGLE 등)
+          nullable: true
+          items:
+            oneOf:
+            - type: object
+            - type: boolean
+            - type: string
+            - type: number
+        phoneNumber:
+          type: string
+          description: 전화번호
+          nullable: true
+        name:
+          type: string
+          description: 사용자 이름
+        nickname:
+          type: string
+          description: 닉네임
+          nullable: true
+        hasPassword:
+          type: boolean
+          description: 비밀번호 설정 여부
+        tsid:
+          type: string
+          description: 사용자 고유 ID
+        profileImageUrl:
+          type: string
+          description: 프로필 이미지 URL
+          nullable: true
+        email:
+          type: string
+          description: 이메일 (변경 불가)
+        status:
+          type: string
+          description: 계정 상태
+    refresh-542310961:
       required:
       - accessToken
       - expiresIn
@@ -195,58 +387,7 @@ components:
           description: 토큰 타입 (Bearer)
         accessToken:
           type: string
-          description: 액세스 토큰 (JWT)
-    users-me-458480484:
-      type: object
-      properties:
-        phoneNumber:
-          type: string
-          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
-          nullable: true
-        name:
-          type: string
-          description: 이름 (null이면 변경하지 않음)
-          nullable: true
-        nickname:
-          type: string
-          description: 닉네임 (null이면 변경하지 않음)
-          nullable: true
-    users-me1485310139:
-      required:
-      - createdAt
-      - email
-      - name
-      - phoneNumber
-      - status
-      - tsid
-      type: object
-      properties:
-        createdAt:
-          type: string
-          description: 가입일시
-        phoneNumber:
-          type: string
-          description: 전화번호
-        name:
-          type: string
-          description: 사용자 이름
-        nickname:
-          type: string
-          description: 닉네임
-          nullable: true
-        tsid:
-          type: string
-          description: 사용자 고유 ID
-        profileImageUrl:
-          type: string
-          description: 프로필 이미지 URL
-          nullable: true
-        email:
-          type: string
-          description: 이메일 (변경 불가)
-        status:
-          type: string
-          description: 계정 상태
+          description: 새로운 액세스 토큰 (JWT)
     login-733236850:
       required:
       - email
@@ -259,18 +400,6 @@ components:
         email:
           type: string
           description: 이메일 주소
-    users-me-password-1331249008:
-      required:
-      - code
-      - message
-      type: object
-      properties:
-        code:
-          type: string
-          description: 에러 코드
-        message:
-          type: string
-          description: 에러 메시지
     users-join-1381348445:
       required:
       - email
@@ -295,6 +424,56 @@ components:
         email:
           type: string
           description: 이메일 주소 (이메일 형식)
+    users-me-656631050:
+      required:
+      - createdAt
+      - email
+      - hasPassword
+      - name
+      - status
+      - tsid
+      type: object
+      properties:
+        createdAt:
+          type: string
+          description: 가입일시
+        connectedProviders:
+          type: array
+          description: 연동된 소셜 계정 목록 (GOOGLE 등)
+          nullable: true
+          items:
+            oneOf:
+            - type: object
+            - type: boolean
+            - type: string
+            - type: number
+        phoneNumber:
+          type: string
+          description: 전화번호
+          nullable: true
+        name:
+          type: string
+          description: 사용자 이름
+        nickname:
+          type: string
+          description: 닉네임
+          nullable: true
+        hasPassword:
+          type: boolean
+          description: 비밀번호 설정 여부
+        tsid:
+          type: string
+          description: 사용자 고유 ID
+        profileImageUrl:
+          type: string
+          description: 프로필 이미지 URL
+          nullable: true
+        email:
+          type: string
+          description: 이메일
+        status:
+          type: string
+          description: 계정 상태
     users-tsid-370292314:
       required:
       - name
@@ -323,39 +502,74 @@ components:
         currentPassword:
           type: string
           description: 현재 비밀번호 (AES 암호화)
-    users-me-770296423:
-      required:
-      - createdAt
-      - email
-      - name
-      - phoneNumber
-      - status
-      - tsid
+    users-me-458480484:
       type: object
       properties:
-        createdAt:
-          type: string
-          description: 가입일시
         phoneNumber:
           type: string
-          description: 전화번호
+          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
+          nullable: true
         name:
           type: string
-          description: 사용자 이름
+          description: 이름 (null이면 변경하지 않음)
+          nullable: true
         nickname:
           type: string
-          description: 닉네임
+          description: 닉네임 (null이면 변경하지 않음)
           nullable: true
-        tsid:
+    login1168052559:
+      required:
+      - accessToken
+      - expiresIn
+      - tokenType
+      type: object
+      properties:
+        expiresIn:
+          type: number
+          description: 액세스 토큰 만료 시간 (초)
+        tokenType:
           type: string
-          description: 사용자 고유 ID
-        profileImageUrl:
+          description: 토큰 타입 (Bearer)
+        accessToken:
           type: string
-          description: 프로필 이미지 URL
-          nullable: true
-        email:
+          description: 액세스 토큰 (JWT)
+    users-tsid-1331249008:
+      required:
+      - code
+      - message
+      type: object
+      properties:
+        code:
           type: string
-          description: 이메일
-        status:
+          description: 에러 코드
+        message:
           type: string
-          description: "계정 상태 (ACTIVE, BANNED, DELETED)"
+          description: 에러 메시지
+    refresh388130491:
+      required:
+      - code
+      - message
+      type: object
+      properties:
+        code:
+          type: string
+          description: 에러 코드 (REFRESH_TOKEN_MISSING)
+        message:
+          type: string
+          description: 에러 메시지
+    users-me192728359:
+      required:
+      - password
+      type: object
+      properties:
+        password:
+          type: string
+          description: "비밀번호 (AES 암호화, 본인 확인용)"
+    users-me-password-1261319377:
+      required:
+      - password
+      type: object
+      properties:
+        password:
+          type: string
+          description: "설정할 비밀번호 (AES 암호화, 최소 8자, 숫자+특수문자 포함)"

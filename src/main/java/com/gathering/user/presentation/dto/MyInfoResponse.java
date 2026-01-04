@@ -1,7 +1,9 @@
 package com.gathering.user.presentation.dto;
 
 import java.time.Instant;
+import java.util.List;
 
+import com.gathering.user.domain.model.OAuthProvider;
 import com.gathering.user.domain.model.UserStatus;
 import com.gathering.user.domain.model.UsersEntity;
 
@@ -24,8 +26,10 @@ public class MyInfoResponse {
 	private String profileImageUrl;
 	private UserStatus status;
 	private Instant createdAt;
+	private Boolean hasPassword;
+	private List<OAuthProvider> connectedProviders;
 
-	public static MyInfoResponse from(UsersEntity user) {
+	public static MyInfoResponse from(UsersEntity user, Boolean hasPassword, List<OAuthProvider> connectedProviders) {
 		return MyInfoResponse.builder()
 			.tsid(user.getTsid())
 			.email(user.getEmail())
@@ -35,6 +39,8 @@ public class MyInfoResponse {
 			.profileImageUrl(user.getProfileImageUrl())
 			.status(user.getStatus())
 			.createdAt(user.getCreatedAt())
+			.hasPassword(hasPassword)
+			.connectedProviders(connectedProviders)
 			.build();
 	}
 }

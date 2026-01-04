@@ -1,5 +1,6 @@
 package com.gathering.user.domain.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,7 +22,14 @@ public interface UserOAuthConnectionRepository extends
 	);
 
 	/**
+	 * 특정 사용자의 모든 소셜 연동 정보 조회
+	 */
+	List<UserOAuthConnectionEntity> findAllByUserTsid(String userTsid);
+
+	/**
 	 * 특정 사용자의 모든 소셜 연동 정보 삭제 (회원 탈퇴 시 사용)
 	 */
 	void deleteByUserTsid(String userTsid);
+
+	long countByUserTsidAndProviderNot(String userTsid, OAuthProvider provider);
 }

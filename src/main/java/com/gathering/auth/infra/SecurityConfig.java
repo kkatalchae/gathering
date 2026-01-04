@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -34,6 +35,7 @@ public class SecurityConfig {
 	private final CustomOAuth2UserService customOAuth2UserService;
 	private final OAuthSuccessHandler oAuthSuccessHandler;
 	private final OAuthFailureHandler oAuthFailureHandler;
+	private final OAuth2AuthorizationRequestResolver authorizationRequestResolver;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -123,6 +125,9 @@ public class SecurityConfig {
 	private void configureOAuth2(HttpSecurity http) throws Exception {
 		http.oauth2Login(configurer ->
 			configurer
+				.authorizationEndpoint(authorization ->
+					authorization.authorizationRequestResolver(authorizationRequestResolver)
+				)
 				.userInfoEndpoint(endpoint -> endpoint.userService(customOAuth2UserService))
 				.successHandler(oAuthSuccessHandler)
 				.failureHandler(oAuthFailureHandler)

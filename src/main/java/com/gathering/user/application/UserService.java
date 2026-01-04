@@ -1,5 +1,7 @@
 package com.gathering.user.application;
 
+import java.util.List;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -7,6 +9,8 @@ import com.gathering.auth.application.RefreshTokenService;
 import com.gathering.auth.domain.OAuthUserInfo;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
+import com.gathering.user.domain.model.OAuthProvider;
+import com.gathering.user.domain.model.UserOAuthConnectionEntity;
 import com.gathering.user.domain.model.UserSecurityEntity;
 import com.gathering.user.domain.model.UsersEntity;
 import com.gathering.user.domain.repository.UserOAuthConnectionRepository;
@@ -90,7 +94,7 @@ public class UserService {
 	 */
 	public MyInfoResponse getMyInfo(String tsid) {
 		UsersEntity user = getUsersEntityByTsid(tsid);
-		return MyInfoResponse.from(user);
+		return buildMyInfoResponse(user);
 	}
 
 	/**
@@ -122,7 +126,7 @@ public class UserService {
 		user.updateProfile(nickname, name, phoneNumber);
 
 		// 6. 업데이트된 정보 반환
-		return MyInfoResponse.from(user);
+		return buildMyInfoResponse(user);
 	}
 
 	/**
@@ -151,6 +155,52 @@ public class UserService {
 
 		// 비밀번호 업데이트 (JPA dirty checking으로 자동 UPDATE)
 		security.updatePassword(passwordEncoder.encode(newPassword));
+	}
+
+	/**
+	 * 소셜 계정 연동 해제
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @param provider OAuth 제공자 (GOOGLE 등)
+	 * @throws BusinessException 연동 정보가 없거나 마지막 로그인 수단인 경우
+	 */
+	@Transactional
+	public void unlinkOAuth(String tsid, OAuthProvider provider) {
+		// 1. 사용자 존재 확인
+		getUsersEntityByTsid(tsid);
+
+		// 2. 연동 정보 조회
+		UserOAuthConnectionEntity connection = oauthConnectionRepository
+			.findById(new UserOAuthConnectionEntity.ConnectionId(tsid, provider))
+			.orElseThrow(() -> new BusinessException(ErrorCode.OAUTH_CONNECTION_NOT_FOUND));
+
+		// 3. 안전성 검증: 마지막 로그인 수단인지 확인
+		validateCanUnlink(tsid, provider);
+
+		// 4. 연동 해제
+		oauthConnectionRepository.delete(connection);
+	}
+
+	/**
+	 * 소셜 계정 연동 해제 가능 여부 검증
+	 * 비밀번호가 없고 다른 소셜 연동도 없으면 해제 불가 (마지막 로그인 수단)
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @param provider 해제하려는 OAuth 제공자
+	 * @throws BusinessException 마지막 로그인 수단인 경우
+	 */
+	private void validateCanUnlink(String tsid, OAuthProvider provider) {
+		// 비밀번호 있는지 확인
+		UserSecurityEntity security = userSecurityRepository.findById(tsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+		// 다른 연동된 소셜 계정이 있는지 확인
+		long otherConnectionsCount = oauthConnectionRepository.countByUserTsidAndProviderNot(tsid, provider);
+
+		// 검증: 비밀번호 없고 다른 연동도 없으면 해제 불가
+		if (security.getPasswordHash() == null && otherConnectionsCount == 0) {
+			throw new BusinessException(ErrorCode.CANNOT_UNLINK_LAST_LOGIN_METHOD);
+		}
 	}
 
 	/**
@@ -191,5 +241,29 @@ public class UserService {
 
 		// users 테이블 삭제
 		usersRepository.deleteById(tsid);
+	}
+
+	/**
+	 * 사용자 엔티티로부터 MyInfoResponse 생성
+	 * 비밀번호 설정 여부와 연동된 소셜 계정 목록 조회 로직을 캡슐화
+	 *
+	 * @param user 사용자 엔티티
+	 * @return 사용자 상세 정보 응답
+	 */
+	private MyInfoResponse buildMyInfoResponse(UsersEntity user) {
+		String tsid = user.getTsid();
+
+		// passwordHash 존재 여부 확인
+		UserSecurityEntity security = userSecurityRepository.findById(tsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+		Boolean hasPassword = security.getPasswordHash() != null;
+
+		// 연동된 소셜 계정 목록 조회
+		List<OAuthProvider> connectedProviders = oauthConnectionRepository.findAllByUserTsid(tsid)
+			.stream()
+			.map(UserOAuthConnectionEntity::getProvider)
+			.toList();
+
+		return MyInfoResponse.from(user, hasPassword, connectedProviders);
 	}
 }

@@ -449,8 +449,12 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         @media (max-width: 480px) {
@@ -521,11 +525,11 @@
             <div class="form-group">
                 <label for="nickname" class="form-label">닉네임</label>
                 <input
-                    type="text"
-                    id="nickname"
-                    name="nickname"
-                    class="form-input"
-                    placeholder="닉네임을 입력하세요"
+                        type="text"
+                        id="nickname"
+                        name="nickname"
+                        class="form-input"
+                        placeholder="닉네임을 입력하세요"
                 >
                 <div class="error-message" id="nicknameError"></div>
             </div>
@@ -533,12 +537,12 @@
             <div class="form-group">
                 <label for="name" class="form-label">이름 <span style="color:red">*</span></label>
                 <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    class="form-input"
-                    placeholder="이름을 입력하세요"
-                    required
+                        type="text"
+                        id="name"
+                        name="name"
+                        class="form-input"
+                        placeholder="이름을 입력하세요"
+                        required
                 >
                 <div class="error-message" id="nameError"></div>
             </div>
@@ -546,12 +550,12 @@
             <div class="form-group">
                 <label for="phoneNumber" class="form-label">전화번호 <span style="color:red">*</span></label>
                 <input
-                    type="tel"
-                    id="phoneNumber"
-                    name="phoneNumber"
-                    class="form-input"
-                    placeholder="01012345678"
-                    required
+                        type="tel"
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        class="form-input"
+                        placeholder="01012345678"
+                        required
                 >
                 <div class="error-message" id="phoneNumberError"></div>
             </div>
@@ -559,11 +563,11 @@
             <div class="form-group">
                 <label for="email" class="form-label">이메일</label>
                 <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    class="form-input"
-                    disabled
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="form-input"
+                        disabled
                 >
                 <div class="info-note">이메일은 보안상의 이유로 변경할 수 없습니다.</div>
             </div>
@@ -581,16 +585,19 @@
 
         <div id="passwordAlert" class="alert"></div>
 
+        <div class="info-note" style="background: #d1ecf1; border-color: #bee5eb; color: #0c5460;">
+            ℹ️ 소셜 로그인으로 가입한 경우 현재 비밀번호를 입력하지 않고 새 비밀번호만 설정할 수 있습니다.
+        </div>
+
         <form id="passwordForm">
             <div class="form-group">
-                <label for="currentPassword" class="form-label">현재 비밀번호 <span style="color:red">*</span></label>
+                <label for="currentPassword" class="form-label">현재 비밀번호 (일반 회원가입 사용자만 입력)</label>
                 <input
-                    type="password"
-                    id="currentPassword"
-                    name="currentPassword"
-                    class="form-input"
-                    placeholder="현재 비밀번호를 입력하세요"
-                    required
+                        type="password"
+                        id="currentPassword"
+                        name="currentPassword"
+                        class="form-input"
+                        placeholder="소셜 로그인 사용자는 입력하지 않아도 됩니다"
                 >
                 <div class="error-message" id="currentPasswordError"></div>
             </div>
@@ -598,12 +605,12 @@
             <div class="form-group">
                 <label for="newPassword" class="form-label">새 비밀번호 <span style="color:red">*</span></label>
                 <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    class="form-input"
-                    placeholder="8자 이상, 숫자 + 특수문자 포함"
-                    required
+                        type="password"
+                        id="newPassword"
+                        name="newPassword"
+                        class="form-input"
+                        placeholder="8자 이상, 숫자 + 특수문자 포함"
+                        required
                 >
                 <div class="error-message" id="newPasswordError"></div>
                 <div class="info-note">비밀번호는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.</div>
@@ -612,12 +619,12 @@
             <div class="form-group">
                 <label for="confirmNewPassword" class="form-label">새 비밀번호 확인 <span style="color:red">*</span></label>
                 <input
-                    type="password"
-                    id="confirmNewPassword"
-                    name="confirmNewPassword"
-                    class="form-input"
-                    placeholder="새 비밀번호를 다시 입력하세요"
-                    required
+                        type="password"
+                        id="confirmNewPassword"
+                        name="confirmNewPassword"
+                        class="form-input"
+                        placeholder="새 비밀번호를 다시 입력하세요"
+                        required
                 >
                 <div class="error-message" id="confirmNewPasswordError"></div>
                 <div class="success-message" id="confirmNewPasswordSuccess">비밀번호가 일치합니다.</div>
@@ -627,6 +634,29 @@
                 비밀번호 변경
             </button>
         </form>
+
+        <!-- 구분선 -->
+        <div class="section-divider"></div>
+
+        <!-- 소셜 계정 연동 섹션 -->
+        <div class="section-title">소셜 계정 연동</div>
+
+        <div id="oauthAlert" class="alert"></div>
+
+        <div class="info-note">
+            소셜 계정을 연동하면 해당 소셜 계정으로도 로그인할 수 있습니다.
+        </div>
+
+        <!-- Google 연동 -->
+        <div class="form-group">
+            <label class="form-label">Google 계정</label>
+            <div id="googleOAuthStatus" style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" class="btn" id="googleOAuthBtn" style="width: auto; padding: 12px 24px;">
+                    Google 연동하기
+                </button>
+                <span id="googleOAuthInfo" style="color: #666; font-size: 0.9rem;"></span>
+            </div>
+        </div>
 
         <!-- 구분선 -->
         <div class="section-divider"></div>
@@ -670,10 +700,10 @@
                     비밀번호 (일반 회원가입 사용자만 입력)
                 </label>
                 <input
-                    type="password"
-                    id="withdrawPassword"
-                    class="form-input"
-                    placeholder="소셜 로그인 사용자는 입력하지 않아도 됩니다"
+                        type="password"
+                        id="withdrawPassword"
+                        class="form-input"
+                        placeholder="소셜 로그인 사용자는 입력하지 않아도 됩니다"
                 >
                 <div class="error-message" id="withdrawPasswordError"></div>
             </div>
@@ -698,7 +728,7 @@
         // Authorization 헤더 추가
         const headers = {
             'Content-Type': 'application/json',
-            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+            ...(accessToken && {'Authorization': `Bearer ${accessToken}`}),
             ...options.headers
         };
 
@@ -811,8 +841,89 @@
         document.getElementById('phoneNumber').value = data.phoneNumber || '';
         document.getElementById('email').value = data.email;
 
+        // 소셜 계정 연동 상태 표시
+        updateOAuthStatus(data.connectedProviders || []);
+
         document.getElementById('loadingState').style.display = 'none';
         document.getElementById('contentSection').classList.add('active');
+    }
+
+    // 소셜 계정 연동 상태 업데이트
+    function updateOAuthStatus(connectedProviders) {
+        const isGoogleConnected = connectedProviders.includes('GOOGLE');
+        const googleBtn = document.getElementById('googleOAuthBtn');
+        const googleInfo = document.getElementById('googleOAuthInfo');
+
+        if (isGoogleConnected) {
+            googleBtn.textContent = 'Google 연동 해제';
+            googleBtn.className = 'btn btn-danger';
+            googleBtn.style.width = 'auto';
+            googleBtn.style.padding = '12px 24px';
+            googleBtn.onclick = unlinkGoogleOAuth;
+            googleInfo.textContent = '✓ 연동됨';
+            googleInfo.style.color = '#27ae60';
+        } else {
+            googleBtn.textContent = 'Google 연동하기';
+            googleBtn.className = 'btn';
+            googleBtn.style.width = 'auto';
+            googleBtn.style.padding = '12px 24px';
+            googleBtn.onclick = linkGoogleOAuth;
+            googleInfo.textContent = '';
+        }
+    }
+
+    // Google OAuth 연동
+    function linkGoogleOAuth() {
+        // JWT 토큰을 로컬스토리지에서 가져와서 헤더에 포함하도록 설정
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+            showAlert('oauthAlert', 'error', '로그인이 필요합니다.');
+            return;
+        }
+
+        // OAuth2 플로우 시작 (JWT는 브라우저가 자동으로 쿠키로 전송하지 않으므로,
+        // 백엔드에서 Authorization 헤더를 확인하도록 수정이 필요함)
+        // 임시로 팝업 방식 사용
+        window.location.href = '/oauth2/authorization/google?mode=link';
+    }
+
+    // Google OAuth 연동 해제
+    async function unlinkGoogleOAuth() {
+        if (!confirm('Google 계정 연동을 해제하시겠습니까?')) {
+            return;
+        }
+
+        const googleBtn = document.getElementById('googleOAuthBtn');
+        googleBtn.disabled = true;
+        googleBtn.textContent = '해제 중...';
+
+        try {
+            const response = await apiCall('/users/me/oauth/GOOGLE', {
+                method: 'DELETE'
+            });
+
+            if (!response) return;
+
+            if (response.ok) {
+                showAlert('oauthAlert', 'success', 'Google 계정 연동이 해제되었습니다.');
+                // 내 정보 다시 조회하여 UI 업데이트
+                await loadMyInfo();
+            } else if (response.status === 400) {
+                const errorData = await response.json().catch(() => null);
+                const errorMessage = errorData?.message || '마지막 로그인 수단은 해제할 수 없습니다.';
+                showAlert('oauthAlert', 'error', errorMessage);
+            } else if (response.status === 404) {
+                showAlert('oauthAlert', 'error', '연동되지 않은 소셜 계정입니다.');
+            } else {
+                showAlert('oauthAlert', 'error', '연동 해제 중 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            console.error('Google 연동 해제 실패:', error);
+            showAlert('oauthAlert', 'error', '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        } finally {
+            googleBtn.disabled = false;
+            updateOAuthStatus(currentUserData?.connectedProviders || []);
+        }
     }
 
     // 에러 표시
@@ -863,7 +974,7 @@
     }
 
     // 프로필 수정 폼 제출
-    document.getElementById('profileForm').addEventListener('submit', async function(e) {
+    document.getElementById('profileForm').addEventListener('submit', async function (e) {
         e.preventDefault();
 
         const nickname = document.getElementById('nickname').value.trim();
@@ -938,7 +1049,7 @@
     });
 
     // 비밀번호 변경 폼 제출
-    document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+    document.getElementById('passwordForm').addEventListener('submit', async function (e) {
         e.preventDefault();
 
         const currentPassword = document.getElementById('currentPassword').value;
@@ -948,13 +1059,8 @@
 
         let isValid = true;
 
-        // 현재 비밀번호 검증
-        if (!currentPassword) {
-            showInputError(document.getElementById('currentPassword'), 'currentPasswordError', '현재 비밀번호를 입력해주세요.');
-            isValid = false;
-        } else {
-            hideInputError(document.getElementById('currentPassword'), 'currentPasswordError');
-        }
+        // 현재 비밀번호는 선택 사항 (소셜 로그인 사용자는 입력하지 않아도 됨)
+        hideInputError(document.getElementById('currentPassword'), 'currentPasswordError');
 
         // 새 비밀번호 검증
         if (!newPassword) {
@@ -985,11 +1091,11 @@
         passwordBtn.textContent = '변경 중...';
 
         try {
-            // 비밀번호 AES 암호화
-            const encryptedCurrentPassword = CryptoJS.AES.encrypt(currentPassword, AES_KEY, {
+            // 비밀번호 AES 암호화 (currentPassword는 선택 사항)
+            const encryptedCurrentPassword = currentPassword ? CryptoJS.AES.encrypt(currentPassword, AES_KEY, {
                 mode: CryptoJS.mode.ECB,
                 padding: CryptoJS.pad.Pkcs7
-            }).toString();
+            }).toString() : null;
 
             const encryptedNewPassword = CryptoJS.AES.encrypt(newPassword, AES_KEY, {
                 mode: CryptoJS.mode.ECB,
@@ -1031,36 +1137,36 @@
     });
 
     // 전화번호 입력 시 숫자만 허용
-    document.getElementById('phoneNumber').addEventListener('input', function(e) {
+    document.getElementById('phoneNumber').addEventListener('input', function (e) {
         this.value = this.value.replace(/[^0-9]/g, '');
     });
 
     // 입력 필드 이벤트 리스너
-    document.getElementById('name').addEventListener('input', function() {
+    document.getElementById('name').addEventListener('input', function () {
         if (this.value.trim()) {
             hideInputError(this, 'nameError');
         }
     });
 
-    document.getElementById('phoneNumber').addEventListener('input', function() {
+    document.getElementById('phoneNumber').addEventListener('input', function () {
         if (this.value.trim()) {
             hideInputError(this, 'phoneNumberError');
         }
     });
 
-    document.getElementById('currentPassword').addEventListener('input', function() {
+    document.getElementById('currentPassword').addEventListener('input', function () {
         if (this.value) {
             hideInputError(this, 'currentPasswordError');
         }
     });
 
-    document.getElementById('newPassword').addEventListener('input', function() {
+    document.getElementById('newPassword').addEventListener('input', function () {
         if (this.value) {
             hideInputError(this, 'newPasswordError');
         }
     });
 
-    document.getElementById('confirmNewPassword').addEventListener('input', function() {
+    document.getElementById('confirmNewPassword').addEventListener('input', function () {
         const newPassword = document.getElementById('newPassword').value;
         if (this.value) {
             hideInputError(this, 'confirmNewPasswordError');
@@ -1081,38 +1187,38 @@
     const withdrawPasswordInput = document.getElementById('withdrawPassword');
 
     // 회원 탈퇴 버튼 클릭 - 모달 열기
-    withdrawBtn.addEventListener('click', function() {
+    withdrawBtn.addEventListener('click', function () {
         withdrawModal.classList.add('active');
         withdrawPasswordInput.value = '';
         hideInputError(withdrawPasswordInput, 'withdrawPasswordError');
     });
 
     // 모달 닫기 - X 버튼
-    modalClose.addEventListener('click', function() {
+    modalClose.addEventListener('click', function () {
         withdrawModal.classList.remove('active');
     });
 
     // 모달 닫기 - 취소 버튼
-    modalCancel.addEventListener('click', function() {
+    modalCancel.addEventListener('click', function () {
         withdrawModal.classList.remove('active');
     });
 
     // 모달 배경 클릭 시 닫기
-    withdrawModal.addEventListener('click', function(e) {
+    withdrawModal.addEventListener('click', function (e) {
         if (e.target === withdrawModal) {
             withdrawModal.classList.remove('active');
         }
     });
 
     // 회원 탈퇴 비밀번호 입력 이벤트
-    withdrawPasswordInput.addEventListener('input', function() {
+    withdrawPasswordInput.addEventListener('input', function () {
         if (this.value) {
             hideInputError(this, 'withdrawPasswordError');
         }
     });
 
     // 회원 탈퇴 확인 버튼
-    confirmWithdrawBtn.addEventListener('click', async function() {
+    confirmWithdrawBtn.addEventListener('click', async function () {
         const password = withdrawPasswordInput.value;
 
         hideInputError(withdrawPasswordInput, 'withdrawPasswordError');
@@ -1162,7 +1268,19 @@
     });
 
     // 페이지 로드 시 내 정보 조회
-    document.addEventListener('DOMContentLoaded', loadMyInfo);
+    document.addEventListener('DOMContentLoaded', async function () {
+        // URL 파라미터 확인 (OAuth 연동 완료 후 리다이렉트)
+        const params = new URLSearchParams(window.location.search);
+        const oauthLinked = params.get('oauth_linked');
+        if (oauthLinked === 'true') {
+            showAlert('oauthAlert', 'success', 'Google 계정이 연동되었습니다!');
+            // URL에서 파라미터 제거
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // 내 정보 로드
+        await loadMyInfo();
+    });
 </script>
 </body>
 </html>

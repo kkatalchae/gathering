@@ -1,5 +1,7 @@
 package com.gathering.auth.infra;
 
+import java.time.Duration;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -17,6 +19,12 @@ public final class AuthConstants {
 	/**
 	 * 쿠키 이름
 	 */
-	public static final String ACCESS_TOKEN_COOKIE = "accessToken";
 	public static final String REFRESH_TOKEN_COOKIE = "refreshToken";
+
+	/**
+	 * OAuth 연동 관련
+	 */
+	public static final String OAUTH_LINK_PREFIX = "oauth:link:";
+	public static final Duration OAUTH_LINK_TTL = Duration.ofMinutes(5);
+	public static final String OAUTH_MODE_PARAM = "mode";
 }
