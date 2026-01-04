@@ -50,7 +50,6 @@ public enum ErrorCode {
 		HttpStatus.CONFLICT,
 		"해당 이메일로 가입된 다른 계정이 있습니다. 기존 계정으로 로그인 후 소셜 계정 연동을 진행해주세요."
 	),
-	OAUTH_ALREADY_LINKED(HttpStatus.CONFLICT, "이미 연동된 소셜 계정입니다."),
 	OAUTH_PROVIDER_ALREADY_USED(HttpStatus.CONFLICT, "다른 사용자가 이미 사용 중인 소셜 계정입니다."),
 	OAUTH_CONNECTION_NOT_FOUND(HttpStatus.NOT_FOUND, "연동되지 않은 소셜 계정입니다."),
 	CANNOT_UNLINK_LAST_LOGIN_METHOD(

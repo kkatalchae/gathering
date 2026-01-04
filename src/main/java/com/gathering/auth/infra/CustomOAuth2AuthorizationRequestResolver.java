@@ -1,6 +1,5 @@
 package com.gathering.auth.infra;
 
-import java.time.Duration;
 import java.util.Optional;
 
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -25,10 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 public class CustomOAuth2AuthorizationRequestResolver implements OAuth2AuthorizationRequestResolver {
-
-	private static final String OAUTH_LINK_PREFIX = "oauth:link:";
-	private static final Duration OAUTH_LINK_TTL = Duration.ofMinutes(5);
-	private static final String OAUTH_MODE = "mode";
 
 	private final ClientRegistrationRepository clientRegistrationRepository;
 	private final RedisAdapter redisAdapter;
@@ -71,10 +66,10 @@ public class CustomOAuth2AuthorizationRequestResolver implements OAuth2Authoriza
 
 		Optional<String> refreshToken = CookieUtil.getCookie(request, AuthConstants.REFRESH_TOKEN_COOKIE);
 
-		// 인증 헤더가 없음 -> 로그인, 회원가입 로직
+		// Refresh Token 쿠키 있고 mode 파라미터 있으면 -> 연동 모드
 		if (refreshToken.isPresent()
 			&& Optional.ofNullable(request.getQueryString())
-			.map(qs -> qs.contains(OAUTH_MODE))
+			.map(qs -> qs.contains(AuthConstants.OAUTH_MODE_PARAM))
 			.orElse(false)
 		) {
 			setOAuthState(refreshToken.get(), authorizationRequest);
@@ -92,7 +87,7 @@ public class CustomOAuth2AuthorizationRequestResolver implements OAuth2Authoriza
 		log.debug("OAuth link mode detected. Storing state={} for user={}", state, tsid);
 
 		// Redis에 저장: oauth:link:{state} = {tsid}
-		redisAdapter.set(OAUTH_LINK_PREFIX + state, tsid, OAUTH_LINK_TTL);
+		redisAdapter.set(AuthConstants.OAUTH_LINK_PREFIX + state, tsid, AuthConstants.OAUTH_LINK_TTL);
 
 	}
 }
