@@ -10,8 +10,7 @@ import com.gathering.user.domain.model.OAuthProvider;
 import com.gathering.user.domain.model.UserOAuthConnectionEntity;
 
 @Repository
-public interface UserOAuthConnectionRepository extends
-	JpaRepository<UserOAuthConnectionEntity, UserOAuthConnectionEntity.ConnectionId> {
+public interface UserOAuthConnectionRepository extends JpaRepository<UserOAuthConnectionEntity, String> {
 
 	/**
 	 * 특정 OAuth 제공자와 provider ID로 연동 정보 조회
@@ -20,6 +19,11 @@ public interface UserOAuthConnectionRepository extends
 		OAuthProvider provider,
 		String providerId
 	);
+
+	/**
+	 * 특정 사용자의 특정 OAuth 제공자 연동 정보 조회
+	 */
+	Optional<UserOAuthConnectionEntity> findByUserTsidAndProvider(String userTsid, OAuthProvider provider);
 
 	/**
 	 * 특정 사용자의 모든 소셜 연동 정보 조회

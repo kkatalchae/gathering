@@ -1,14 +1,13 @@
 package com.gathering.user.domain.model;
 
-import java.io.Serializable;
 import java.time.Instant;
-import java.util.Objects;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.gathering.auth.domain.OAuthUserInfo;
 
+import io.hypersistence.utils.hibernate.id.Tsid;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -17,7 +16,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -31,8 +29,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * 사용자 소셜 계정 연동 정보 엔티티
- *
- * 복합 PK: (user_tsid, provider)
  */
 @Entity
 @Getter
@@ -40,23 +36,27 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-@IdClass(UserOAuthConnectionEntity.ConnectionId.class)
 @Table(
 	name = "user_oauth_connections",
 	uniqueConstraints = {
+		@UniqueConstraint(name = "uk_user_provider", columnNames = {"user_tsid", "provider"}),
 		@UniqueConstraint(name = "uk_provider_user", columnNames = {"provider", "provider_id"})
 	},
 	indexes = {
-		@Index(name = "idx_user_tsid", columnList = "user_tsid")
+		@Index(name = "idx_user_tsid", columnList = "user_tsid"),
+		@Index(name = "idx_provider", columnList = "provider")
 	}
 )
 public class UserOAuthConnectionEntity {
 
 	@Id
+	@Tsid
+	@Column(nullable = false, length = 13, columnDefinition = "CHAR(13)")
+	private String tsid;
+
 	@Column(name = "user_tsid", nullable = false, length = 13, columnDefinition = "CHAR(13)")
 	private String userTsid;
 
-	@Id
 	@Column(nullable = false, length = 20)
 	@Enumerated(EnumType.STRING)
 	private OAuthProvider provider;
@@ -107,34 +107,5 @@ public class UserOAuthConnectionEntity {
 			oAuthUserInfo.getProviderId(),
 			oAuthUserInfo.getEmail()
 		);
-	}
-
-	/**
-	 * 복합 PK 클래스
-	 */
-	@Getter
-	@NoArgsConstructor(access = AccessLevel.PROTECTED)
-	@AllArgsConstructor
-	public static class ConnectionId implements Serializable {
-
-		private String userTsid;
-		private OAuthProvider provider;
-
-		@Override
-		public boolean equals(Object o) {
-			if (this == o) {
-				return true;
-			}
-			if (o == null || getClass() != o.getClass()) {
-				return false;
-			}
-			ConnectionId that = (ConnectionId)o;
-			return Objects.equals(userTsid, that.userTsid) && provider == that.provider;
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(userTsid, provider);
-		}
 	}
 }
