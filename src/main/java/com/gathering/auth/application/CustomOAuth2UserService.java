@@ -68,7 +68,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
 	private OAuth2User handleExistingOAuthConnection(UserOAuthConnectionEntity connection,
 		Map<String, Object> attributes) {
-		UsersEntity user = usersRepository.findByEmail(connection.getEmail())
+		UsersEntity user = usersRepository.findById(connection.getUserTsid())
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
 		return new OAuthPrincipal(user, attributes);

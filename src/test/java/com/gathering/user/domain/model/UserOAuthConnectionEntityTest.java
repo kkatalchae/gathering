@@ -12,51 +12,6 @@ import com.gathering.auth.domain.OAuthUserInfo;
 class UserOAuthConnectionEntityTest {
 
 	@Nested
-	@DisplayName("복합 PK 동등성 테스트")
-	class CompositePrimaryKeyEquality {
-
-		@Test
-		@DisplayName("같은_userTsid와_provider를_가진_ID는_동등하다")
-		void 같은_userTsid와_provider를_가진_ID는_동등하다() {
-			// given
-			UserOAuthConnectionEntity.ConnectionId id1 =
-				new UserOAuthConnectionEntity.ConnectionId("01HQXYZ123456", OAuthProvider.GOOGLE);
-			UserOAuthConnectionEntity.ConnectionId id2 =
-				new UserOAuthConnectionEntity.ConnectionId("01HQXYZ123456", OAuthProvider.GOOGLE);
-
-			// when & then
-			assertThat(id1).isEqualTo(id2);
-			assertThat(id1.hashCode()).isEqualTo(id2.hashCode());
-		}
-
-		@Test
-		@DisplayName("다른_userTsid를_가진_ID는_동등하지_않다")
-		void 다른_userTsid를_가진_ID는_동등하지_않다() {
-			// given
-			UserOAuthConnectionEntity.ConnectionId id1 =
-				new UserOAuthConnectionEntity.ConnectionId("01HQXYZ123456", OAuthProvider.GOOGLE);
-			UserOAuthConnectionEntity.ConnectionId id2 =
-				new UserOAuthConnectionEntity.ConnectionId("01HQXYZ999999", OAuthProvider.GOOGLE);
-
-			// when & then
-			assertThat(id1).isNotEqualTo(id2);
-		}
-
-		@Test
-		@DisplayName("다른_provider를_가진_ID는_동등하지_않다")
-		void 다른_provider를_가진_ID는_동등하지_않다() {
-			// given
-			UserOAuthConnectionEntity.ConnectionId id1 =
-				new UserOAuthConnectionEntity.ConnectionId("01HQXYZ123456", OAuthProvider.GOOGLE);
-			UserOAuthConnectionEntity.ConnectionId id2 =
-				new UserOAuthConnectionEntity.ConnectionId("01HQXYZ123456", OAuthProvider.GOOGLE); // 같은 provider
-
-			// when & then
-			assertThat(id1).isEqualTo(id2); // 같은 provider이므로 동등
-		}
-	}
-
-	@Nested
 	@DisplayName("팩토리 메서드 테스트")
 	class FactoryMethodTest {
 

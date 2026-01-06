@@ -171,7 +171,7 @@ public class UserService {
 
 		// 2. 연동 정보 조회
 		UserOAuthConnectionEntity connection = oauthConnectionRepository
-			.findById(new UserOAuthConnectionEntity.ConnectionId(tsid, provider))
+			.findByUserTsidAndProvider(tsid, provider)
 			.orElseThrow(() -> new BusinessException(ErrorCode.OAUTH_CONNECTION_NOT_FOUND));
 
 		// 3. 안전성 검증: 마지막 로그인 수단인지 확인
