@@ -128,7 +128,7 @@ class CustomOAuth2UserServiceTest {
 			)).thenReturn(Optional.of(existingConnection));
 
 			when(usersRepository.findById(userTsid)).thenReturn(Optional.of(existingUser));
-
+			
 			// when
 			OAuth2User result = customOAuth2UserService.loadUser(userRequest);
 
