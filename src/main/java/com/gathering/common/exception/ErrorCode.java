@@ -55,7 +55,15 @@ public enum ErrorCode {
 	CANNOT_UNLINK_LAST_LOGIN_METHOD(
 		HttpStatus.BAD_REQUEST,
 		"마지막 로그인 수단입니다. 비밀번호를 설정하거나 다른 소셜 계정을 연동한 후 해제할 수 있습니다."
-	);
+	),
+
+	// Gathering 관련 에러 (400 Bad Request)
+	GATHERING_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "모임 이름은 필수입니다"),
+	GATHERING_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "모임 이름은 25자를 초과할 수 없습니다"),
+	GATHERING_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "모임 설명은 1000자를 초과할 수 없습니다"),
+
+	// Region 관련 에러 (404 Not Found)
+	REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 지역입니다");
 
 	private final HttpStatus httpStatus;
 	private final String message;

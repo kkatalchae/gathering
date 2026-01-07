@@ -7,6 +7,55 @@ servers:
   - url: http://localhost
 tags: [ ]
 paths:
+  /gatherings:
+    post:
+      tags:
+        - gatherings
+      operationId: POST /gatherings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/gatherings-335326168"
+            examples:
+              모임:
+                value: "{\"name\":\"테스트 모임\",\"description\":\"테스트 설명입니다\",\"regionTsid\"\
+                  :\"01HQREGION1234\",\"category\":\"SPORTS\",\"mainImageUrl\":\"\
+                  https://example.com/image.jpg\"}"
+              POST /gatherings:
+                value: "{\"name\":\"테스트 모임\",\"description\":\"테스트 설명입니다\",\"regionTsid\"\
+                  :\"01HQREGION1234\",\"category\":\"SPORTS\",\"mainImageUrl\":\"\
+                  https://example.com/image.jpg\"}"
+              gatherings:
+                value: "{\"name\":\"테스트 모임\",\"description\":\"테스트 설명입니다\",\"regionTsid\"\
+                  :\"01HQREGION1234\",\"category\":\"SPORTS\",\"mainImageUrl\":\"\
+                  https://example.com/image.jpg\"}"
+      responses:
+        "201":
+          description: "201"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings-2016471649"
+              examples:
+                모임:
+                  value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
+                    :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
+                    :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-07T06:37:18.127724Z\"\
+                    }"
+                POST /gatherings:
+                  value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
+                    :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
+                    :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-07T06:26:38.562880Z\"\
+                    }"
+                gatherings:
+                  value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
+                    :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
+                    :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-07T06:41:52.868022Z\"\
+                    }"
   /login:
     post:
       tags:
@@ -295,21 +344,6 @@ paths:
                     :\"마지막 로그인 수단입니다. 비밀번호를 설정하거나 다른 소셜 계정을 연동한 후 해제할 수 있습니다.\"}"
 components:
   schemas:
-    users-me-458480484:
-      type: object
-      properties:
-        phoneNumber:
-          type: string
-          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
-          nullable: true
-        name:
-          type: string
-          description: 이름 (null이면 변경하지 않음)
-          nullable: true
-        nickname:
-          type: string
-          description: 닉네임 (null이면 변경하지 않음)
-          nullable: true
     users-me54274076:
       required:
         - createdAt
@@ -360,22 +394,6 @@ components:
         status:
           type: string
           description: 계정 상태
-    login1168052559:
-      required:
-        - accessToken
-        - expiresIn
-        - tokenType
-      type: object
-      properties:
-        expiresIn:
-          type: number
-          description: 액세스 토큰 만료 시간 (초)
-        tokenType:
-          type: string
-          description: 토큰 타입 (Bearer)
-        accessToken:
-          type: string
-          description: 액세스 토큰 (JWT)
     refresh-542310961:
       required:
         - accessToken
@@ -404,18 +422,6 @@ components:
         email:
           type: string
           description: 이메일 주소
-    users-tsid-1331249008:
-      required:
-        - code
-        - message
-      type: object
-      properties:
-        code:
-          type: string
-          description: 에러 코드
-        message:
-          type: string
-          description: 에러 메시지
     users-join-1381348445:
       required:
         - email
@@ -440,18 +446,6 @@ components:
         email:
           type: string
           description: 이메일 주소 (이메일 형식)
-    refresh388130491:
-      required:
-        - code
-        - message
-      type: object
-      properties:
-        code:
-          type: string
-          description: 에러 코드 (REFRESH_TOKEN_MISSING)
-        message:
-          type: string
-          description: 에러 메시지
     users-me-656631050:
       required:
         - createdAt
@@ -518,14 +512,30 @@ components:
           type: string
           description: 프로필 이미지 URL
           nullable: true
-    users-me192728359:
+    gatherings-335326168:
       required:
-        - password
+        - category
+        - name
+        - regionTsid
       type: object
       properties:
-        password:
+        regionTsid:
           type: string
-          description: "비밀번호 (AES 암호화, 본인 확인용)"
+          description: 지역 TSID (필수)
+        name:
+          type: string
+          description: "모임 이름 (필수, 25자 이하)"
+        description:
+          type: string
+          description: "모임 설명 (선택, 1000자 이하)"
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리 (필수)
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL (선택)
+          nullable: true
     users-me-password443516385:
       required:
         - currentPassword
@@ -538,3 +548,102 @@ components:
         currentPassword:
           type: string
           description: 현재 비밀번호 (AES 암호화)
+    users-me-458480484:
+      type: object
+      properties:
+        phoneNumber:
+          type: string
+          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
+          nullable: true
+        name:
+          type: string
+          description: 이름 (null이면 변경하지 않음)
+          nullable: true
+        nickname:
+          type: string
+          description: 닉네임 (null이면 변경하지 않음)
+          nullable: true
+    gatherings-2016471649:
+      required:
+        - category
+        - createdAt
+        - maxParticipants
+        - name
+        - regionTsid
+        - tsid
+      type: object
+      properties:
+        createdAt:
+          type: string
+          description: 생성 일시
+        regionTsid:
+          type: string
+          description: 지역 TSID
+        name:
+          type: string
+          description: 모임 이름
+        description:
+          type: string
+          description: 모임 설명
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리
+        tsid:
+          type: string
+          description: 모임 고유 ID
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL
+          nullable: true
+        maxParticipants:
+          type: number
+          description: "최대 참가 인원 (기본값: 100)"
+    login1168052559:
+      required:
+        - accessToken
+        - expiresIn
+        - tokenType
+      type: object
+      properties:
+        expiresIn:
+          type: number
+          description: 액세스 토큰 만료 시간 (초)
+        tokenType:
+          type: string
+          description: 토큰 타입 (Bearer)
+        accessToken:
+          type: string
+          description: 액세스 토큰 (JWT)
+    users-tsid-1331249008:
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          type: string
+          description: 에러 코드
+        message:
+          type: string
+          description: 에러 메시지
+    refresh388130491:
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          type: string
+          description: 에러 코드 (REFRESH_TOKEN_MISSING)
+        message:
+          type: string
+          description: 에러 메시지
+    users-me192728359:
+      required:
+        - password
+      type: object
+      properties:
+        password:
+          type: string
+          description: "비밀번호 (AES 암호화, 본인 확인용)"

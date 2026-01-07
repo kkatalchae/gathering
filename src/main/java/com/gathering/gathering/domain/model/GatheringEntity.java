@@ -63,6 +63,10 @@ public class GatheringEntity {
 	@Column(name = "main_image_url", length = 500)
 	private String mainImageUrl;
 
+	@Column(name = "max_participants", nullable = false)
+	@Builder.Default
+	private Integer maxParticipants = 100;
+
 	@Column(name = "created_at", nullable = false, updatable = false)
 	@CreatedDate
 	private Instant createdAt;
