@@ -79,6 +79,12 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
     outputs.dir snippetsDir
+
+    // 테스트 실행 전 스니펫 디렉토리 초기화
+    // 기존 스니펫이 남아있어서 openapi.yaml이 이상하게 생성되는 문제 방지
+    doFirst {
+        delete snippetsDir
+    }
 }
 
 tasks.named("asciidoctor") {

@@ -24,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gathering.ApiDocSpec;
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.common.exception.BusinessException;
@@ -82,7 +83,7 @@ class GatheringsControllerTest {
 	@Test
 	@DisplayName("유효한 정보로 모임을 생성하면 201 상태코드와 생성된 모임 정보를 반환한다")
 	void createGatheringSuccess() throws Exception {
-		// given
+		// given: 모임 생성 요청 데이터와 예상 응답 데이터를 준비
 		String userTsid = "01HQUSER123456";
 		CreateGatheringRequest request = CreateGatheringRequest.builder()
 			.name("테스트 모임")
@@ -107,7 +108,8 @@ class GatheringsControllerTest {
 		when(gatheringService.createGathering(eq(userTsid), any(CreateGatheringRequest.class)))
 			.thenReturn(response);
 
-		// when & then
+		// when: POST /gatherings 요청을 전송
+		// then: 201 상태코드와 생성된 모임 정보를 검증
 		mockMvc.perform(post("/gatherings")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
@@ -119,6 +121,8 @@ class GatheringsControllerTest {
 			.andExpect(jsonPath("$.category").value("SPORTS"))
 			.andExpect(jsonPath("$.maxParticipants").value(100))
 			.andDo(document("gatherings",
+				ApiDocSpec.GATHERING_CREATE.getDescription(),
+				ApiDocSpec.GATHERING_CREATE.getSummary(),
 				requestFields(
 					fieldWithPath("name").description("모임 이름 (필수, 25자 이하)"),
 					fieldWithPath("description").description("모임 설명 (선택, 1000자 이하)").optional(),
@@ -142,14 +146,15 @@ class GatheringsControllerTest {
 	@Test
 	@DisplayName("모임 이름을 누락하고 생성 요청 시 400 에러를 반환한다")
 	void createGatheringWithoutName() throws Exception {
-		// given
+		// given: 이름이 없는 모임 생성 요청 데이터를 준비
 		CreateGatheringRequest request = CreateGatheringRequest.builder()
 			.description("테스트 설명")
 			.regionTsid("01HQREGION1234")
 			.category(GatheringCategory.SPORTS)
 			.build();
 
-		// when & then
+		// when: POST /gatherings 요청을 전송하고 응답을 검증
+		// then: 400 Bad Request 응답을 확인
 		mockMvc.perform(post("/gatherings")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
@@ -159,13 +164,14 @@ class GatheringsControllerTest {
 	@Test
 	@DisplayName("카테고리를 누락하고 생성 요청 시 400 에러를 반환한다")
 	void createGatheringWithoutCategory() throws Exception {
-		// given
+		// given: 카테고리가 없는 모임 생성 요청 데이터를 준비
 		CreateGatheringRequest request = CreateGatheringRequest.builder()
 			.name("테스트 모임")
 			.regionTsid("01HQREGION1234")
 			.build();
 
-		// when & then
+		// when: POST /gatherings 요청을 전송
+		// then: 400 Bad Request 응답을 확인
 		mockMvc.perform(post("/gatherings")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
@@ -175,7 +181,7 @@ class GatheringsControllerTest {
 	@Test
 	@DisplayName("존재하지 않는 지역으로 생성 요청 시 404 에러를 반환한다")
 	void createGatheringWithInvalidRegion() throws Exception {
-		// given
+		// given: 존재하지 않는 지역 TSID로 모임 생성 요청 데이터를 준비
 		String userTsid = "01HQUSER123456";
 		CreateGatheringRequest request = CreateGatheringRequest.builder()
 			.name("테스트 모임")
@@ -187,7 +193,8 @@ class GatheringsControllerTest {
 		when(gatheringService.createGathering(eq(userTsid), any(CreateGatheringRequest.class)))
 			.thenThrow(new BusinessException(ErrorCode.REGION_NOT_FOUND));
 
-		// when & then
+		// when: POST /gatherings 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
 		mockMvc.perform(post("/gatherings")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
