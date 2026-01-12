@@ -63,7 +63,13 @@ public enum ErrorCode {
 	GATHERING_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "모임 설명은 1000자를 초과할 수 없습니다"),
 
 	// Region 관련 에러 (404 Not Found)
-	REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 지역입니다");
+	REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 지역입니다"),
+
+	// Gathering 조회 관련 에러 (404 Not Found)
+	GATHERING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없습니다"),
+
+	// Pagination 관련 에러 (400 Bad Request)
+	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다");
 
 	private final HttpStatus httpStatus;
 	private final String message;

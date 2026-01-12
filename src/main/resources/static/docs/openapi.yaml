@@ -4,13 +4,13 @@ info:
   description: Gathering 서비스 REST API 문서 (REST Docs 기반)
   version: 1.0.0
 servers:
-  - url: http://localhost
-tags: [ ]
+- url: http://localhost
+tags: []
 paths:
   /gatherings:
     post:
       tags:
-        - gatherings
+      - gatherings
       summary: 모임 생성(/gatherings)
       description: |
         모임이 생성되고 생성한 유저는 오너가 된다.
@@ -43,12 +43,12 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
                     :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
                     :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-07T08:49:18.180653Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-08T02:18:47.158643Z\"\
                     }"
   /login:
     post:
       tags:
-        - login
+      - login
       summary: 로그인(/login)
       description: |
         로그인이 성공하면 액세스 토큰 정보를 리턴하고 리프레시 토큰 쿠키가 발급된다.
@@ -110,15 +110,15 @@ paths:
                 $ref: "#/components/schemas/users-tsid-1331249008"
               examples:
                 login-with-invalid-email-format:
-                  value: "{\"code\":\"INVALID_EMAIL_FORMAT\",\"message\":\"올바른 형식의\
-                    \ 이메일이 아닙니다.\"}"
+                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
+                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
                 login-with-empty-password:
                   value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
                     는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
   /logout:
     post:
       tags:
-        - logout
+      - logout
       summary: 로그아웃(/logout)
       description: |
         로그아웃하면 리프레시 토큰이 삭제되고 무효화된다.
@@ -130,7 +130,7 @@ paths:
   /refresh:
     post:
       tags:
-        - refresh
+      - refresh
       summary: 토큰 리프레시(/refresh)
       description: |
         리프레시 토큰 쿠키를 사용하여 새로운 액세스 토큰을 발급받는다.
@@ -174,7 +174,7 @@ paths:
   /users/join:
     post:
       tags:
-        - users
+      - users
       summary: 회원가입(/users/join)
       description: |
         회원 정보가 DB에 저장되고 비밀번호는 암호화되어 저장된다.
@@ -196,7 +196,7 @@ paths:
   /users/me:
     get:
       tags:
-        - users
+      - users
       summary: 내 정보 조회(/users/me)
       description: |
         로그인한 사용자의 상세 정보를 조회한다.
@@ -218,7 +218,7 @@ paths:
                     :true,\"connectedProviders\":[]}"
     delete:
       tags:
-        - users
+      - users
       summary: 회원 탈퇴(/users/me)
       description: |
         회원 탈퇴를 진행한다.
@@ -238,7 +238,7 @@ paths:
           description: "204"
     patch:
       tags:
-        - users
+      - users
       summary: 내 정보 수정(/users/me)
       description: |
         로그인한 사용자의 정보(닉네임, 이름, 전화번호)를 수정한다.
@@ -271,7 +271,7 @@ paths:
   /users/{tsid}:
     get:
       tags:
-        - users
+      - users
       summary: "사용자 정보 조회(/users/{tsid})"
       description: |
         특정 사용자의 공개 정보(닉네임, 이름, 프로필 이미지)를 조회한다.
@@ -282,12 +282,12 @@ paths:
         - 정지된 사용자를 조회하면 404 에러가 발생한다.
       operationId: users-get
       parameters:
-        - name: tsid
-          in: path
-          description: ""
-          required: true
-          schema:
-            type: string
+      - name: tsid
+        in: path
+        description: ""
+        required: true
+        schema:
+          type: string
       responses:
         "404":
           description: "404"
@@ -311,7 +311,7 @@ paths:
   /users/me/password:
     put:
       tags:
-        - users
+      - users
       summary: 비밀번호 변경(/users/me/password)
       description: |
         현재 비밀번호를 확인한 후 새 비밀번호로 변경한다.
@@ -355,7 +355,7 @@ paths:
   /users/me/oauth/{provider}:
     delete:
       tags:
-        - users
+      - users
       summary: "소셜 연동 해제(/users/me/oauth/{provider})"
       description: |
         특정 OAuth 제공자와의 연동을 해제한다.
@@ -366,12 +366,12 @@ paths:
         - 연동되지 않은 제공자를 해제하려 하면 404 에러가 발생한다.
       operationId: "DELETE /users/me/oauth/{provider}"
       parameters:
-        - name: provider
-          in: path
-          description: "OAuth 제공자 (GOOGLE, KAKAO 등)"
-          required: true
-          schema:
-            type: string
+      - name: provider
+        in: path
+        description: "OAuth 제공자 (GOOGLE, KAKAO 등)"
+        required: true
+        schema:
+          type: string
       responses:
         "204":
           description: "204"
@@ -399,13 +399,13 @@ components:
   schemas:
     users-me-2142060944:
       required:
-        - connectedProviders
-        - createdAt
-        - email
-        - hasPassword
-        - name
-        - status
-        - tsid
+      - connectedProviders
+      - createdAt
+      - email
+      - hasPassword
+      - name
+      - status
+      - tsid
       type: object
       properties:
         createdAt:
@@ -416,10 +416,10 @@ components:
           description: 연동된 소셜 계정 목록 (GOOGLE 등)
           items:
             oneOf:
-              - type: object
-              - type: boolean
-              - type: string
-              - type: number
+            - type: object
+            - type: boolean
+            - type: string
+            - type: number
         phoneNumber:
           type: string
           description: 전화번호
@@ -449,9 +449,9 @@ components:
           description: 계정 상태
     refresh-542310961:
       required:
-        - accessToken
-        - expiresIn
-        - tokenType
+      - accessToken
+      - expiresIn
+      - tokenType
       type: object
       properties:
         expiresIn:
@@ -465,7 +465,7 @@ components:
           description: 새로운 액세스 토큰 (JWT)
     users-tsid-982397607:
       required:
-        - name
+      - name
       type: object
       properties:
         name:
@@ -481,8 +481,8 @@ components:
           nullable: true
     login-2055163896:
       required:
-        - email
-        - password
+      - email
+      - password
       type: object
       properties:
         password:
@@ -493,9 +493,9 @@ components:
           description: 이메일 주소
     gatherings-335326168:
       required:
-        - category
-        - name
-        - regionTsid
+      - category
+      - name
+      - regionTsid
       type: object
       properties:
         regionTsid:
@@ -530,14 +530,30 @@ components:
           type: string
           description: 닉네임 (null이면 변경하지 않음)
           nullable: true
+    login1168052559:
+      required:
+      - accessToken
+      - expiresIn
+      - tokenType
+      type: object
+      properties:
+        expiresIn:
+          type: number
+          description: 액세스 토큰 만료 시간 (초)
+        tokenType:
+          type: string
+          description: 토큰 타입 (Bearer)
+        accessToken:
+          type: string
+          description: 액세스 토큰 (JWT)
     gatherings-2016471649:
       required:
-        - category
-        - createdAt
-        - maxParticipants
-        - name
-        - regionTsid
-        - tsid
+      - category
+      - createdAt
+      - maxParticipants
+      - name
+      - regionTsid
+      - tsid
       type: object
       properties:
         createdAt:
@@ -566,26 +582,10 @@ components:
         maxParticipants:
           type: number
           description: "최대 참가 인원 (기본값: 100)"
-    login1168052559:
-      required:
-        - accessToken
-        - expiresIn
-        - tokenType
-      type: object
-      properties:
-        expiresIn:
-          type: number
-          description: 액세스 토큰 만료 시간 (초)
-        tokenType:
-          type: string
-          description: 토큰 타입 (Bearer)
-        accessToken:
-          type: string
-          description: 액세스 토큰 (JWT)
     users-tsid-1331249008:
       required:
-        - code
-        - message
+      - code
+      - message
       type: object
       properties:
         code:
@@ -596,8 +596,8 @@ components:
           description: 에러 메시지
     refresh2110093555:
       required:
-        - code
-        - message
+      - code
+      - message
       type: object
       properties:
         code:
@@ -608,7 +608,7 @@ components:
           description: 에러 메시지
     users-me-password-2065468587:
       required:
-        - newPassword
+      - newPassword
       type: object
       properties:
         newPassword:
@@ -620,9 +620,9 @@ components:
           nullable: true
     users-join-1337455905:
       required:
-        - email
-        - name
-        - password
+      - email
+      - name
+      - password
       type: object
       properties:
         password:
@@ -644,13 +644,13 @@ components:
           description: "이메일 주소 (이메일 형식, 필수)"
     users-me1442001226:
       required:
-        - connectedProviders
-        - createdAt
-        - email
-        - hasPassword
-        - name
-        - status
-        - tsid
+      - connectedProviders
+      - createdAt
+      - email
+      - hasPassword
+      - name
+      - status
+      - tsid
       type: object
       properties:
         createdAt:
@@ -661,10 +661,10 @@ components:
           description: 연동된 소셜 계정 목록 (GOOGLE 등)
           items:
             oneOf:
-              - type: object
-              - type: boolean
-              - type: string
-              - type: number
+            - type: object
+            - type: boolean
+            - type: string
+            - type: number
         phoneNumber:
           type: string
           description: 전화번호
@@ -694,7 +694,7 @@ components:
           description: 계정 상태
     users-me192728359:
       required:
-        - password
+      - password
       type: object
       properties:
         password:
