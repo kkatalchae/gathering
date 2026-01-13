@@ -4,12 +4,16 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
+import java.time.Instant;
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
@@ -22,6 +26,9 @@ import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.gathering.domain.repository.GatheringRepository;
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
 import com.gathering.gathering.presentation.dto.CreateGatheringResponse;
+import com.gathering.gathering.presentation.dto.GatheringListRequest;
+import com.gathering.gathering.presentation.dto.GatheringListResponse;
+import com.gathering.region.domain.model.RegionEntity;
 
 /**
  * GatheringService 테스트
@@ -159,5 +166,68 @@ class GatheringServiceTest {
 		assertThatThrownBy(() -> gatheringService.createGathering(ownerTsid, request))
 			.isInstanceOf(BusinessException.class)
 			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.REGION_NOT_FOUND);
+	}
+
+	@Test
+	@DisplayName("부모 지역으로 필터링 시 자식 지역의 모임도 포함하여 조회된다")
+	void getGatheringsWithParentRegionIncludesChildren() {
+		// given: 서울(부모) 지역 준비
+		RegionEntity seoul = RegionEntity.builder()
+			.tsid("0R1G1N0000001")
+			.code("11")
+			.name("서울특별시")
+			.path("11")
+			.depth(1)
+			.createdAt(Instant.now())
+			.build();
+
+		RegionEntity gangnam = RegionEntity.builder()
+			.tsid("0R1G1N0000010")
+			.code("11680")
+			.name("강남구")
+			.path("11/11680")
+			.depth(2)
+			.createdAt(Instant.now())
+			.build();
+
+		// given: 강남구에 등록된 모임 준비
+		GatheringEntity gatheringInGangnam = GatheringEntity.builder()
+			.tsid("01HQGATHERING1")
+			.name("강남 모임")
+			.regionTsid(gangnam.getTsid())
+			.category(GatheringCategory.SPORTS)
+			.maxParticipants(100)
+			.createdAt(Instant.now())
+			.region(gangnam)
+			.build();
+
+		// given: 서울 TSID로 필터링 요청
+		GatheringListRequest request = GatheringListRequest.builder()
+			.regionTsids(List.of(seoul.getTsid()))
+			.size(20)
+			.build();
+
+		// Mock: Repository 쿼리가 계층적 필터링을 처리하여 강남 모임 반환
+		given(gatheringRepository.findGatheringsWithFilters(
+			any(),
+			eq(List.of(seoul.getTsid())),
+			any(),
+			any(Pageable.class)
+		)).willReturn(List.of(gatheringInGangnam));
+
+		// when: 모임 목록 조회
+		GatheringListResponse response = gatheringService.getGatherings(request);
+
+		// then: 강남구 모임이 결과에 포함된다
+		assertThat(response.getGatherings()).hasSize(1);
+		assertThat(response.getGatherings().get(0).getRegionName()).isEqualTo("강남구");
+
+		// Repository 쿼리가 서울 TSID로 호출되었는지 검증
+		then(gatheringRepository).should().findGatheringsWithFilters(
+			any(),
+			eq(List.of(seoul.getTsid())),
+			any(),
+			any(Pageable.class)
+		);
 	}
 }

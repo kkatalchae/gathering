@@ -8,6 +8,62 @@ servers:
 tags: []
 paths:
   /gatherings:
+    get:
+      tags:
+      - gatherings
+      summary: 모임 목록 조회(/gatherings)
+      description: |
+        모임 목록을 조회한다.
+        카테고리와 지역으로 필터링할 수 있으며 커서 기반 무한 스크롤을 지원한다.
+
+        **필터링**
+        - categories: 다중 선택 가능 (쉼표 구분)
+        - regionTsids: 다중 선택 가능
+
+        **페이지네이션**
+        - cursor가 없으면 첫 페이지 조회
+        - hasNext=true일 때 nextCursor로 다음 페이지 조회
+      operationId: gatherings-list
+      parameters:
+      - name: categories
+        in: query
+        description: 카테고리 필터 (다중 선택 가능)
+        required: false
+        schema:
+          type: string
+      - name: regionTsids
+        in: query
+        description: 지역 TSID 필터 (다중 선택 가능)
+        required: false
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        description: 페이지 커서 (이전 응답의 nextCursor 값)
+        required: false
+        schema:
+          type: string
+      - name: size
+        in: query
+        description: "페이지 크기 (기본: 20, 최대: 100)"
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings251537030"
+              examples:
+                gatherings-list:
+                  value: "{\"gatherings\":[{\"tsid\":\"01HQGATHERING1\",\"name\":\"\
+                    주말 축구 모임\",\"mainImageUrl\":\"https://example.com/image1.jpg\"\
+                    ,\"category\":\"SPORTS\",\"regionName\":\"강남구\"},{\"tsid\":\"\
+                    01HQGATHERING2\",\"name\":\"평일 스터디 모임\",\"mainImageUrl\":\"https://example.com/image2.jpg\"\
+                    ,\"category\":\"STUDY\",\"regionName\":\"서초구\"}],\"nextCursor\"\
+                    :\"01HQGATHERING3\",\"hasNext\":true}"
     post:
       tags:
       - gatherings
@@ -43,8 +99,44 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
                     :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
                     :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-08T02:18:47.158643Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-13T06:14:59.134114Z\"\
                     }"
+  /gatherings/{tsid}:
+    get:
+      tags:
+      - gatherings
+      summary: "모임 상세 조회(/gatherings/{tsid})"
+      description: |
+        모임의 상세 정보를 조회한다.
+        목록 정보에 더해 설명, 전체 참여자 리스트가 포함된다.
+        참여자 리스트에는 닉네임, 프로필 이미지, role이 포함되어 OWNER를 구분할 수 있다.
+
+        **실패 케이스**
+        - 존재하지 않는 모임 조회 시 404 에러가 발생한다.
+      operationId: gatherings-detail
+      parameters:
+      - name: tsid
+        in: path
+        description: 모임 TSID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings-tsid816390877"
+              examples:
+                gatherings-detail:
+                  value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"주말 축구 모임\",\"description\"\
+                    :\"매주 토요일 오전 축구하는 모임입니다.\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
+                    ,\"category\":\"SPORTS\",\"regionName\":\"강남구\",\"participants\"\
+                    :[{\"nickname\":\"김철수\",\"profileImageUrl\":\"https://example.com/profile1.jpg\"\
+                    ,\"role\":\"OWNER\"},{\"nickname\":\"이영희\",\"profileImageUrl\"\
+                    :\"https://example.com/profile2.jpg\",\"role\":\"MEMBER\"}],\"\
+                    createdAt\":\"2026-01-13T06:14:59.185401Z\"}"
   /login:
     post:
       tags:
@@ -110,8 +202,8 @@ paths:
                 $ref: "#/components/schemas/users-tsid-1331249008"
               examples:
                 login-with-invalid-email-format:
-                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
-                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
+                  value: "{\"code\":\"INVALID_EMAIL_FORMAT\",\"message\":\"올바른 형식의\
+                    \ 이메일이 아닙니다.\"}"
                 login-with-empty-password:
                   value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
                     는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
@@ -171,6 +263,42 @@ paths:
                 refresh:
                   value: "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new-access-token\"\
                     ,\"tokenType\":\"Bearer\",\"expiresIn\":3600}"
+  /regions:
+    get:
+      tags:
+      - regions
+      summary: 지역 목록 조회(/regions)
+      description: |
+        전체 지역 목록을 계층 구조로 조회한다.
+        depth-1 지역(서울특별시, 경기도)이 children 배열에 depth-2 지역(구/시)을 포함한다.
+
+        **응답 구조**
+        - 최상위 배열: depth-1 지역들 (서울특별시, 경기도)
+        - 각 depth-1 지역의 children: 해당 지역의 구/시 목록
+        - tsid: 모임 필터링에 사용
+        - code: 행정구역 코드
+
+        **모바일 최적화**
+        - 단일 요청으로 전체 지역 데이터 로드 (56개 - 가벼움)
+        - 클라이언트에서 캐싱 권장
+      operationId: regions-list
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/regions1337480724"
+              examples:
+                regions-list:
+                  value: "[{\"tsid\":\"0R1G1N0000001\",\"code\":\"11\",\"name\":\"\
+                    서울특별시\",\"depth\":1,\"children\":[{\"tsid\":\"0R1G1N0000010\"\
+                    ,\"code\":\"11680\",\"name\":\"강남구\",\"depth\":2,\"children\"\
+                    :[]},{\"tsid\":\"0R1G1N0000011\",\"code\":\"11740\",\"name\":\"\
+                    강동구\",\"depth\":2,\"children\":[]}]},{\"tsid\":\"0R1G1N0000002\"\
+                    ,\"code\":\"41\",\"name\":\"경기도\",\"depth\":1,\"children\":[{\"\
+                    tsid\":\"0R1G1N0000020\",\"code\":\"41131\",\"name\":\"수원시\",\"\
+                    depth\":2,\"children\":[]}]}]"
   /users/join:
     post:
       tags:
@@ -515,37 +643,62 @@ components:
           type: string
           description: 대표 이미지 URL (선택)
           nullable: true
-    users-me-458480484:
-      type: object
-      properties:
-        phoneNumber:
-          type: string
-          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
-          nullable: true
-        name:
-          type: string
-          description: 이름 (null이면 변경하지 않음)
-          nullable: true
-        nickname:
-          type: string
-          description: 닉네임 (null이면 변경하지 않음)
-          nullable: true
-    login1168052559:
-      required:
-      - accessToken
-      - expiresIn
-      - tokenType
-      type: object
-      properties:
-        expiresIn:
-          type: number
-          description: 액세스 토큰 만료 시간 (초)
-        tokenType:
-          type: string
-          description: 토큰 타입 (Bearer)
-        accessToken:
-          type: string
-          description: 액세스 토큰 (JWT)
+    regions1337480724:
+      type: array
+      items:
+        required:
+        - children
+        - code
+        - depth
+        - name
+        - tsid
+        type: object
+        properties:
+          depth:
+            type: number
+            description: "지역 깊이 (1: 시/도, 2: 구/시)"
+          code:
+            type: string
+            description: 행정구역 코드
+          children:
+            type: array
+            description: 하위 지역 목록 (depth-2)
+            items:
+              required:
+              - children
+              - code
+              - depth
+              - name
+              - tsid
+              type: object
+              properties:
+                depth:
+                  type: number
+                  description: 하위 지역 깊이 (2)
+                code:
+                  type: string
+                  description: 하위 지역 코드
+                children:
+                  type: array
+                  description: 하위 지역의 children (항상 빈 배열)
+                  items:
+                    oneOf:
+                    - type: object
+                    - type: boolean
+                    - type: string
+                    - type: number
+                name:
+                  type: string
+                  description: 하위 지역명
+                tsid:
+                  type: string
+                  description: 하위 지역 고유 ID
+          name:
+            type: string
+            description: 지역명
+          tsid:
+            type: string
+            description: 지역 고유 ID (모임 필터링에 사용)
     gatherings-2016471649:
       required:
       - category
@@ -582,6 +735,89 @@ components:
         maxParticipants:
           type: number
           description: "최대 참가 인원 (기본값: 100)"
+    users-me-458480484:
+      type: object
+      properties:
+        phoneNumber:
+          type: string
+          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
+          nullable: true
+        name:
+          type: string
+          description: 이름 (null이면 변경하지 않음)
+          nullable: true
+        nickname:
+          type: string
+          description: 닉네임 (null이면 변경하지 않음)
+          nullable: true
+    login1168052559:
+      required:
+      - accessToken
+      - expiresIn
+      - tokenType
+      type: object
+      properties:
+        expiresIn:
+          type: number
+          description: 액세스 토큰 만료 시간 (초)
+        tokenType:
+          type: string
+          description: 토큰 타입 (Bearer)
+        accessToken:
+          type: string
+          description: 액세스 토큰 (JWT)
+    gatherings-tsid816390877:
+      required:
+      - category
+      - createdAt
+      - name
+      - participants
+      - regionName
+      - tsid
+      type: object
+      properties:
+        createdAt:
+          type: string
+          description: 생성 일시
+        regionName:
+          type: string
+          description: 지역명
+        name:
+          type: string
+          description: 모임 이름
+        description:
+          type: string
+          description: 모임 설명
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리
+        tsid:
+          type: string
+          description: 모임 고유 ID
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL
+          nullable: true
+        participants:
+          type: array
+          description: 참여자 목록
+          items:
+            required:
+            - nickname
+            - role
+            type: object
+            properties:
+              role:
+                type: string
+                description: 참여자 역할 (OWNER/ADMIN/MEMBER)
+              nickname:
+                type: string
+                description: 참여자 닉네임
+              profileImageUrl:
+                type: string
+                description: 참여자 프로필 이미지 URL
+                nullable: true
     users-tsid-1331249008:
       required:
       - code
@@ -642,6 +878,46 @@ components:
         email:
           type: string
           description: "이메일 주소 (이메일 형식, 필수)"
+    gatherings251537030:
+      required:
+      - gatherings
+      - hasNext
+      type: object
+      properties:
+        nextCursor:
+          type: string
+          description: 다음 페이지 커서 (null이면 마지막 페이지)
+          nullable: true
+        gatherings:
+          type: array
+          description: 모임 목록
+          items:
+            required:
+            - category
+            - name
+            - regionName
+            - tsid
+            type: object
+            properties:
+              regionName:
+                type: string
+                description: 지역명
+              name:
+                type: string
+                description: 모임 이름
+              category:
+                type: string
+                description: 모임 카테고리
+              tsid:
+                type: string
+                description: 모임 고유 ID
+              mainImageUrl:
+                type: string
+                description: 대표 이미지 URL
+                nullable: true
+        hasNext:
+          type: boolean
+          description: 다음 페이지 존재 여부
     users-me1442001226:
       required:
       - connectedProviders
