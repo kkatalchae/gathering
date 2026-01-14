@@ -79,4 +79,22 @@ public class GatheringEntity {
 		foreignKey = @ForeignKey(name = "fk_gathering_region")
 	)
 	private RegionEntity region;
+
+	/**
+	 * 모임 정보 수정
+	 *
+	 * @param name 모임 이름
+	 * @param description 모임 설명
+	 * @param regionTsid 지역 TSID
+	 * @param category 카테고리
+	 * @param mainImageUrl 대표 이미지 URL
+	 */
+	public void update(String name, String description, String regionTsid,
+		GatheringCategory category, String mainImageUrl) {
+		this.name = name;
+		this.description = description;
+		this.regionTsid = regionTsid;
+		this.category = category;
+		this.mainImageUrl = mainImageUrl;
+	}
 }

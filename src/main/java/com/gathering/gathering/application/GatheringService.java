@@ -18,11 +18,12 @@ import com.gathering.gathering.domain.policy.GatheringPolicy;
 import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.gathering.domain.repository.GatheringRepository;
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
-import com.gathering.gathering.presentation.dto.CreateGatheringResponse;
 import com.gathering.gathering.presentation.dto.GatheringDetailResponse;
 import com.gathering.gathering.presentation.dto.GatheringListItemResponse;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
 import com.gathering.gathering.presentation.dto.GatheringListResponse;
+import com.gathering.gathering.presentation.dto.GatheringResponse;
+import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,20 +47,20 @@ public class GatheringService {
 	 * @param request 모임 생성 요청 DTO
 	 * @return 생성된 모임 정보
 	 */
-	@Transactional(readOnly = false)
-	public CreateGatheringResponse createGathering(String ownerTsid, CreateGatheringRequest request) {
-		// Value Object 생성 (값 유효성 자동 검증)
-		GatheringName name = new GatheringName(request.getName());
-		GatheringDescription description = new GatheringDescription(request.getDescription());
+	@Transactional
+	public GatheringResponse createGathering(String ownerTsid, CreateGatheringRequest request) {
 
-		// Domain Policy 검증
-		gatheringPolicy.validateRegionExists(request.getRegionTsid());
+		// 도메인 규칙 검증
+		String name = request.getName();
+		String description = request.getDescription();
+		String regionTsid = request.getRegionTsid();
+		validateGatheringPolicy(name, description, regionTsid);
 
 		// Gathering 엔티티 생성 및 저장
 		GatheringEntity gathering = GatheringEntity.builder()
-			.name(name.getValue())
-			.description(description.getValue())
-			.regionTsid(request.getRegionTsid())
+			.name(name)
+			.description(description)
+			.regionTsid(regionTsid)
 			.category(request.getCategory())
 			.mainImageUrl(request.getMainImageUrl())
 			.maxParticipants(100)
@@ -74,8 +75,7 @@ public class GatheringService {
 			.build();
 		participantRepository.save(owner);
 
-		// 응답 반환
-		return CreateGatheringResponse.from(savedGathering);
+		return GatheringResponse.from(savedGathering);
 	}
 
 	/**
@@ -129,5 +129,54 @@ public class GatheringService {
 		List<GatheringParticipantEntity> participants = participantRepository.findAllByGatheringTsidWithUser(tsid);
 
 		return GatheringDetailResponse.from(gathering, participants);
+	}
+
+	/**
+	 * 모임 정보 수정
+	 * OWNER 또는 ADMIN만 수정 가능
+	 *
+	 * @param gatheringTsid 수정할 모임 TSID
+	 * @param userTsid 요청 사용자 TSID
+	 * @param request 수정 요청 DTO
+	 * @return 수정된 모임 정보
+	 */
+	@Transactional
+	public GatheringResponse updateGathering(String gatheringTsid, String userTsid,
+		UpdateGatheringRequest request) {
+		// 모임 존재 여부 확인
+		GatheringEntity gathering = gatheringRepository.findById(gatheringTsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+		// 권한 검증 (OWNER/ADMIN만 가능)
+		gatheringPolicy.validateUpdatePermission(gatheringTsid, userTsid);
+
+		// 도메인 규칙 검증
+		String name = request.getName();
+		String description = request.getDescription();
+		String regionTsid = request.getRegionTsid();
+		validateGatheringPolicy(name, description, regionTsid);
+
+		// 엔티티 수정
+		gathering.update(
+			name,
+			description,
+			regionTsid,
+			request.getCategory(),
+			request.getMainImageUrl()
+		);
+
+		// 응답 반환 (Dirty Checking으로 자동 저장)
+		return GatheringResponse.from(gathering);
+	}
+
+	private void validateGatheringPolicy(String name, String description, String regionTsid) {
+
+		// Value Object 생성 (값 유효성 자동 검증)
+		new GatheringName(name);
+		new GatheringDescription(description);
+
+		// 지역 존재 여부 검증
+		gatheringPolicy.validateRegionExists(regionTsid);
+
 	}
 }

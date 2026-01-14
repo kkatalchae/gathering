@@ -10,11 +10,11 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * 모임 생성 응답 DTO
+ * 모임 수정 응답 DTO
  */
 @Getter
 @Builder
-public class CreateGatheringResponse {
+public class GatheringResponse {
 
 	@NotNull
 	private String tsid;
@@ -35,10 +35,10 @@ public class CreateGatheringResponse {
 	 * Entity로부터 응답 DTO 생성
 	 *
 	 * @param gathering 모임 엔티티
-	 * @return 모임 생성 응답 DTO
+	 * @return 모임 수정 응답 DTO
 	 */
-	public static CreateGatheringResponse from(GatheringEntity gathering) {
-		return CreateGatheringResponse.builder()
+	public static GatheringResponse from(GatheringEntity gathering) {
+		return GatheringResponse.builder()
 			.tsid(gathering.getTsid())
 			.name(gathering.getName())
 			.description(gathering.getDescription())

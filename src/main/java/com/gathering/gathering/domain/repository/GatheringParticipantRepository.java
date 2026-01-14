@@ -1,6 +1,7 @@
 package com.gathering.gathering.domain.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,4 +18,6 @@ public interface GatheringParticipantRepository extends JpaRepository<GatheringP
 			ORDER BY gp.role ASC, gp.joinedAt ASC
 			""")
 	List<GatheringParticipantEntity> findAllByGatheringTsidWithUser(@Param("gatheringTsid") String gatheringTsid);
+
+	Optional<GatheringParticipantEntity> findByGatheringTsidAndUserTsid(String gatheringTsid, String userTsid);
 }

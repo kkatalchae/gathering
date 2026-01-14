@@ -68,6 +68,9 @@ public enum ErrorCode {
 	// Gathering 조회 관련 에러 (404 Not Found)
 	GATHERING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없습니다"),
 
+	// Gathering 권한 관련 에러 (403 Forbidden)
+	GATHERING_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "모임을 수정할 권한이 없습니다"),
+
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다");
 

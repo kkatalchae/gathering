@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,10 +17,11 @@ import com.gathering.auth.application.AuthService;
 import com.gathering.gathering.application.GatheringService;
 import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
-import com.gathering.gathering.presentation.dto.CreateGatheringResponse;
 import com.gathering.gathering.presentation.dto.GatheringDetailResponse;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
 import com.gathering.gathering.presentation.dto.GatheringListResponse;
+import com.gathering.gathering.presentation.dto.GatheringResponse;
+import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -44,12 +46,12 @@ public class GatheringsController {
 	 * @return 생성된 모임 정보 (201 Created)
 	 */
 	@PostMapping
-	public ResponseEntity<CreateGatheringResponse> createGathering(
+	public ResponseEntity<GatheringResponse> createGathering(
 		HttpServletRequest request,
 		@Valid @RequestBody CreateGatheringRequest createRequest) {
 
 		String userTsid = authService.getCurrentUserTsid(request);
-		CreateGatheringResponse response = gatheringService.createGathering(userTsid, createRequest);
+		GatheringResponse response = gatheringService.createGathering(userTsid, createRequest);
 
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
@@ -93,6 +95,26 @@ public class GatheringsController {
 	@GetMapping("/{tsid}")
 	public ResponseEntity<GatheringDetailResponse> getGatheringDetail(@PathVariable String tsid) {
 		GatheringDetailResponse response = gatheringService.getGatheringDetail(tsid);
+
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 모임 정보 수정
+	 *
+	 * @param request HTTP 요청 (인증 정보 추출용)
+	 * @param gatheringTsid 모임 TSID
+	 * @param updateRequest 모임 수정 요청 DTO
+	 * @return 수정된 모임 정보 (200 OK)
+	 */
+	@PutMapping("/{gatheringTsid}")
+	public ResponseEntity<GatheringResponse> updateGathering(
+		HttpServletRequest request,
+		@PathVariable String gatheringTsid,
+		@Valid @RequestBody UpdateGatheringRequest updateRequest) {
+
+		String userTsid = authService.getCurrentUserTsid(request);
+		GatheringResponse response = gatheringService.updateGathering(gatheringTsid, userTsid, updateRequest);
 
 		return ResponseEntity.ok(response);
 	}

@@ -35,12 +35,13 @@ import com.gathering.gathering.application.GatheringService;
 import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.domain.model.ParticipantRole;
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
-import com.gathering.gathering.presentation.dto.CreateGatheringResponse;
 import com.gathering.gathering.presentation.dto.GatheringDetailResponse;
 import com.gathering.gathering.presentation.dto.GatheringListItemResponse;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
 import com.gathering.gathering.presentation.dto.GatheringListResponse;
+import com.gathering.gathering.presentation.dto.GatheringResponse;
 import com.gathering.gathering.presentation.dto.ParticipantSummary;
+import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 
 /**
  * GatheringsController Spring REST Docs 테스트
@@ -101,7 +102,7 @@ class GatheringsControllerTest {
 			.mainImageUrl("https://example.com/image.jpg")
 			.build();
 
-		CreateGatheringResponse response = CreateGatheringResponse.builder()
+		GatheringResponse response = GatheringResponse.builder()
 			.tsid("01HQGATHERING1")
 			.name(request.getName())
 			.description(request.getDescription())
@@ -356,5 +357,231 @@ class GatheringsControllerTest {
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_NOT_FOUND.name()))
 			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("OWNER가 유효한 정보로 모임을 수정하면 200 상태코드와 수정된 정보를 반환한다")
+	void updateGatheringSuccess() throws Exception {
+		// given: 모임 수정 요청 데이터와 예상 응답 데이터를 준비
+		String userTsid = "01HQUSER123456";
+		String gatheringTsid = "01HQGATHERING1";
+		UpdateGatheringRequest request = UpdateGatheringRequest.builder()
+			.name("수정된 모임")
+			.description("수정된 설명입니다")
+			.regionTsid("01HQREGION5678")
+			.category(GatheringCategory.STUDY)
+			.mainImageUrl("https://example.com/new-image.jpg")
+			.build();
+
+		GatheringResponse response = GatheringResponse.builder()
+			.tsid(gatheringTsid)
+			.name(request.getName())
+			.description(request.getDescription())
+			.regionTsid(request.getRegionTsid())
+			.category(request.getCategory())
+			.mainImageUrl(request.getMainImageUrl())
+			.maxParticipants(100)
+			.createdAt(Instant.now())
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.updateGathering(eq(gatheringTsid), eq(userTsid), any(UpdateGatheringRequest.class)))
+			.thenReturn(response);
+
+		// when: PUT /gatherings/{tsid} 요청을 전송
+		// then: 200 상태코드와 수정된 모임 정보를 검증
+		mockMvc.perform(put("/gatherings/{tsid}", gatheringTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.tsid").value(gatheringTsid))
+			.andExpect(jsonPath("$.name").value("수정된 모임"))
+			.andExpect(jsonPath("$.description").value("수정된 설명입니다"))
+			.andExpect(jsonPath("$.regionTsid").value("01HQREGION5678"))
+			.andExpect(jsonPath("$.category").value("STUDY"))
+			.andExpect(jsonPath("$.mainImageUrl").value("https://example.com/new-image.jpg"))
+			.andDo(document("gatherings-update",
+				ApiDocSpec.GATHERING_UPDATE.getDescription(),
+				ApiDocSpec.GATHERING_UPDATE.getSummary(),
+				pathParameters(
+					parameterWithName("tsid").description("모임 TSID")
+				),
+				requestFields(
+					fieldWithPath("name").description("모임 이름 (필수, 25자 이하)"),
+					fieldWithPath("description").description("모임 설명 (선택, 1000자 이하)").optional(),
+					fieldWithPath("regionTsid").description("지역 TSID (필수)"),
+					fieldWithPath("category").description("모임 카테고리 (필수)"),
+					fieldWithPath("mainImageUrl").description("대표 이미지 URL (선택)").optional()
+				),
+				responseFields(
+					fieldWithPath("tsid").description("모임 고유 ID"),
+					fieldWithPath("name").description("모임 이름"),
+					fieldWithPath("description").description("모임 설명").optional(),
+					fieldWithPath("regionTsid").description("지역 TSID"),
+					fieldWithPath("category").description("모임 카테고리"),
+					fieldWithPath("mainImageUrl").description("대표 이미지 URL").optional(),
+					fieldWithPath("maxParticipants").description("최대 참가 인원"),
+					fieldWithPath("createdAt").description("생성 일시")
+				)
+			));
+	}
+
+	@Test
+	@DisplayName("모임 이름을 누락하고 수정 요청 시 400 에러를 반환한다")
+	void updateGatheringWithoutName() throws Exception {
+		// given: 이름이 없는 모임 수정 요청 데이터를 준비
+		String gatheringTsid = "01HQGATHERING1";
+		UpdateGatheringRequest request = UpdateGatheringRequest.builder()
+			.description("수정된 설명")
+			.regionTsid("01HQREGION5678")
+			.category(GatheringCategory.STUDY)
+			.build();
+
+		// when: PUT /gatherings/{tsid} 요청을 전송
+		// then: 400 Bad Request 응답을 확인
+		mockMvc.perform(put("/gatherings/{tsid}", gatheringTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	@DisplayName("카테고리를 누락하고 수정 요청 시 400 에러를 반환한다")
+	void updateGatheringWithoutCategory() throws Exception {
+		// given: 카테고리가 없는 모임 수정 요청 데이터를 준비
+		String gatheringTsid = "01HQGATHERING1";
+		UpdateGatheringRequest request = UpdateGatheringRequest.builder()
+			.name("수정된 모임")
+			.regionTsid("01HQREGION5678")
+			.build();
+
+		// when: PUT /gatherings/{tsid} 요청을 전송
+		// then: 400 Bad Request 응답을 확인
+		mockMvc.perform(put("/gatherings/{tsid}", gatheringTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	@DisplayName("지역을 누락하고 수정 요청 시 400 에러를 반환한다")
+	void updateGatheringWithoutRegion() throws Exception {
+		// given: 지역이 없는 모임 수정 요청 데이터를 준비
+		String gatheringTsid = "01HQGATHERING1";
+		UpdateGatheringRequest request = UpdateGatheringRequest.builder()
+			.name("수정된 모임")
+			.category(GatheringCategory.STUDY)
+			.build();
+
+		// when: PUT /gatherings/{tsid} 요청을 전송
+		// then: 400 Bad Request 응답을 확인
+		mockMvc.perform(put("/gatherings/{tsid}", gatheringTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 모임 수정 시 404 에러를 반환한다")
+	void updateGatheringNotFound() throws Exception {
+		// given: 존재하지 않는 모임 TSID로 수정 요청
+		String userTsid = "01HQUSER123456";
+		String invalidTsid = "INVALID_TSID";
+		UpdateGatheringRequest request = UpdateGatheringRequest.builder()
+			.name("수정된 모임")
+			.regionTsid("01HQREGION5678")
+			.category(GatheringCategory.STUDY)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.updateGathering(eq(invalidTsid), eq(userTsid), any(UpdateGatheringRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+		// when: PUT /gatherings/{tsid} 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
+		mockMvc.perform(put("/gatherings/{tsid}", invalidTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 지역으로 수정 시 404 에러를 반환한다")
+	void updateGatheringWithInvalidRegion() throws Exception {
+		// given: 존재하지 않는 지역 TSID로 수정 요청
+		String userTsid = "01HQUSER123456";
+		String gatheringTsid = "01HQGATHERING1";
+		UpdateGatheringRequest request = UpdateGatheringRequest.builder()
+			.name("수정된 모임")
+			.regionTsid("INVALID_REGION")
+			.category(GatheringCategory.STUDY)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.updateGathering(eq(gatheringTsid), eq(userTsid), any(UpdateGatheringRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.REGION_NOT_FOUND));
+
+		// when: PUT /gatherings/{tsid} 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
+		mockMvc.perform(put("/gatherings/{tsid}", gatheringTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.REGION_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.REGION_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("MEMBER 권한으로 수정 시 403 에러를 반환한다")
+	void updateGatheringWithMemberRole() throws Exception {
+		// given: MEMBER 권한으로 수정 요청
+		String userTsid = "01HQUSER123456";
+		String gatheringTsid = "01HQGATHERING1";
+		UpdateGatheringRequest request = UpdateGatheringRequest.builder()
+			.name("수정된 모임")
+			.regionTsid("01HQREGION5678")
+			.category(GatheringCategory.STUDY)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.updateGathering(eq(gatheringTsid), eq(userTsid), any(UpdateGatheringRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_PERMISSION_DENIED));
+
+		// when: PUT /gatherings/{tsid} 요청을 전송
+		// then: 403 Forbidden 응답과 에러 정보를 확인
+		mockMvc.perform(put("/gatherings/{tsid}", gatheringTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_PERMISSION_DENIED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_PERMISSION_DENIED.getMessage()));
+	}
+
+	@Test
+	@DisplayName("모임에 참여하지 않은 사용자가 수정 시 403 에러를 반환한다")
+	void updateGatheringByNonParticipant() throws Exception {
+		// given: 비참여자가 수정 요청
+		String userTsid = "01HQNONPARTICIP";
+		String gatheringTsid = "01HQGATHERING1";
+		UpdateGatheringRequest request = UpdateGatheringRequest.builder()
+			.name("수정된 모임")
+			.regionTsid("01HQREGION5678")
+			.category(GatheringCategory.STUDY)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.updateGathering(eq(gatheringTsid), eq(userTsid), any(UpdateGatheringRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_PERMISSION_DENIED));
+
+		// when: PUT /gatherings/{tsid} 요청을 전송
+		// then: 403 Forbidden 응답과 에러 정보를 확인
+		mockMvc.perform(put("/gatherings/{tsid}", gatheringTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_PERMISSION_DENIED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_PERMISSION_DENIED.getMessage()));
 	}
 }
