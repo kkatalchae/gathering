@@ -12,12 +12,14 @@ import com.gathering.gathering.domain.model.GatheringParticipantEntity;
 public interface GatheringParticipantRepository extends JpaRepository<GatheringParticipantEntity, String> {
 
 	@Query("""
-			SELECT gp FROM GatheringParticipantEntity gp
-			JOIN FETCH gp.user
-			WHERE gp.gatheringTsid = :gatheringTsid
-			ORDER BY gp.role ASC, gp.joinedAt ASC
-			""")
+		SELECT gp FROM GatheringParticipantEntity gp
+		JOIN FETCH gp.user
+		WHERE gp.gatheringTsid = :gatheringTsid
+		ORDER BY gp.role ASC, gp.joinedAt ASC
+		""")
 	List<GatheringParticipantEntity> findAllByGatheringTsidWithUser(@Param("gatheringTsid") String gatheringTsid);
 
 	Optional<GatheringParticipantEntity> findByGatheringTsidAndUserTsid(String gatheringTsid, String userTsid);
+
+	void deleteAllByGatheringTsid(String gatheringTsid);
 }

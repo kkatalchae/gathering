@@ -99,7 +99,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
                     :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
                     :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-14T05:45:44.389054Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-14T06:18:26.591829Z\"\
                     }"
   /gatherings/{tsid}:
     get:
@@ -136,7 +136,7 @@ paths:
                     :[{\"nickname\":\"김철수\",\"profileImageUrl\":\"https://example.com/profile1.jpg\"\
                     ,\"role\":\"OWNER\"},{\"nickname\":\"이영희\",\"profileImageUrl\"\
                     :\"https://example.com/profile2.jpg\",\"role\":\"MEMBER\"}],\"\
-                    createdAt\":\"2026-01-14T05:45:44.448433Z\"}"
+                    createdAt\":\"2026-01-14T06:18:26.672851Z\"}"
     put:
       tags:
         - gatherings
@@ -190,8 +190,36 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"수정된 모임\",\"description\"\
                     :\"수정된 설명입니다\",\"regionTsid\":\"01HQREGION5678\",\"category\"\
                     :\"STUDY\",\"mainImageUrl\":\"https://example.com/new-image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-14T05:45:44.426432Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-14T06:18:26.645341Z\"\
                     }"
+    delete:
+      tags:
+        - gatherings
+      summary: "모임 삭제(/gatherings/{tsid})"
+      description: |
+        OWNER가 모임을 삭제한다.
+        모임과 관련된 참여자 데이터가 함께 삭제된다.
+
+        **권한**
+        - OWNER만 삭제 가능
+        - ADMIN은 삭제 권한 없음 (수정만 가능)
+
+        **실패 케이스**
+        - 존재하지 않는 모임을 삭제하면 404 에러가 발생한다.
+        - ADMIN 권한으로 삭제하면 403 에러가 발생한다.
+        - MEMBER 권한으로 삭제하면 403 에러가 발생한다.
+        - 모임에 참여하지 않은 사용자가 삭제하면 403 에러가 발생한다.
+      operationId: gatherings-delete
+      parameters:
+        - name: tsid
+          in: path
+          description: 모임 TSID
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: "204"
   /login:
     post:
       tags:
@@ -257,8 +285,8 @@ paths:
                 $ref: "#/components/schemas/users-tsid-1331249008"
               examples:
                 login-with-invalid-email-format:
-                  value: "{\"code\":\"INVALID_EMAIL_FORMAT\",\"message\":\"올바른 형식의\
-                    \ 이메일이 아닙니다.\"}"
+                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
+                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
                 login-with-empty-password:
                   value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
                     는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
@@ -754,6 +782,22 @@ components:
           tsid:
             type: string
             description: 지역 고유 ID (모임 필터링에 사용)
+    login1168052559:
+      required:
+        - accessToken
+        - expiresIn
+        - tokenType
+      type: object
+      properties:
+        expiresIn:
+          type: number
+          description: 액세스 토큰 만료 시간 (초)
+        tokenType:
+          type: string
+          description: 토큰 타입 (Bearer)
+        accessToken:
+          type: string
+          description: 액세스 토큰 (JWT)
     users-me-458480484:
       type: object
       properties:
@@ -805,22 +849,42 @@ components:
         maxParticipants:
           type: number
           description: "최대 참가 인원 (기본값: 100)"
-    login1168052559:
+    gatherings-tsid1947421575:
       required:
-        - accessToken
-        - expiresIn
-        - tokenType
+        - category
+        - createdAt
+        - maxParticipants
+        - name
+        - regionTsid
+        - tsid
       type: object
       properties:
-        expiresIn:
+        createdAt:
+          type: string
+          description: 생성 일시
+        regionTsid:
+          type: string
+          description: 지역 TSID
+        name:
+          type: string
+          description: 모임 이름
+        description:
+          type: string
+          description: 모임 설명
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리
+        tsid:
+          type: string
+          description: 모임 고유 ID
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL
+          nullable: true
+        maxParticipants:
           type: number
-          description: 액세스 토큰 만료 시간 (초)
-        tokenType:
-          type: string
-          description: 토큰 타입 (Bearer)
-        accessToken:
-          type: string
-          description: 액세스 토큰 (JWT)
+          description: 최대 참가 인원
     gatherings-tsid816390877:
       required:
         - category
@@ -873,42 +937,6 @@ components:
                 type: string
                 description: 참여자 프로필 이미지 URL
                 nullable: true
-    gatherings-tsid1947421575:
-      required:
-        - category
-        - createdAt
-        - maxParticipants
-        - name
-        - regionTsid
-        - tsid
-      type: object
-      properties:
-        createdAt:
-          type: string
-          description: 생성 일시
-        regionTsid:
-          type: string
-          description: 지역 TSID
-        name:
-          type: string
-          description: 모임 이름
-        description:
-          type: string
-          description: 모임 설명
-          nullable: true
-        category:
-          type: string
-          description: 모임 카테고리
-        tsid:
-          type: string
-          description: 모임 고유 ID
-        mainImageUrl:
-          type: string
-          description: 대표 이미지 URL
-          nullable: true
-        maxParticipants:
-          type: number
-          description: 최대 참가 인원
     users-tsid-1331249008:
       required:
         - code

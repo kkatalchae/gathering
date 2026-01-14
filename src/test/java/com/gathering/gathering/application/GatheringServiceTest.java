@@ -420,4 +420,54 @@ class GatheringServiceTest {
 			.isInstanceOf(BusinessException.class)
 			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.REGION_NOT_FOUND);
 	}
+
+	@Test
+	@DisplayName("OWNER가 모임 삭제에 성공한다")
+	void deleteGatheringSuccessAsOwner() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String ownerTsid = "01HQOWNER12345";
+
+		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
+
+		// when
+		gatheringService.deleteGathering(gatheringTsid, ownerTsid);
+
+		// then: Policy, Repository 호출 확인
+		then(gatheringPolicy).should().validateDeletePermission(gatheringTsid, ownerTsid);
+		then(participantRepository).should().deleteAllByGatheringTsid(gatheringTsid);
+		then(gatheringRepository).should().deleteById(gatheringTsid);
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 모임 삭제 시 예외가 발생한다")
+	void deleteGatheringNotFound() {
+		// given
+		String invalidTsid = "INVALID_TSID";
+		String userTsid = "01HQUSER123456";
+
+		given(gatheringRepository.existsById(invalidTsid)).willReturn(false);
+
+		// when & then
+		assertThatThrownBy(() -> gatheringService.deleteGathering(invalidTsid, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_NOT_FOUND);
+	}
+
+	@Test
+	@DisplayName("권한이 없는 사용자가 삭제 시 Policy에서 예외가 발생한다")
+	void deleteGatheringPermissionDenied() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String adminTsid = "01HQADMIN12345";
+
+		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
+		willThrow(new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED))
+			.given(gatheringPolicy).validateDeletePermission(gatheringTsid, adminTsid);
+
+		// when & then
+		assertThatThrownBy(() -> gatheringService.deleteGathering(gatheringTsid, adminTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_DELETE_PERMISSION_DENIED);
+	}
 }

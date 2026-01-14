@@ -109,7 +109,7 @@ public class GatheringService {
 			.toList();
 
 		// 다음 커서 생성
-		String nextCursor = hasNext ? gatherings.get(gatherings.size() - 1).getTsid() : null;
+		String nextCursor = hasNext ? gatherings.getLast().getTsid() : null;
 
 		return GatheringListResponse.of(items, nextCursor, hasNext);
 	}
@@ -167,6 +167,30 @@ public class GatheringService {
 
 		// 응답 반환 (Dirty Checking으로 자동 저장)
 		return GatheringResponse.from(gathering);
+	}
+
+	/**
+	 * 모임 삭제
+	 * OWNER만 삭제 가능하며 모임과 관련 참여자 데이터가 함께 삭제됨
+	 *
+	 * @param gatheringTsid 삭제할 모임 TSID
+	 * @param userTsid 요청 사용자 TSID
+	 */
+	@Transactional
+	public void deleteGathering(String gatheringTsid, String userTsid) {
+		// 모임 존재 여부 확인
+		if (!gatheringRepository.existsById(gatheringTsid)) {
+			throw new BusinessException(ErrorCode.GATHERING_NOT_FOUND);
+		}
+
+		// 권한 검증 (OWNER만 가능)
+		gatheringPolicy.validateDeletePermission(gatheringTsid, userTsid);
+
+		// 참여자 데이터 삭제 (FK 제약 조건으로 인해 먼저 삭제)
+		participantRepository.deleteAllByGatheringTsid(gatheringTsid);
+
+		// 모임 삭제
+		gatheringRepository.deleteById(gatheringTsid);
 	}
 
 	private void validateGatheringPolicy(String name, String description, String regionTsid) {

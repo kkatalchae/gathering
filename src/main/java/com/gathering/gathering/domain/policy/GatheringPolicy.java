@@ -43,12 +43,31 @@ public class GatheringPolicy {
 	 * @throws BusinessException 권한이 없거나 참여자가 아닌 경우
 	 */
 	public void validateUpdatePermission(String gatheringTsid, String userTsid) {
-		GatheringParticipantEntity participant = participantRepository
-			.findByGatheringTsidAndUserTsid(gatheringTsid, userTsid)
-			.orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_PERMISSION_DENIED));
+		GatheringParticipantEntity participant = findGatheringParticipant(gatheringTsid, userTsid);
 
 		if (participant.getRole() == ParticipantRole.MEMBER) {
 			throw new BusinessException(ErrorCode.GATHERING_PERMISSION_DENIED);
 		}
+	}
+
+	/**
+	 * 모임 삭제 권한 검증
+	 * OWNER만 모임을 삭제할 수 있음
+	 *
+	 * @param gatheringTsid 모임 TSID
+	 * @param userTsid 요청 사용자 TSID
+	 * @throws BusinessException 권한이 없거나 참여자가 아닌 경우
+	 */
+	public void validateDeletePermission(String gatheringTsid, String userTsid) {
+		GatheringParticipantEntity participant = findGatheringParticipant(gatheringTsid, userTsid);
+		if (participant.getRole() != ParticipantRole.OWNER) {
+			throw new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED);
+		}
+	}
+
+	private GatheringParticipantEntity findGatheringParticipant(String gatheringTsid, String userTsid) {
+		return participantRepository
+			.findByGatheringTsidAndUserTsid(gatheringTsid, userTsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED));
 	}
 }

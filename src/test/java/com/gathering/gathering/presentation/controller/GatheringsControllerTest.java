@@ -584,4 +584,103 @@ class GatheringsControllerTest {
 			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_PERMISSION_DENIED.name()))
 			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_PERMISSION_DENIED.getMessage()));
 	}
+
+	@Test
+	@DisplayName("OWNER가 모임을 삭제하면 204 상태코드를 반환한다")
+	void deleteGatheringSuccess() throws Exception {
+		// given: OWNER의 삭제 요청 준비
+		String userTsid = "01HQOWNER12345";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		doNothing().when(gatheringService).deleteGathering(gatheringTsid, userTsid);
+
+		// when: DELETE /gatherings/{tsid} 요청을 전송
+		// then: 204 상태코드를 검증하고 REST Docs 문서화
+		mockMvc.perform(delete("/gatherings/{tsid}", gatheringTsid))
+			.andExpect(status().isNoContent())
+			.andDo(document("gatherings-delete",
+				ApiDocSpec.GATHERING_DELETE.getDescription(),
+				ApiDocSpec.GATHERING_DELETE.getSummary(),
+				pathParameters(
+					parameterWithName("tsid").description("모임 TSID")
+				)
+			));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 모임 삭제 시 404 에러를 반환한다")
+	void deleteGatheringNotFound() throws Exception {
+		// given: 존재하지 않는 모임 TSID로 삭제 요청
+		String userTsid = "01HQOWNER12345";
+		String invalidTsid = "INVALID_TSID";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		doThrow(new BusinessException(ErrorCode.GATHERING_NOT_FOUND))
+			.when(gatheringService).deleteGathering(invalidTsid, userTsid);
+
+		// when: DELETE /gatherings/{tsid} 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
+		mockMvc.perform(delete("/gatherings/{tsid}", invalidTsid))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("ADMIN 권한으로 삭제 시 403 에러를 반환한다")
+	void deleteGatheringWithAdminRole() throws Exception {
+		// given: ADMIN 권한으로 삭제 요청
+		String adminTsid = "01HQADMIN12345";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(adminTsid);
+		doThrow(new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED))
+			.when(gatheringService).deleteGathering(gatheringTsid, adminTsid);
+
+		// when: DELETE /gatherings/{tsid} 요청을 전송
+		// then: 403 Forbidden 응답과 에러 정보를 확인
+		mockMvc.perform(delete("/gatherings/{tsid}", gatheringTsid))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.getMessage()));
+	}
+
+	@Test
+	@DisplayName("MEMBER 권한으로 삭제 시 403 에러를 반환한다")
+	void deleteGatheringWithMemberRole() throws Exception {
+		// given: MEMBER 권한으로 삭제 요청
+		String memberTsid = "01HQMEMBER1234";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(memberTsid);
+		doThrow(new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED))
+			.when(gatheringService).deleteGathering(gatheringTsid, memberTsid);
+
+		// when: DELETE /gatherings/{tsid} 요청을 전송
+		// then: 403 Forbidden 응답과 에러 정보를 확인
+		mockMvc.perform(delete("/gatherings/{tsid}", gatheringTsid))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.getMessage()));
+	}
+
+	@Test
+	@DisplayName("모임에 참여하지 않은 사용자가 삭제 시 403 에러를 반환한다")
+	void deleteGatheringByNonParticipant() throws Exception {
+		// given: 비참여자가 삭제 요청
+		String nonParticipantTsid = "01HQNONPARTICIP";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(nonParticipantTsid);
+		doThrow(new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED))
+			.when(gatheringService).deleteGathering(gatheringTsid, nonParticipantTsid);
+
+		// when: DELETE /gatherings/{tsid} 요청을 전송
+		// then: 403 Forbidden 응답과 에러 정보를 확인
+		mockMvc.perform(delete("/gatherings/{tsid}", gatheringTsid))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.getMessage()));
+	}
 }

@@ -70,6 +70,7 @@ public enum ErrorCode {
 
 	// Gathering 권한 관련 에러 (403 Forbidden)
 	GATHERING_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "모임을 수정할 권한이 없습니다"),
+	GATHERING_DELETE_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "모임을 삭제할 권한이 없습니다"),
 
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다");

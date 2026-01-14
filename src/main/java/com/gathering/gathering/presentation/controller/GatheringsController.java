@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -117,5 +118,23 @@ public class GatheringsController {
 		GatheringResponse response = gatheringService.updateGathering(gatheringTsid, userTsid, updateRequest);
 
 		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 모임 삭제
+	 *
+	 * @param request HTTP 요청 (인증 정보 추출용)
+	 * @param gatheringTsid 모임 TSID
+	 * @return 204 No Content
+	 */
+	@DeleteMapping("/{gatheringTsid}")
+	public ResponseEntity<Void> deleteGathering(
+		HttpServletRequest request,
+		@PathVariable String gatheringTsid) {
+
+		String userTsid = authService.getCurrentUserTsid(request);
+		gatheringService.deleteGathering(gatheringTsid, userTsid);
+
+		return ResponseEntity.noContent().build();
 	}
 }
