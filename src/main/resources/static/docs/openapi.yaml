@@ -99,7 +99,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
                     :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
                     :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-15T04:50:47.593020Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-15T06:06:13.297107Z\"\
                     }"
   /gatherings/{tsid}:
     get:
@@ -136,7 +136,7 @@ paths:
                     :[{\"nickname\":\"김철수\",\"profileImageUrl\":\"https://example.com/profile1.jpg\"\
                     ,\"role\":\"OWNER\"},{\"nickname\":\"이영희\",\"profileImageUrl\"\
                     :\"https://example.com/profile2.jpg\",\"role\":\"MEMBER\"}],\"\
-                    createdAt\":\"2026-01-15T04:50:47.722794Z\"}"
+                    createdAt\":\"2026-01-15T06:06:13.474804Z\"}"
     put:
       tags:
         - gatherings
@@ -190,7 +190,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"수정된 모임\",\"description\"\
                     :\"수정된 설명입니다\",\"regionTsid\":\"01HQREGION5678\",\"category\"\
                     :\"STUDY\",\"mainImageUrl\":\"https://example.com/new-image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-15T04:50:47.660024Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-15T06:06:13.382061Z\"\
                     }"
     delete:
       tags:
@@ -214,6 +214,76 @@ paths:
         - name: tsid
           in: path
           description: 모임 TSID
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: "204"
+  /gatherings/{gatheringTsid}/participants:
+    post:
+      tags:
+        - gatherings
+      summary: "모임 참여(/gatherings/{gatheringTsid}/participants)"
+      description: |
+        로그인한 사용자가 모임에 MEMBER로 참여한다.
+
+        **권한**
+        - 인증된 사용자 누구나 가능
+
+        **참여 규칙**
+        - 이미 참여중인 모임에는 다시 참여할 수 없음
+        - 모임 정원이 가득 찬 경우 참여 불가
+        - 참여 시 기본 역할은 MEMBER
+
+        **실패 케이스**
+        - 존재하지 않는 모임에 참여하면 404 에러가 발생한다.
+        - 이미 참여중인 모임에 다시 참여하면 409 에러가 발생한다.
+        - 정원이 가득 찬 모임에 참여하면 409 에러가 발생한다.
+      operationId: gatherings-join
+      parameters:
+        - name: gatheringTsid
+          in: path
+          description: 참여할 모임 TSID
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: "201"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings-gatheringTsid-participants947766187"
+              examples:
+                gatherings-join:
+                  value: "{\"participantTsid\":\"01HQPARTIC1234\",\"gatheringTsid\"\
+                    :\"01HQGATHERING1\",\"userTsid\":\"01HQUSER123456\",\"role\":\"\
+                    MEMBER\",\"joinedAt\":\"2026-01-15T06:06:13.437904Z\"}"
+  /gatherings/{gatheringTsid}/participants/me:
+    delete:
+      tags:
+        - gatherings
+      summary: "모임 퇴장(/gatherings/{gatheringTsid}/participants/me)"
+      description: |
+        로그인한 사용자가 모임에서 퇴장한다.
+
+        **권한**
+        - 해당 모임에 참여중인 사용자만 가능
+
+        **퇴장 규칙**
+        - MEMBER, ADMIN만 퇴장 가능
+        - OWNER는 퇴장 불가 (오너 양도 또는 모임 삭제 필요)
+
+        **실패 케이스**
+        - 존재하지 않는 모임에서 퇴장하면 404 에러가 발생한다.
+        - 참여하지 않은 모임에서 퇴장하면 404 에러가 발생한다.
+        - OWNER가 퇴장하려 하면 400 에러가 발생한다.
+      operationId: gatherings-leave
+      parameters:
+        - name: gatheringTsid
+          in: path
+          description: 퇴장할 모임 TSID
           required: true
           schema:
             type: string
@@ -1029,6 +1099,30 @@ components:
         message:
           type: string
           description: 에러 메시지
+    gatherings-gatheringTsid-participants947766187:
+      required:
+        - gatheringTsid
+        - joinedAt
+        - participantTsid
+        - role
+        - userTsid
+      type: object
+      properties:
+        role:
+          type: string
+          description: 참여자 역할 (MEMBER)
+        joinedAt:
+          type: string
+          description: 참여 일시
+        userTsid:
+          type: string
+          description: 사용자 TSID
+        participantTsid:
+          type: string
+          description: 참여자 고유 ID
+        gatheringTsid:
+          type: string
+          description: 모임 TSID
     refresh2110093555:
       required:
         - code

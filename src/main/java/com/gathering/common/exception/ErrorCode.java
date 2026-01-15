@@ -78,6 +78,11 @@ public enum ErrorCode {
 	// Gathering 역할 변경 관련 에러 (400 Bad Request)
 	CANNOT_CHANGE_OWN_ROLE(HttpStatus.BAD_REQUEST, "자신의 역할은 변경할 수 없습니다"),
 
+	// Gathering 참여/퇴장 관련 에러
+	ALREADY_JOINED_GATHERING(HttpStatus.CONFLICT, "이미 참여중인 모임입니다"),
+	GATHERING_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "모임 정원이 초과되었습니다"),
+	OWNER_CANNOT_LEAVE_GATHERING(HttpStatus.BAD_REQUEST, "오너는 모임을 나갈 수 없습니다. 오너를 양도하거나 모임을 삭제해주세요"),
+
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다");
 

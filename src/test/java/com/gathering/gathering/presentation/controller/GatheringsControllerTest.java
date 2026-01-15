@@ -42,6 +42,7 @@ import com.gathering.gathering.presentation.dto.GatheringListItemResponse;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
 import com.gathering.gathering.presentation.dto.GatheringListResponse;
 import com.gathering.gathering.presentation.dto.GatheringResponse;
+import com.gathering.gathering.presentation.dto.JoinGatheringResponse;
 import com.gathering.gathering.presentation.dto.ParticipantSummary;
 import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 
@@ -958,5 +959,189 @@ class GatheringsControllerTest {
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value(ErrorCode.CANNOT_CHANGE_OWN_ROLE.name()))
 			.andExpect(jsonPath("$.message").value(ErrorCode.CANNOT_CHANGE_OWN_ROLE.getMessage()));
+	}
+
+	// ==================== 모임 참여 테스트 ====================
+
+	@Test
+	@DisplayName("유효한 사용자가 모임에 참여하면 201 상태코드와 참여자 정보를 반환한다")
+	void joinGatheringSuccess() throws Exception {
+		// given: 모임 참여 요청 데이터와 예상 응답 데이터를 준비
+		String userTsid = "01HQUSER123456";
+		String gatheringTsid = "01HQGATHERING1";
+
+		JoinGatheringResponse response = JoinGatheringResponse.builder()
+			.participantTsid("01HQPARTIC1234")
+			.gatheringTsid(gatheringTsid)
+			.userTsid(userTsid)
+			.role(ParticipantRole.MEMBER)
+			.joinedAt(Instant.now())
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.joinGathering(gatheringTsid, userTsid)).thenReturn(response);
+
+		// when: POST /gatherings/{gatheringTsid}/participants 요청을 전송
+		// then: 201 상태코드와 참여자 정보를 검증하고 REST Docs 문서화
+		mockMvc.perform(post("/gatherings/{gatheringTsid}/participants", gatheringTsid))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.participantTsid").value("01HQPARTIC1234"))
+			.andExpect(jsonPath("$.gatheringTsid").value(gatheringTsid))
+			.andExpect(jsonPath("$.userTsid").value(userTsid))
+			.andExpect(jsonPath("$.role").value("MEMBER"))
+			.andExpect(jsonPath("$.joinedAt").exists())
+			.andDo(document("gatherings-join",
+				ApiDocSpec.GATHERING_JOIN.getDescription(),
+				ApiDocSpec.GATHERING_JOIN.getSummary(),
+				pathParameters(
+					parameterWithName("gatheringTsid").description("참여할 모임 TSID")
+				),
+				responseFields(
+					fieldWithPath("participantTsid").description("참여자 고유 ID"),
+					fieldWithPath("gatheringTsid").description("모임 TSID"),
+					fieldWithPath("userTsid").description("사용자 TSID"),
+					fieldWithPath("role").description("참여자 역할 (MEMBER)"),
+					fieldWithPath("joinedAt").description("참여 일시")
+				)
+			));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 모임에 참여 시 404 에러를 반환한다")
+	void joinGatheringNotFound() throws Exception {
+		// given: 존재하지 않는 모임 TSID로 참여 요청
+		String userTsid = "01HQUSER123456";
+		String invalidGatheringTsid = "INVALID_TSID";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.joinGathering(invalidGatheringTsid, userTsid))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+		// when: POST /gatherings/{gatheringTsid}/participants 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
+		mockMvc.perform(post("/gatherings/{gatheringTsid}/participants", invalidGatheringTsid))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("이미 참여중인 모임에 참여 시 409 에러를 반환한다")
+	void joinGatheringAlreadyJoined() throws Exception {
+		// given: 이미 참여중인 모임에 참여 요청
+		String userTsid = "01HQUSER123456";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.joinGathering(gatheringTsid, userTsid))
+			.thenThrow(new BusinessException(ErrorCode.ALREADY_JOINED_GATHERING));
+
+		// when: POST /gatherings/{gatheringTsid}/participants 요청을 전송
+		// then: 409 Conflict 응답과 에러 정보를 확인
+		mockMvc.perform(post("/gatherings/{gatheringTsid}/participants", gatheringTsid))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value(ErrorCode.ALREADY_JOINED_GATHERING.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.ALREADY_JOINED_GATHERING.getMessage()));
+	}
+
+	@Test
+	@DisplayName("정원이 가득 찬 모임에 참여 시 409 에러를 반환한다")
+	void joinGatheringCapacityExceeded() throws Exception {
+		// given: 정원이 가득 찬 모임에 참여 요청
+		String userTsid = "01HQUSER123456";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		when(gatheringService.joinGathering(gatheringTsid, userTsid))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_CAPACITY_EXCEEDED));
+
+		// when: POST /gatherings/{gatheringTsid}/participants 요청을 전송
+		// then: 409 Conflict 응답과 에러 정보를 확인
+		mockMvc.perform(post("/gatherings/{gatheringTsid}/participants", gatheringTsid))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_CAPACITY_EXCEEDED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_CAPACITY_EXCEEDED.getMessage()));
+	}
+
+	// ==================== 모임 퇴장 테스트 ====================
+
+	@Test
+	@DisplayName("MEMBER가 모임에서 퇴장하면 204 상태코드를 반환한다")
+	void leaveGatheringSuccess() throws Exception {
+		// given: MEMBER의 퇴장 요청 준비
+		String userTsid = "01HQMEMBER1234";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		doNothing().when(gatheringService).leaveGathering(gatheringTsid, userTsid);
+
+		// when: DELETE /gatherings/{gatheringTsid}/participants/me 요청을 전송
+		// then: 204 상태코드를 검증하고 REST Docs 문서화
+		mockMvc.perform(delete("/gatherings/{gatheringTsid}/participants/me", gatheringTsid))
+			.andExpect(status().isNoContent())
+			.andDo(document("gatherings-leave",
+				ApiDocSpec.GATHERING_LEAVE.getDescription(),
+				ApiDocSpec.GATHERING_LEAVE.getSummary(),
+				pathParameters(
+					parameterWithName("gatheringTsid").description("퇴장할 모임 TSID")
+				)
+			));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 모임에서 퇴장 시 404 에러를 반환한다")
+	void leaveGatheringNotFound() throws Exception {
+		// given: 존재하지 않는 모임 TSID로 퇴장 요청
+		String userTsid = "01HQUSER123456";
+		String invalidGatheringTsid = "INVALID_TSID";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		doThrow(new BusinessException(ErrorCode.GATHERING_NOT_FOUND))
+			.when(gatheringService).leaveGathering(invalidGatheringTsid, userTsid);
+
+		// when: DELETE /gatherings/{gatheringTsid}/participants/me 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
+		mockMvc.perform(delete("/gatherings/{gatheringTsid}/participants/me", invalidGatheringTsid))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("참여하지 않은 모임에서 퇴장 시 404 에러를 반환한다")
+	void leaveGatheringNotParticipant() throws Exception {
+		// given: 참여하지 않은 모임에서 퇴장 요청
+		String userTsid = "01HQUSER123456";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(userTsid);
+		doThrow(new BusinessException(ErrorCode.PARTICIPANT_NOT_FOUND))
+			.when(gatheringService).leaveGathering(gatheringTsid, userTsid);
+
+		// when: DELETE /gatherings/{gatheringTsid}/participants/me 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
+		mockMvc.perform(delete("/gatherings/{gatheringTsid}/participants/me", gatheringTsid))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.PARTICIPANT_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.PARTICIPANT_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("OWNER가 퇴장 시 400 에러를 반환한다")
+	void leaveGatheringAsOwner() throws Exception {
+		// given: OWNER의 퇴장 요청
+		String ownerTsid = "01HQOWNER12345";
+		String gatheringTsid = "01HQGATHERING1";
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(ownerTsid);
+		doThrow(new BusinessException(ErrorCode.OWNER_CANNOT_LEAVE_GATHERING))
+			.when(gatheringService).leaveGathering(gatheringTsid, ownerTsid);
+
+		// when: DELETE /gatherings/{gatheringTsid}/participants/me 요청을 전송
+		// then: 400 Bad Request 응답과 에러 정보를 확인
+		mockMvc.perform(delete("/gatherings/{gatheringTsid}/participants/me", gatheringTsid))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value(ErrorCode.OWNER_CANNOT_LEAVE_GATHERING.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.OWNER_CANNOT_LEAVE_GATHERING.getMessage()));
 	}
 }

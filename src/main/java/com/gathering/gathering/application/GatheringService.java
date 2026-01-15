@@ -25,6 +25,7 @@ import com.gathering.gathering.presentation.dto.GatheringListItemResponse;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
 import com.gathering.gathering.presentation.dto.GatheringListResponse;
 import com.gathering.gathering.presentation.dto.GatheringResponse;
+import com.gathering.gathering.presentation.dto.JoinGatheringResponse;
 import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -246,6 +247,68 @@ public class GatheringService {
 			previousRole,
 			newRole
 		);
+	}
+
+	/**
+	 * 모임 참여
+	 * 로그인한 사용자가 모임에 MEMBER로 참여
+	 *
+	 * @param gatheringTsid 참여할 모임 TSID
+	 * @param userTsid 참여할 사용자 TSID
+	 * @return 생성된 참여자 정보
+	 */
+	@Transactional
+	public JoinGatheringResponse joinGathering(String gatheringTsid, String userTsid) {
+		// 모임 존재 여부 확인
+		GatheringEntity gathering = gatheringRepository.findById(gatheringTsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+		// 이미 참여 중인지 확인
+		if (participantRepository.existsByGatheringTsidAndUserTsid(gatheringTsid, userTsid)) {
+			throw new BusinessException(ErrorCode.ALREADY_JOINED_GATHERING);
+		}
+
+		// 정원 확인
+		long currentCount = participantRepository.countByGatheringTsid(gatheringTsid);
+		if (currentCount >= gathering.getMaxParticipants()) {
+			throw new BusinessException(ErrorCode.GATHERING_CAPACITY_EXCEEDED);
+		}
+
+		// MEMBER로 참여자 등록
+		GatheringParticipantEntity participant = GatheringParticipantEntity.builder()
+			.gatheringTsid(gatheringTsid)
+			.userTsid(userTsid)
+			.role(ParticipantRole.MEMBER)
+			.build();
+		GatheringParticipantEntity saved = participantRepository.save(participant);
+
+		return JoinGatheringResponse.from(saved);
+	}
+
+	/**
+	 * 모임 퇴장
+	 * 로그인한 사용자가 모임에서 퇴장
+	 *
+	 * @param gatheringTsid 퇴장할 모임 TSID
+	 * @param userTsid 퇴장할 사용자 TSID
+	 */
+	@Transactional
+	public void leaveGathering(String gatheringTsid, String userTsid) {
+		// 모임 존재 여부 확인
+		if (!gatheringRepository.existsById(gatheringTsid)) {
+			throw new BusinessException(ErrorCode.GATHERING_NOT_FOUND);
+		}
+
+		// 참여 중인지 확인
+		GatheringParticipantEntity participant = gatheringParticipantService.findParticipants(gatheringTsid, userTsid);
+
+		// 오너 퇴장 불가
+		if (participant.getRole() == ParticipantRole.OWNER) {
+			throw new BusinessException(ErrorCode.OWNER_CANNOT_LEAVE_GATHERING);
+		}
+
+		// 참여자 삭제
+		participantRepository.delete(participant);
 	}
 
 	private void validateGatheringPolicy(String name, String description, String regionTsid) {

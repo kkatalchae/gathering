@@ -20,6 +20,7 @@ import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.domain.model.GatheringEntity;
+import com.gathering.gathering.domain.model.GatheringParticipantEntity;
 import com.gathering.gathering.domain.model.ParticipantRole;
 import com.gathering.gathering.domain.policy.GatheringPolicy;
 import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
@@ -28,6 +29,7 @@ import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
 import com.gathering.gathering.presentation.dto.GatheringListResponse;
 import com.gathering.gathering.presentation.dto.GatheringResponse;
+import com.gathering.gathering.presentation.dto.JoinGatheringResponse;
 import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 import com.gathering.region.domain.model.RegionEntity;
 
@@ -45,6 +47,9 @@ class GatheringServiceTest {
 
 	@Mock
 	private GatheringPolicy gatheringPolicy;
+
+	@Mock
+	private GatheringParticipantService gatheringParticipantService;
 
 	@InjectMocks
 	private GatheringService gatheringService;
@@ -469,5 +474,226 @@ class GatheringServiceTest {
 		assertThatThrownBy(() -> gatheringService.deleteGathering(gatheringTsid, adminTsid))
 			.isInstanceOf(BusinessException.class)
 			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED);
+	}
+
+	// ==================== 모임 참여 테스트 ====================
+
+	@Test
+	@DisplayName("유효한 사용자가 모임에 참여하면 MEMBER로 참여자가 생성된다")
+	void joinGatheringSuccessfully() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String userTsid = "01HQUSER123456";
+
+		GatheringEntity gathering = GatheringEntity.builder()
+			.tsid(gatheringTsid)
+			.name("테스트 모임")
+			.regionTsid("01HQREGION1234")
+			.category(GatheringCategory.SPORTS)
+			.maxParticipants(100)
+			.createdAt(Instant.now())
+			.build();
+
+		GatheringParticipantEntity savedParticipant = GatheringParticipantEntity.builder()
+			.tsid("01HQPARTIC1234")
+			.gatheringTsid(gatheringTsid)
+			.userTsid(userTsid)
+			.role(ParticipantRole.MEMBER)
+			.joinedAt(Instant.now())
+			.build();
+
+		given(gatheringRepository.findById(gatheringTsid)).willReturn(Optional.of(gathering));
+		given(participantRepository.existsByGatheringTsidAndUserTsid(gatheringTsid, userTsid)).willReturn(false);
+		given(participantRepository.countByGatheringTsid(gatheringTsid)).willReturn(10L);
+		given(participantRepository.save(any(GatheringParticipantEntity.class))).willReturn(savedParticipant);
+
+		// when
+		JoinGatheringResponse response = gatheringService.joinGathering(gatheringTsid, userTsid);
+
+		// then
+		assertThat(response).isNotNull();
+		assertThat(response.getGatheringTsid()).isEqualTo(gatheringTsid);
+		assertThat(response.getUserTsid()).isEqualTo(userTsid);
+		assertThat(response.getRole()).isEqualTo(ParticipantRole.MEMBER);
+
+		then(participantRepository).should().save(argThat(participant ->
+			participant.getGatheringTsid().equals(gatheringTsid)
+				&& participant.getUserTsid().equals(userTsid)
+				&& participant.getRole() == ParticipantRole.MEMBER
+		));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 모임에 참여하면 예외가 발생한다")
+	void joinGatheringThrowsWhenGatheringNotFound() {
+		// given
+		String invalidGatheringTsid = "INVALID_TSID";
+		String userTsid = "01HQUSER123456";
+
+		given(gatheringRepository.findById(invalidGatheringTsid)).willReturn(Optional.empty());
+
+		// when & then
+		assertThatThrownBy(() -> gatheringService.joinGathering(invalidGatheringTsid, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_NOT_FOUND);
+	}
+
+	@Test
+	@DisplayName("이미 참여중인 모임에 참여하면 예외가 발생한다")
+	void joinGatheringThrowsWhenAlreadyJoined() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String userTsid = "01HQUSER123456";
+
+		GatheringEntity gathering = GatheringEntity.builder()
+			.tsid(gatheringTsid)
+			.name("테스트 모임")
+			.regionTsid("01HQREGION1234")
+			.category(GatheringCategory.SPORTS)
+			.maxParticipants(100)
+			.createdAt(Instant.now())
+			.build();
+
+		given(gatheringRepository.findById(gatheringTsid)).willReturn(Optional.of(gathering));
+		given(participantRepository.existsByGatheringTsidAndUserTsid(gatheringTsid, userTsid)).willReturn(true);
+
+		// when & then
+		assertThatThrownBy(() -> gatheringService.joinGathering(gatheringTsid, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.ALREADY_JOINED_GATHERING);
+	}
+
+	@Test
+	@DisplayName("정원이 가득 찬 모임에 참여하면 예외가 발생한다")
+	void joinGatheringThrowsWhenCapacityExceeded() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String userTsid = "01HQUSER123456";
+
+		GatheringEntity gathering = GatheringEntity.builder()
+			.tsid(gatheringTsid)
+			.name("테스트 모임")
+			.regionTsid("01HQREGION1234")
+			.category(GatheringCategory.SPORTS)
+			.maxParticipants(100)
+			.createdAt(Instant.now())
+			.build();
+
+		given(gatheringRepository.findById(gatheringTsid)).willReturn(Optional.of(gathering));
+		given(participantRepository.existsByGatheringTsidAndUserTsid(gatheringTsid, userTsid)).willReturn(false);
+		given(participantRepository.countByGatheringTsid(gatheringTsid)).willReturn(100L);
+
+		// when & then
+		assertThatThrownBy(() -> gatheringService.joinGathering(gatheringTsid, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_CAPACITY_EXCEEDED);
+	}
+
+	// ==================== 모임 퇴장 테스트 ====================
+
+	@Test
+	@DisplayName("MEMBER가 모임에서 퇴장하면 참여자 정보가 삭제된다")
+	void leaveGatheringSuccessfully() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String userTsid = "01HQMEMBER1234";
+
+		GatheringParticipantEntity participant = GatheringParticipantEntity.builder()
+			.tsid("01HQPARTIC1234")
+			.gatheringTsid(gatheringTsid)
+			.userTsid(userTsid)
+			.role(ParticipantRole.MEMBER)
+			.joinedAt(Instant.now())
+			.build();
+
+		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
+		given(gatheringParticipantService.findParticipants(gatheringTsid, userTsid)).willReturn(participant);
+
+		// when
+		gatheringService.leaveGathering(gatheringTsid, userTsid);
+
+		// then
+		then(participantRepository).should().delete(participant);
+	}
+
+	@Test
+	@DisplayName("ADMIN이 모임에서 퇴장하면 참여자 정보가 삭제된다")
+	void leaveGatheringAsAdminSuccessfully() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String adminTsid = "01HQADMIN12345";
+
+		GatheringParticipantEntity participant = GatheringParticipantEntity.builder()
+			.tsid("01HQPARTIC5678")
+			.gatheringTsid(gatheringTsid)
+			.userTsid(adminTsid)
+			.role(ParticipantRole.ADMIN)
+			.joinedAt(Instant.now())
+			.build();
+
+		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
+		given(gatheringParticipantService.findParticipants(gatheringTsid, adminTsid)).willReturn(participant);
+
+		// when
+		gatheringService.leaveGathering(gatheringTsid, adminTsid);
+
+		// then
+		then(participantRepository).should().delete(participant);
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 모임에서 퇴장하면 예외가 발생한다")
+	void leaveGatheringThrowsWhenGatheringNotFound() {
+		// given
+		String invalidGatheringTsid = "INVALID_TSID";
+		String userTsid = "01HQUSER123456";
+
+		given(gatheringRepository.existsById(invalidGatheringTsid)).willReturn(false);
+
+		// when & then
+		assertThatThrownBy(() -> gatheringService.leaveGathering(invalidGatheringTsid, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_NOT_FOUND);
+	}
+
+	@Test
+	@DisplayName("참여하지 않은 모임에서 퇴장하면 예외가 발생한다")
+	void leaveGatheringThrowsWhenNotParticipant() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String userTsid = "01HQUSER123456";
+
+		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
+		given(gatheringParticipantService.findParticipants(gatheringTsid, userTsid))
+			.willThrow(new BusinessException(ErrorCode.PARTICIPANT_NOT_FOUND));
+
+		// when & then
+		assertThatThrownBy(() -> gatheringService.leaveGathering(gatheringTsid, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.PARTICIPANT_NOT_FOUND);
+	}
+
+	@Test
+	@DisplayName("OWNER가 퇴장하면 예외가 발생한다")
+	void leaveGatheringThrowsWhenOwner() {
+		// given
+		String gatheringTsid = "01HQGATHERING1";
+		String ownerTsid = "01HQOWNER12345";
+
+		GatheringParticipantEntity ownerParticipant = GatheringParticipantEntity.builder()
+			.tsid("01HQPARTIC0001")
+			.gatheringTsid(gatheringTsid)
+			.userTsid(ownerTsid)
+			.role(ParticipantRole.OWNER)
+			.joinedAt(Instant.now())
+			.build();
+
+		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
+		given(gatheringParticipantService.findParticipants(gatheringTsid, ownerTsid)).willReturn(ownerParticipant);
+
+		// when & then
+		assertThatThrownBy(() -> gatheringService.leaveGathering(gatheringTsid, ownerTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.OWNER_CANNOT_LEAVE_GATHERING);
 	}
 }

@@ -25,6 +25,7 @@ import com.gathering.gathering.presentation.dto.GatheringDetailResponse;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
 import com.gathering.gathering.presentation.dto.GatheringListResponse;
 import com.gathering.gathering.presentation.dto.GatheringResponse;
+import com.gathering.gathering.presentation.dto.JoinGatheringResponse;
 import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -166,5 +167,41 @@ public class GatheringsController {
 		);
 
 		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 모임 참여
+	 *
+	 * @param request HTTP 요청 (인증 정보 추출용)
+	 * @param gatheringTsid 참여할 모임 TSID
+	 * @return 생성된 참여자 정보 (201 Created)
+	 */
+	@PostMapping("/{gatheringTsid}/participants")
+	public ResponseEntity<JoinGatheringResponse> joinGathering(
+		HttpServletRequest request,
+		@PathVariable String gatheringTsid) {
+
+		String userTsid = authService.getCurrentUserTsid(request);
+		JoinGatheringResponse response = gatheringService.joinGathering(gatheringTsid, userTsid);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+	}
+
+	/**
+	 * 모임 퇴장
+	 *
+	 * @param request HTTP 요청 (인증 정보 추출용)
+	 * @param gatheringTsid 퇴장할 모임 TSID
+	 * @return 204 No Content
+	 */
+	@DeleteMapping("/{gatheringTsid}/participants/me")
+	public ResponseEntity<Void> leaveGathering(
+		HttpServletRequest request,
+		@PathVariable String gatheringTsid) {
+
+		String userTsid = authService.getCurrentUserTsid(request);
+		gatheringService.leaveGathering(gatheringTsid, userTsid);
+
+		return ResponseEntity.noContent().build();
 	}
 }

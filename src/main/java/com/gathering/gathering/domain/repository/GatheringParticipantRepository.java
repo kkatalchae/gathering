@@ -22,4 +22,8 @@ public interface GatheringParticipantRepository extends JpaRepository<GatheringP
 	Optional<GatheringParticipantEntity> findByGatheringTsidAndUserTsid(String gatheringTsid, String userTsid);
 
 	void deleteAllByGatheringTsid(String gatheringTsid);
+
+	long countByGatheringTsid(String gatheringTsid);
+
+	boolean existsByGatheringTsidAndUserTsid(String gatheringTsid, String userTsid);
 }
