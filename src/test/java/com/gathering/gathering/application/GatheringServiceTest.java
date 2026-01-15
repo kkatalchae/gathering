@@ -434,7 +434,7 @@ class GatheringServiceTest {
 		gatheringService.deleteGathering(gatheringTsid, ownerTsid);
 
 		// then: Policy, Repository 호출 확인
-		then(gatheringPolicy).should().validateDeletePermission(gatheringTsid, ownerTsid);
+		then(gatheringPolicy).should().validateOwnerPermission(gatheringTsid, ownerTsid);
 		then(participantRepository).should().deleteAllByGatheringTsid(gatheringTsid);
 		then(gatheringRepository).should().deleteById(gatheringTsid);
 	}
@@ -462,12 +462,12 @@ class GatheringServiceTest {
 		String adminTsid = "01HQADMIN12345";
 
 		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
-		willThrow(new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED))
-			.given(gatheringPolicy).validateDeletePermission(gatheringTsid, adminTsid);
+		willThrow(new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED))
+			.given(gatheringPolicy).validateOwnerPermission(gatheringTsid, adminTsid);
 
 		// when & then
 		assertThatThrownBy(() -> gatheringService.deleteGathering(gatheringTsid, adminTsid))
 			.isInstanceOf(BusinessException.class)
-			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_DELETE_PERMISSION_DENIED);
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED);
 	}
 }

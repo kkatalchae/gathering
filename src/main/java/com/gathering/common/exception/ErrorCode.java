@@ -70,7 +70,13 @@ public enum ErrorCode {
 
 	// Gathering 권한 관련 에러 (403 Forbidden)
 	GATHERING_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "모임을 수정할 권한이 없습니다"),
-	GATHERING_DELETE_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "모임을 삭제할 권한이 없습니다"),
+	GATHERING_OWNER_PERMISSION_NEEDED(HttpStatus.FORBIDDEN, "모임의 오너 권한이 필요합니다"),
+
+	// Gathering 참여자 관련 에러 (404 Not Found)
+	PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 모임에서 사용자를 찾을 수 없습니다"),
+
+	// Gathering 역할 변경 관련 에러 (400 Bad Request)
+	CANNOT_CHANGE_OWN_ROLE(HttpStatus.BAD_REQUEST, "자신의 역할은 변경할 수 없습니다"),
 
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다");

@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.gathering.auth.application.AuthService;
 import com.gathering.gathering.application.GatheringService;
 import com.gathering.gathering.domain.model.GatheringCategory;
+import com.gathering.gathering.presentation.dto.ChangeParticipantRoleRequest;
+import com.gathering.gathering.presentation.dto.ChangeParticipantRoleResponse;
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
 import com.gathering.gathering.presentation.dto.GatheringDetailResponse;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
@@ -136,5 +139,32 @@ public class GatheringsController {
 		gatheringService.deleteGathering(gatheringTsid, userTsid);
 
 		return ResponseEntity.noContent().build();
+	}
+
+	/**
+	 * 참여자 역할 변경
+	 *
+	 * @param request HTTP 요청 (인증 정보 추출용)
+	 * @param gatheringTsid 모임 TSID
+	 * @param targetUserTsid 대상 사용자 TSID
+	 * @param changeRoleRequest 역할 변경 요청 DTO
+	 * @return 역할 변경 결과 (200 OK)
+	 */
+	@PatchMapping("/{gatheringTsid}/participants/{targetUserTsid}/role")
+	public ResponseEntity<ChangeParticipantRoleResponse> changeParticipantRole(
+		HttpServletRequest request,
+		@PathVariable String gatheringTsid,
+		@PathVariable String targetUserTsid,
+		@Valid @RequestBody ChangeParticipantRoleRequest changeRoleRequest) {
+
+		String requesterTsid = authService.getCurrentUserTsid(request);
+		ChangeParticipantRoleResponse response = gatheringService.changeParticipantRole(
+			gatheringTsid,
+			requesterTsid,
+			targetUserTsid,
+			changeRoleRequest
+		);
+
+		return ResponseEntity.ok(response);
 	}
 }

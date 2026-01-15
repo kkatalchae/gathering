@@ -4,9 +4,9 @@ import org.springframework.stereotype.Component;
 
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
+import com.gathering.gathering.application.GatheringParticipantService;
 import com.gathering.gathering.domain.model.GatheringParticipantEntity;
 import com.gathering.gathering.domain.model.ParticipantRole;
-import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.region.domain.repository.RegionRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 public class GatheringPolicy {
 
 	private final RegionRepository regionRepository;
-	private final GatheringParticipantRepository participantRepository;
+	private final GatheringParticipantService gatheringParticipantService;
 
 	/**
 	 * 지역 존재 여부 검증
@@ -43,7 +43,7 @@ public class GatheringPolicy {
 	 * @throws BusinessException 권한이 없거나 참여자가 아닌 경우
 	 */
 	public void validateUpdatePermission(String gatheringTsid, String userTsid) {
-		GatheringParticipantEntity participant = findGatheringParticipant(gatheringTsid, userTsid);
+		GatheringParticipantEntity participant = gatheringParticipantService.findParticipants(gatheringTsid, userTsid);
 
 		if (participant.getRole() == ParticipantRole.MEMBER) {
 			throw new BusinessException(ErrorCode.GATHERING_PERMISSION_DENIED);
@@ -58,16 +58,12 @@ public class GatheringPolicy {
 	 * @param userTsid 요청 사용자 TSID
 	 * @throws BusinessException 권한이 없거나 참여자가 아닌 경우
 	 */
-	public void validateDeletePermission(String gatheringTsid, String userTsid) {
-		GatheringParticipantEntity participant = findGatheringParticipant(gatheringTsid, userTsid);
+	public GatheringParticipantEntity validateOwnerPermission(String gatheringTsid, String userTsid) {
+		GatheringParticipantEntity participant = gatheringParticipantService.findParticipants(gatheringTsid, userTsid);
 		if (participant.getRole() != ParticipantRole.OWNER) {
-			throw new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED);
+			throw new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED);
 		}
-	}
 
-	private GatheringParticipantEntity findGatheringParticipant(String gatheringTsid, String userTsid) {
-		return participantRepository
-			.findByGatheringTsidAndUserTsid(gatheringTsid, userTsid)
-			.orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED));
+		return participant;
 	}
 }

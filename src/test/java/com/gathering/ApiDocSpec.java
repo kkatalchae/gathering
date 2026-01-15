@@ -139,6 +139,29 @@ public enum ApiDocSpec {
 		- 모임에 참여하지 않은 사용자가 삭제하면 403 에러가 발생한다.
 		"""),
 
+	GATHERING_CHANGE_PARTICIPANT_ROLE("참여자 역할 변경(/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role)", """
+		OWNER가 모임 참여자의 역할을 변경한다.
+		변경 가능한 역할은 OWNER, ADMIN, MEMBER이다.
+		OWNER로 역할을 변경하면 오너가 양도되고 기존 OWNER는 ADMIN으로 자동 변경된다.
+
+		**권한**
+		- OWNER만 역할 변경 가능
+		- ADMIN, MEMBER는 역할 변경 불가
+
+		**역할 변경 규칙**
+		- MEMBER -> ADMIN: 관리자 권한 부여
+		- ADMIN -> MEMBER: 관리자 권한 회수
+		- MEMBER/ADMIN -> OWNER: 오너 양도 (기존 오너는 ADMIN이 됨)
+
+		**실패 케이스**
+		- ADMIN 권한으로 시도하면 403 에러가 발생한다.
+		- MEMBER 권한으로 시도하면 403 에러가 발생한다.
+		- 모임에 참여하지 않은 사용자가 시도하면 403 에러가 발생한다.
+		- 존재하지 않는 모임의 역할 변경 시 404 에러가 발생한다.
+		- 대상 유저가 모임 참여자가 아니면 404 에러가 발생한다.
+		- 자신의 역할을 변경하려 하면 400 에러가 발생한다.
+		"""),
+
 	// ==================== 지역 관련 ====================
 	REGION_LIST("지역 목록 조회(/regions)", """
 		전체 지역 목록을 계층 구조로 조회한다.

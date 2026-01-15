@@ -81,4 +81,13 @@ public class GatheringParticipantEntity {
 		foreignKey = @ForeignKey(name = "fk_participant_user")
 	)
 	private UsersEntity user;
+
+	/**
+	 * 역할 변경
+	 *
+	 * @param newRole 변경할 역할
+	 */
+	public void changeRole(ParticipantRole newRole) {
+		this.role = newRole;
+	}
 }

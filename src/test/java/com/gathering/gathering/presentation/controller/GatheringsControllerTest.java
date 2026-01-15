@@ -34,6 +34,8 @@ import com.gathering.common.exception.ErrorCode;
 import com.gathering.gathering.application.GatheringService;
 import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.domain.model.ParticipantRole;
+import com.gathering.gathering.presentation.dto.ChangeParticipantRoleRequest;
+import com.gathering.gathering.presentation.dto.ChangeParticipantRoleResponse;
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
 import com.gathering.gathering.presentation.dto.GatheringDetailResponse;
 import com.gathering.gathering.presentation.dto.GatheringListItemResponse;
@@ -635,15 +637,15 @@ class GatheringsControllerTest {
 		String gatheringTsid = "01HQGATHERING1";
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(adminTsid);
-		doThrow(new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED))
+		doThrow(new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED))
 			.when(gatheringService).deleteGathering(gatheringTsid, adminTsid);
 
 		// when: DELETE /gatherings/{tsid} 요청을 전송
 		// then: 403 Forbidden 응답과 에러 정보를 확인
 		mockMvc.perform(delete("/gatherings/{tsid}", gatheringTsid))
 			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.name()))
-			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.getMessage()));
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.getMessage()));
 	}
 
 	@Test
@@ -654,15 +656,15 @@ class GatheringsControllerTest {
 		String gatheringTsid = "01HQGATHERING1";
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(memberTsid);
-		doThrow(new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED))
+		doThrow(new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED))
 			.when(gatheringService).deleteGathering(gatheringTsid, memberTsid);
 
 		// when: DELETE /gatherings/{tsid} 요청을 전송
 		// then: 403 Forbidden 응답과 에러 정보를 확인
 		mockMvc.perform(delete("/gatherings/{tsid}", gatheringTsid))
 			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.name()))
-			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.getMessage()));
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.getMessage()));
 	}
 
 	@Test
@@ -673,14 +675,288 @@ class GatheringsControllerTest {
 		String gatheringTsid = "01HQGATHERING1";
 
 		when(authService.getCurrentUserTsid(any())).thenReturn(nonParticipantTsid);
-		doThrow(new BusinessException(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED))
+		doThrow(new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED))
 			.when(gatheringService).deleteGathering(gatheringTsid, nonParticipantTsid);
 
 		// when: DELETE /gatherings/{tsid} 요청을 전송
 		// then: 403 Forbidden 응답과 에러 정보를 확인
 		mockMvc.perform(delete("/gatherings/{tsid}", gatheringTsid))
 			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.name()))
-			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_DELETE_PERMISSION_DENIED.getMessage()));
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.getMessage()));
+	}
+
+	// ==================== 역할 변경 테스트 ====================
+
+	@Test
+	@DisplayName("OWNER가 MEMBER를 ADMIN으로 변경하면 200 상태코드와 변경 결과를 반환한다")
+	void changeParticipantRoleMemberToAdminSuccess() throws Exception {
+		// given: OWNER의 역할 변경 요청 데이터와 예상 응답 데이터를 준비
+		String ownerTsid = "01HQOWNER12345";
+		String gatheringTsid = "01HQGATHERING1";
+		String targetUserTsid = "01HQMEMBER1234";
+
+		ChangeParticipantRoleRequest request = ChangeParticipantRoleRequest.builder()
+			.newRole(ParticipantRole.ADMIN)
+			.build();
+
+		ChangeParticipantRoleResponse response = ChangeParticipantRoleResponse.builder()
+			.participantTsid("01HQPARTIC1234")
+			.userTsid(targetUserTsid)
+			.previousRole(ParticipantRole.MEMBER)
+			.newRole(ParticipantRole.ADMIN)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(ownerTsid);
+		when(gatheringService.changeParticipantRole(
+			eq(gatheringTsid), eq(ownerTsid), eq(targetUserTsid), any(ChangeParticipantRoleRequest.class)))
+			.thenReturn(response);
+
+		// when: PATCH /gatherings/{gatheringTsid}/participants/{targetUserTsid}/role 요청을 전송
+		// then: 200 상태코드와 변경 결과를 검증하고 REST Docs 문서화
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				gatheringTsid, targetUserTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.participantTsid").value("01HQPARTIC1234"))
+			.andExpect(jsonPath("$.userTsid").value(targetUserTsid))
+			.andExpect(jsonPath("$.previousRole").value("MEMBER"))
+			.andExpect(jsonPath("$.newRole").value("ADMIN"))
+			.andDo(document("gatherings-change-participant-role",
+				ApiDocSpec.GATHERING_CHANGE_PARTICIPANT_ROLE.getDescription(),
+				ApiDocSpec.GATHERING_CHANGE_PARTICIPANT_ROLE.getSummary(),
+				pathParameters(
+					parameterWithName("gatheringTsid").description("모임 TSID"),
+					parameterWithName("targetUserTsid").description("대상 사용자 TSID")
+				),
+				requestFields(
+					fieldWithPath("newRole").description("변경할 역할 (OWNER, ADMIN, MEMBER)")
+				),
+				responseFields(
+					fieldWithPath("participantTsid").description("참여자 고유 ID"),
+					fieldWithPath("userTsid").description("사용자 TSID"),
+					fieldWithPath("previousRole").description("변경 전 역할"),
+					fieldWithPath("newRole").description("변경 후 역할")
+				)
+			));
+	}
+
+	@Test
+	@DisplayName("OWNER가 다른 참여자에게 오너를 양도하면 200 상태코드와 양도 결과를 반환한다")
+	void changeParticipantRoleTransferOwnership() throws Exception {
+		// given: OWNER가 다른 참여자에게 오너 양도 요청
+		String ownerTsid = "01HQOWNER12345";
+		String gatheringTsid = "01HQGATHERING1";
+		String targetUserTsid = "01HQADMIN12345";
+
+		ChangeParticipantRoleRequest request = ChangeParticipantRoleRequest.builder()
+			.newRole(ParticipantRole.OWNER)
+			.build();
+
+		ChangeParticipantRoleResponse response = ChangeParticipantRoleResponse.builder()
+			.participantTsid("01HQPARTIC5678")
+			.userTsid(targetUserTsid)
+			.previousRole(ParticipantRole.ADMIN)
+			.newRole(ParticipantRole.OWNER)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(ownerTsid);
+		when(gatheringService.changeParticipantRole(
+			eq(gatheringTsid), eq(ownerTsid), eq(targetUserTsid), any(ChangeParticipantRoleRequest.class)))
+			.thenReturn(response);
+
+		// when: PATCH /gatherings/{gatheringTsid}/participants/{targetUserTsid}/role 요청을 전송
+		// then: 200 상태코드와 양도 결과를 검증
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				gatheringTsid, targetUserTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.previousRole").value("ADMIN"))
+			.andExpect(jsonPath("$.newRole").value("OWNER"));
+	}
+
+	@Test
+	@DisplayName("newRole을 누락하고 역할 변경 요청 시 400 에러를 반환한다")
+	void changeParticipantRoleWithoutNewRole() throws Exception {
+		// given: newRole이 없는 요청 데이터를 준비
+		String gatheringTsid = "01HQGATHERING1";
+		String targetUserTsid = "01HQMEMBER1234";
+
+		// when: PATCH 요청을 전송
+		// then: 400 Bad Request 응답을 확인
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				gatheringTsid, targetUserTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{}"))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 모임의 역할 변경 시 404 에러를 반환한다")
+	void changeParticipantRoleGatheringNotFound() throws Exception {
+		// given: 존재하지 않는 모임 TSID로 역할 변경 요청
+		String ownerTsid = "01HQOWNER12345";
+		String invalidGatheringTsid = "INVALID_TSID";
+		String targetUserTsid = "01HQMEMBER1234";
+
+		ChangeParticipantRoleRequest request = ChangeParticipantRoleRequest.builder()
+			.newRole(ParticipantRole.ADMIN)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(ownerTsid);
+		when(gatheringService.changeParticipantRole(
+			eq(invalidGatheringTsid), eq(ownerTsid), eq(targetUserTsid), any(ChangeParticipantRoleRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+		// when: PATCH 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				invalidGatheringTsid, targetUserTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("대상이 모임 참여자가 아니면 404 에러를 반환한다")
+	void changeParticipantRoleTargetNotFound() throws Exception {
+		// given: 모임에 참여하지 않은 대상으로 역할 변경 요청
+		String ownerTsid = "01HQOWNER12345";
+		String gatheringTsid = "01HQGATHERING1";
+		String invalidTargetTsid = "INVALID_TARGET";
+
+		ChangeParticipantRoleRequest request = ChangeParticipantRoleRequest.builder()
+			.newRole(ParticipantRole.ADMIN)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(ownerTsid);
+		when(gatheringService.changeParticipantRole(
+			eq(gatheringTsid), eq(ownerTsid), eq(invalidTargetTsid), any(ChangeParticipantRoleRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.PARTICIPANT_NOT_FOUND));
+
+		// when: PATCH 요청을 전송
+		// then: 404 Not Found 응답과 에러 정보를 확인
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				gatheringTsid, invalidTargetTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value(ErrorCode.PARTICIPANT_NOT_FOUND.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.PARTICIPANT_NOT_FOUND.getMessage()));
+	}
+
+	@Test
+	@DisplayName("ADMIN 권한으로 역할 변경 시 403 에러를 반환한다")
+	void changeParticipantRoleAsAdmin() throws Exception {
+		// given: ADMIN 권한으로 역할 변경 요청
+		String adminTsid = "01HQADMIN12345";
+		String gatheringTsid = "01HQGATHERING1";
+		String targetUserTsid = "01HQMEMBER1234";
+
+		ChangeParticipantRoleRequest request = ChangeParticipantRoleRequest.builder()
+			.newRole(ParticipantRole.ADMIN)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(adminTsid);
+		when(gatheringService.changeParticipantRole(
+			eq(gatheringTsid), eq(adminTsid), eq(targetUserTsid), any(ChangeParticipantRoleRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED));
+
+		// when: PATCH 요청을 전송
+		// then: 403 Forbidden 응답과 에러 정보를 확인
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				gatheringTsid, targetUserTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.getMessage()));
+	}
+
+	@Test
+	@DisplayName("MEMBER 권한으로 역할 변경 시 403 에러를 반환한다")
+	void changeParticipantRoleAsMember() throws Exception {
+		// given: MEMBER 권한으로 역할 변경 요청
+		String memberTsid = "01HQMEMBER1234";
+		String gatheringTsid = "01HQGATHERING1";
+		String targetUserTsid = "01HQMEMBER5678";
+
+		ChangeParticipantRoleRequest request = ChangeParticipantRoleRequest.builder()
+			.newRole(ParticipantRole.ADMIN)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(memberTsid);
+		when(gatheringService.changeParticipantRole(
+			eq(gatheringTsid), eq(memberTsid), eq(targetUserTsid), any(ChangeParticipantRoleRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED));
+
+		// when: PATCH 요청을 전송
+		// then: 403 Forbidden 응답과 에러 정보를 확인
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				gatheringTsid, targetUserTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.getMessage()));
+	}
+
+	@Test
+	@DisplayName("모임에 참여하지 않은 사용자가 역할 변경 시 403 에러를 반환한다")
+	void changeParticipantRoleAsNonParticipant() throws Exception {
+		// given: 비참여자가 역할 변경 요청
+		String nonParticipantTsid = "01HQNONPARTICIP";
+		String gatheringTsid = "01HQGATHERING1";
+		String targetUserTsid = "01HQMEMBER1234";
+
+		ChangeParticipantRoleRequest request = ChangeParticipantRoleRequest.builder()
+			.newRole(ParticipantRole.ADMIN)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(nonParticipantTsid);
+		when(gatheringService.changeParticipantRole(
+			eq(gatheringTsid), eq(nonParticipantTsid), eq(targetUserTsid), any(ChangeParticipantRoleRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED));
+
+		// when: PATCH 요청을 전송
+		// then: 403 Forbidden 응답과 에러 정보를 확인
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				gatheringTsid, targetUserTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED.getMessage()));
+	}
+
+	@Test
+	@DisplayName("자기 자신의 역할 변경 시 400 에러를 반환한다")
+	void changeParticipantRoleOwnRole() throws Exception {
+		// given: 자기 자신의 역할 변경 요청
+		String ownerTsid = "01HQOWNER12345";
+		String gatheringTsid = "01HQGATHERING1";
+
+		ChangeParticipantRoleRequest request = ChangeParticipantRoleRequest.builder()
+			.newRole(ParticipantRole.ADMIN)
+			.build();
+
+		when(authService.getCurrentUserTsid(any())).thenReturn(ownerTsid);
+		when(gatheringService.changeParticipantRole(
+			eq(gatheringTsid), eq(ownerTsid), eq(ownerTsid), any(ChangeParticipantRoleRequest.class)))
+			.thenThrow(new BusinessException(ErrorCode.CANNOT_CHANGE_OWN_ROLE));
+
+		// when: PATCH 요청을 전송
+		// then: 400 Bad Request 응답과 에러 정보를 확인
+		mockMvc.perform(patch("/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role",
+				gatheringTsid, ownerTsid)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value(ErrorCode.CANNOT_CHANGE_OWN_ROLE.name()))
+			.andExpect(jsonPath("$.message").value(ErrorCode.CANNOT_CHANGE_OWN_ROLE.getMessage()));
 	}
 }

@@ -17,6 +17,8 @@ import com.gathering.gathering.domain.model.ParticipantRole;
 import com.gathering.gathering.domain.policy.GatheringPolicy;
 import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.gathering.domain.repository.GatheringRepository;
+import com.gathering.gathering.presentation.dto.ChangeParticipantRoleRequest;
+import com.gathering.gathering.presentation.dto.ChangeParticipantRoleResponse;
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
 import com.gathering.gathering.presentation.dto.GatheringDetailResponse;
 import com.gathering.gathering.presentation.dto.GatheringListItemResponse;
@@ -38,6 +40,7 @@ public class GatheringService {
 	private final GatheringRepository gatheringRepository;
 	private final GatheringParticipantRepository participantRepository;
 	private final GatheringPolicy gatheringPolicy;
+	private final GatheringParticipantService gatheringParticipantService;
 
 	/**
 	 * 모임 생성
@@ -184,13 +187,65 @@ public class GatheringService {
 		}
 
 		// 권한 검증 (OWNER만 가능)
-		gatheringPolicy.validateDeletePermission(gatheringTsid, userTsid);
+		gatheringPolicy.validateOwnerPermission(gatheringTsid, userTsid);
 
 		// 참여자 데이터 삭제 (FK 제약 조건으로 인해 먼저 삭제)
 		participantRepository.deleteAllByGatheringTsid(gatheringTsid);
 
 		// 모임 삭제
 		gatheringRepository.deleteById(gatheringTsid);
+	}
+
+	/**
+	 * 참여자 역할 변경
+	 * OWNER만 역할 변경 가능하며 OWNER 양도 시 자신은 ADMIN으로 자동 변경
+	 *
+	 * @param gatheringTsid 모임 TSID
+	 * @param requesterTsid 요청자 TSID (현재 로그인 사용자)
+	 * @param targetUserTsid 대상 사용자 TSID
+	 * @param request 역할 변경 요청
+	 * @return 역할 변경 결과
+	 */
+	@Transactional
+	public ChangeParticipantRoleResponse changeParticipantRole(
+		String gatheringTsid,
+		String requesterTsid,
+		String targetUserTsid,
+		ChangeParticipantRoleRequest request) {
+
+		// 자기 자신의 역할 변경 방지
+		if (requesterTsid.equals(targetUserTsid)) {
+			throw new BusinessException(ErrorCode.CANNOT_CHANGE_OWN_ROLE);
+		}
+
+		// 모임 존재 여부 확인
+		if (!gatheringRepository.existsById(gatheringTsid)) {
+			throw new BusinessException(ErrorCode.GATHERING_NOT_FOUND);
+		}
+
+		// 요청자 권한 검증 (OWNER만 가능)
+		GatheringParticipantEntity requester = gatheringPolicy.validateOwnerPermission(gatheringTsid, requesterTsid);
+
+		// 대상 참여자 검증
+		GatheringParticipantEntity target = gatheringParticipantService.findParticipants(gatheringTsid, targetUserTsid);
+
+		ParticipantRole previousRole = target.getRole();
+		ParticipantRole newRole = request.getNewRole();
+
+		// OWNER 양도 처리
+		if (newRole == ParticipantRole.OWNER) {
+			// 현재 OWNER(요청자)를 ADMIN으로 변경
+			requester.changeRole(ParticipantRole.ADMIN);
+		}
+
+		target.changeRole(newRole);
+
+		return ChangeParticipantRoleResponse.of(
+			target.getTsid(),
+			target.getUserTsid(),
+			previousRole,
+			newRole
+		);
 	}
 
 	private void validateGatheringPolicy(String name, String description, String regionTsid) {

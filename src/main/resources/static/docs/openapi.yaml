@@ -81,7 +81,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/gatherings-tsid-335326168"
+              $ref: "#/components/schemas/gatherings-335326168"
             examples:
               gatherings:
                 value: "{\"name\":\"테스트 모임\",\"description\":\"테스트 설명입니다\",\"regionTsid\"\
@@ -99,7 +99,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
                     :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
                     :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-14T06:18:26.591829Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-15T04:50:47.593020Z\"\
                     }"
   /gatherings/{tsid}:
     get:
@@ -136,7 +136,7 @@ paths:
                     :[{\"nickname\":\"김철수\",\"profileImageUrl\":\"https://example.com/profile1.jpg\"\
                     ,\"role\":\"OWNER\"},{\"nickname\":\"이영희\",\"profileImageUrl\"\
                     :\"https://example.com/profile2.jpg\",\"role\":\"MEMBER\"}],\"\
-                    createdAt\":\"2026-01-14T06:18:26.672851Z\"}"
+                    createdAt\":\"2026-01-15T04:50:47.722794Z\"}"
     put:
       tags:
         - gatherings
@@ -172,7 +172,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/gatherings-tsid-335326168"
+              $ref: "#/components/schemas/gatherings-335326168"
             examples:
               gatherings-update:
                 value: "{\"name\":\"수정된 모임\",\"description\":\"수정된 설명입니다\",\"regionTsid\"\
@@ -190,7 +190,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"수정된 모임\",\"description\"\
                     :\"수정된 설명입니다\",\"regionTsid\":\"01HQREGION5678\",\"category\"\
                     :\"STUDY\",\"mainImageUrl\":\"https://example.com/new-image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-14T06:18:26.645341Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-15T04:50:47.660024Z\"\
                     }"
     delete:
       tags:
@@ -220,6 +220,66 @@ paths:
       responses:
         "204":
           description: "204"
+  /gatherings/{gatheringTsid}/participants/{targetUserTsid}/role:
+    patch:
+      tags:
+        - gatherings
+      summary: "참여자 역할 변경(/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role)"
+      description: |
+        OWNER가 모임 참여자의 역할을 변경한다.
+        변경 가능한 역할은 OWNER, ADMIN, MEMBER이다.
+        OWNER로 역할을 변경하면 오너가 양도되고 기존 OWNER는 ADMIN으로 자동 변경된다.
+
+        **권한**
+        - OWNER만 역할 변경 가능
+        - ADMIN, MEMBER는 역할 변경 불가
+
+        **역할 변경 규칙**
+        - MEMBER -> ADMIN: 관리자 권한 부여
+        - ADMIN -> MEMBER: 관리자 권한 회수
+        - MEMBER/ADMIN -> OWNER: 오너 양도 (기존 오너는 ADMIN이 됨)
+
+        **실패 케이스**
+        - ADMIN 권한으로 시도하면 403 에러가 발생한다.
+        - MEMBER 권한으로 시도하면 403 에러가 발생한다.
+        - 모임에 참여하지 않은 사용자가 시도하면 403 에러가 발생한다.
+        - 존재하지 않는 모임의 역할 변경 시 404 에러가 발생한다.
+        - 대상 유저가 모임 참여자가 아니면 404 에러가 발생한다.
+        - 자신의 역할을 변경하려 하면 400 에러가 발생한다.
+      operationId: gatherings-change-participant-role
+      parameters:
+        - name: gatheringTsid
+          in: path
+          description: 모임 TSID
+          required: true
+          schema:
+            type: string
+        - name: targetUserTsid
+          in: path
+          description: 대상 사용자 TSID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/gatherings-gatheringTsid-participants-targetUserTsid-role1837898416"
+            examples:
+              gatherings-change-participant-role:
+                value: "{\"newRole\":\"ADMIN\"}"
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings-gatheringTsid-participants-targetUserTsid-role-161062674"
+              examples:
+                gatherings-change-participant-role:
+                  value: "{\"participantTsid\":\"01HQPARTIC1234\",\"userTsid\":\"\
+                    01HQMEMBER1234\",\"previousRole\":\"MEMBER\",\"newRole\":\"ADMIN\"\
+                    }"
   /login:
     post:
       tags:
@@ -285,8 +345,8 @@ paths:
                 $ref: "#/components/schemas/users-tsid-1331249008"
               examples:
                 login-with-invalid-email-format:
-                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
-                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
+                  value: "{\"code\":\"INVALID_EMAIL_FORMAT\",\"message\":\"올바른 형식의\
+                    \ 이메일이 아닙니다.\"}"
                 login-with-empty-password:
                   value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
                     는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
@@ -690,6 +750,26 @@ components:
           type: string
           description: 프로필 이미지 URL
           nullable: true
+    gatherings-gatheringTsid-participants-targetUserTsid-role-161062674:
+      required:
+        - newRole
+        - participantTsid
+        - previousRole
+        - userTsid
+      type: object
+      properties:
+        userTsid:
+          type: string
+          description: 사용자 TSID
+        participantTsid:
+          type: string
+          description: 참여자 고유 ID
+        previousRole:
+          type: string
+          description: 변경 전 역할
+        newRole:
+          type: string
+          description: 변경 후 역할
     login-2055163896:
       required:
         - email
@@ -702,7 +782,7 @@ components:
         email:
           type: string
           description: 이메일 주소
-    gatherings-tsid-335326168:
+    gatherings-335326168:
       required:
         - category
         - name
@@ -782,37 +862,6 @@ components:
           tsid:
             type: string
             description: 지역 고유 ID (모임 필터링에 사용)
-    login1168052559:
-      required:
-        - accessToken
-        - expiresIn
-        - tokenType
-      type: object
-      properties:
-        expiresIn:
-          type: number
-          description: 액세스 토큰 만료 시간 (초)
-        tokenType:
-          type: string
-          description: 토큰 타입 (Bearer)
-        accessToken:
-          type: string
-          description: 액세스 토큰 (JWT)
-    users-me-458480484:
-      type: object
-      properties:
-        phoneNumber:
-          type: string
-          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
-          nullable: true
-        name:
-          type: string
-          description: 이름 (null이면 변경하지 않음)
-          nullable: true
-        nickname:
-          type: string
-          description: 닉네임 (null이면 변경하지 않음)
-          nullable: true
     gatherings-2016471649:
       required:
         - category
@@ -849,42 +898,37 @@ components:
         maxParticipants:
           type: number
           description: "최대 참가 인원 (기본값: 100)"
-    gatherings-tsid1947421575:
-      required:
-        - category
-        - createdAt
-        - maxParticipants
-        - name
-        - regionTsid
-        - tsid
+    users-me-458480484:
       type: object
       properties:
-        createdAt:
+        phoneNumber:
           type: string
-          description: 생성 일시
-        regionTsid:
-          type: string
-          description: 지역 TSID
+          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
+          nullable: true
         name:
           type: string
-          description: 모임 이름
-        description:
-          type: string
-          description: 모임 설명
+          description: 이름 (null이면 변경하지 않음)
           nullable: true
-        category:
+        nickname:
           type: string
-          description: 모임 카테고리
-        tsid:
-          type: string
-          description: 모임 고유 ID
-        mainImageUrl:
-          type: string
-          description: 대표 이미지 URL
+          description: 닉네임 (null이면 변경하지 않음)
           nullable: true
-        maxParticipants:
+    login1168052559:
+      required:
+        - accessToken
+        - expiresIn
+        - tokenType
+      type: object
+      properties:
+        expiresIn:
           type: number
-          description: 최대 참가 인원
+          description: 액세스 토큰 만료 시간 (초)
+        tokenType:
+          type: string
+          description: 토큰 타입 (Bearer)
+        accessToken:
+          type: string
+          description: 액세스 토큰 (JWT)
     gatherings-tsid816390877:
       required:
         - category
@@ -937,6 +981,42 @@ components:
                 type: string
                 description: 참여자 프로필 이미지 URL
                 nullable: true
+    gatherings-tsid1947421575:
+      required:
+        - category
+        - createdAt
+        - maxParticipants
+        - name
+        - regionTsid
+        - tsid
+      type: object
+      properties:
+        createdAt:
+          type: string
+          description: 생성 일시
+        regionTsid:
+          type: string
+          description: 지역 TSID
+        name:
+          type: string
+          description: 모임 이름
+        description:
+          type: string
+          description: 모임 설명
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리
+        tsid:
+          type: string
+          description: 모임 고유 ID
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL
+          nullable: true
+        maxParticipants:
+          type: number
+          description: 최대 참가 인원
     users-tsid-1331249008:
       required:
         - code
@@ -1095,3 +1175,11 @@ components:
         password:
           type: string
           description: "비밀번호 (AES 암호화, 본인 확인용)"
+    gatherings-gatheringTsid-participants-targetUserTsid-role1837898416:
+      required:
+        - newRole
+      type: object
+      properties:
+        newRole:
+          type: string
+          description: "변경할 역할 (OWNER, ADMIN, MEMBER)"
