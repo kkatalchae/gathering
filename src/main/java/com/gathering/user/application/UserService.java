@@ -4,11 +4,14 @@ import java.util.List;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.gathering.auth.application.RefreshTokenService;
 import com.gathering.auth.domain.OAuthUserInfo;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
+import com.gathering.file.application.FileUploadService;
+import com.gathering.file.domain.model.FileType;
 import com.gathering.user.domain.model.OAuthProvider;
 import com.gathering.user.domain.model.UserOAuthConnectionEntity;
 import com.gathering.user.domain.model.UserSecurityEntity;
@@ -35,6 +38,7 @@ public class UserService {
 	private final PasswordEncoder passwordEncoder;
 	private final UserValidator userValidator;
 	private final RefreshTokenService refreshTokenService;
+	private final FileUploadService fileUploadService;
 
 	/**
 	 * 회원가입 처리
@@ -72,6 +76,22 @@ public class UserService {
 		userSecurityRepository.save(userSecurityEntity);
 
 		return usersEntity;
+	}
+
+	/**
+	 * 프로필 이미지 업로드
+	 * 기존 이미지가 있으면 커밋 후 삭제 (롤백 시 기존 이미지 보존)
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @param file 업로드할 이미지 파일
+	 * @return 업로드된 파일의 공개 URL
+	 */
+	@Transactional
+	public String uploadProfileImage(String tsid, MultipartFile file) {
+		UsersEntity user = getUsersEntityByTsid(tsid);
+		String url = fileUploadService.upload(file, FileType.PROFILE_IMAGE, tsid);
+		user.updateProfileImageUrl(url);
+		return url;
 	}
 
 	/**

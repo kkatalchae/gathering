@@ -1,5 +1,6 @@
 package com.gathering.user.presentation.controller;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,9 +10,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.gathering.auth.application.AuthService;
+import com.gathering.file.presentation.dto.FileUploadResponse;
 import com.gathering.user.application.UserService;
 import com.gathering.user.domain.model.OAuthProvider;
 import com.gathering.user.domain.model.UsersEntity;
@@ -57,6 +61,18 @@ public class UsersController {
 		String tsid = authService.getCurrentUserTsid(request);
 		MyInfoResponse response = userService.getMyInfo(tsid);
 		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * 프로필 이미지 업로드
+	 */
+	@PatchMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<FileUploadResponse> uploadProfileImage(
+		HttpServletRequest request,
+		@RequestPart("file") MultipartFile file) {
+		String tsid = authService.getCurrentUserTsid(request);
+		String url = userService.uploadProfileImage(tsid, file);
+		return ResponseEntity.ok(new FileUploadResponse(url));
 	}
 
 	/**

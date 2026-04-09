@@ -67,6 +67,10 @@ public class GatheringEntity {
 	@CreatedDate
 	private Instant createdAt;
 
+	public void updateMainImageUrl(String mainImageUrl) {
+		this.mainImageUrl = mainImageUrl;
+	}
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(
 		name = "region_tsid",
