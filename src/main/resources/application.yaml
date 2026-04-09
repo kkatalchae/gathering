@@ -75,19 +75,6 @@ jwt:
 
 file:
   upload:
-    allowed-extensions:
-      - jpg
-      - jpeg
-      - png
-      - gif
-      - webp
-    allowed-mime-types:
-      - image/jpeg
-      - image/png
-      - image/gif
-      - image/webp
-    max-profile-image-size: 5242880   # 5MB
-    max-gathering-image-size: 10485760 # 10MB
     local-upload-path: uploads
     url-prefix: /uploads
 

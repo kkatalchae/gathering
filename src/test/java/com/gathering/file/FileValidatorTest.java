@@ -14,18 +14,11 @@ import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.file.application.FileValidator;
 import com.gathering.file.domain.model.FileType;
-import com.gathering.file.infra.FileUploadConfig;
 
 @DisplayName("FileValidator 단위 테스트")
 class FileValidatorTest {
 
-	private FileValidator fileValidator;
-
-	@BeforeEach
-	void setUp() {
-		FileUploadConfig config = new FileUploadConfig();
-		fileValidator = new FileValidator(config);
-	}
+	private final FileValidator fileValidator = new FileValidator();
 
 	// ────────────── 정상 케이스 ──────────────
 

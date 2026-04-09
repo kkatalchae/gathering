@@ -2,6 +2,7 @@ package com.gathering.file.application;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Set;
 
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
@@ -13,17 +14,14 @@ import org.springframework.web.multipart.MultipartFile;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.file.domain.model.FileType;
-import com.gathering.file.infra.FileUploadConfig;
-
-import lombok.RequiredArgsConstructor;
 
 @Component
-@RequiredArgsConstructor
 public class FileValidator {
 
 	private static final Detector DETECTOR = new DefaultDetector();
 
-	private final FileUploadConfig config;
+	private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
+	private static final Set<String> ALLOWED_MIME_TYPES = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
 
 	public void validate(MultipartFile file, FileType fileType) {
 		validateNotEmpty(file);
@@ -43,14 +41,14 @@ public class FileValidator {
 			throw new BusinessException(ErrorCode.FILE_EXTENSION_NOT_ALLOWED);
 		}
 		String extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
-		if (!config.getAllowedExtensions().contains(extension)) {
+		if (!ALLOWED_EXTENSIONS.contains(extension)) {
 			throw new BusinessException(ErrorCode.FILE_EXTENSION_NOT_ALLOWED);
 		}
 	}
 
 	private void validateMimeType(MultipartFile file) {
 		String detectedMimeType = detectMimeType(file);
-		if (!config.getAllowedMimeTypes().contains(detectedMimeType)) {
+		if (!ALLOWED_MIME_TYPES.contains(detectedMimeType)) {
 			throw new BusinessException(ErrorCode.FILE_MIME_TYPE_NOT_ALLOWED);
 		}
 	}
@@ -66,16 +64,8 @@ public class FileValidator {
 	}
 
 	private void validateSize(MultipartFile file, FileType fileType) {
-		long maxSize = getMaxSize(fileType);
-		if (file.getSize() > maxSize) {
+		if (file.getSize() > fileType.getMaxSize()) {
 			throw new BusinessException(ErrorCode.FILE_SIZE_EXCEEDED);
 		}
-	}
-
-	private long getMaxSize(FileType fileType) {
-		return switch (fileType) {
-			case PROFILE_IMAGE -> config.getMaxProfileImageSize();
-			case GATHERING_IMAGE -> config.getMaxGatheringImageSize();
-		};
 	}
 }
