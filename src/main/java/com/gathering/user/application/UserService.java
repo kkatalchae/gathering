@@ -89,9 +89,34 @@ public class UserService {
 	@Transactional
 	public String uploadProfileImage(String tsid, MultipartFile file) {
 		UsersEntity user = getUsersEntityByTsid(tsid);
+
+		// 업로드 전에 기존 이미지 메타데이터 조회 (새 이미지와 구분하기 위해 먼저 조회)
+		var oldMetadata = fileUploadService.findFilesByUploaderAndType(tsid, FileType.PROFILE_IMAGE);
+
 		String url = fileUploadService.upload(file, FileType.PROFILE_IMAGE, tsid);
 		user.updateProfileImageUrl(url);
+
+		// 기존 이미지 메타데이터 DB 삭제 + 커밋 후 스토리지 파일 삭제
+		if (!oldMetadata.isEmpty()) {
+			fileUploadService.deleteFilesWithCleanup(oldMetadata);
+		}
+
 		return url;
+	}
+
+	@Transactional
+	public void deleteProfileImage(String tsid) {
+		UsersEntity user = getUsersEntityByTsid(tsid);
+		if (user.getProfileImageUrl() == null) {
+			return;
+		}
+
+		var metadataList = fileUploadService.findFilesByUploaderAndType(tsid, FileType.PROFILE_IMAGE);
+		user.updateProfileImageUrl(null);
+
+		if (!metadataList.isEmpty()) {
+			fileUploadService.deleteFilesWithCleanup(metadataList);
+		}
 	}
 
 	/**

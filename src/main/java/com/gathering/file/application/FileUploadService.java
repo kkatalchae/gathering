@@ -1,5 +1,7 @@
 package com.gathering.file.application;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -62,6 +64,41 @@ public class FileUploadService {
 
 		log.info("파일 업로드 완료 - uploaderTsid={}, storagePath={}, publicUrl={}", uploaderTsid, storageResult.storagePath(), storageResult.publicUrl());
 		return storageResult.publicUrl();
+	}
+
+	public List<FileMetadataEntity> findFilesByUploaderAndType(String uploaderTsid, FileType fileType) {
+		return fileMetadataRepository.findByUploaderTsidAndFileType(uploaderTsid, fileType);
+	}
+
+	/**
+	 * DB 메타데이터 삭제 + 커밋 이후 스토리지 파일 삭제
+	 * 커밋 이후 삭제하는 이유: 트랜잭션 롤백 시 기존 파일 보존
+	 */
+	@Transactional
+	public void deleteFilesWithCleanup(List<FileMetadataEntity> metadataList) {
+		fileMetadataRepository.deleteAll(metadataList);
+		List<String> storagePaths = metadataList.stream()
+			.map(FileMetadataEntity::getStoragePath)
+			.toList();
+		registerStorageDeleteAfterCommit(storagePaths);
+	}
+
+	private void registerStorageDeleteAfterCommit(List<String> storagePaths) {
+		if (storagePaths.isEmpty() || !TransactionSynchronizationManager.isSynchronizationActive()) {
+			return;
+		}
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				storagePaths.forEach(path -> {
+					try {
+						storageService.delete(path);
+					} catch (Exception e) {
+						log.error("파일 삭제 실패 - storagePath={}, 수동 삭제 필요", path, e);
+					}
+				});
+			}
+		});
 	}
 
 	private void registerRollbackCleanup(String storagePath) {

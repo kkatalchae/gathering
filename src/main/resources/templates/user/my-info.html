@@ -162,6 +162,30 @@
             justify-content: center;
             font-size: 0.75rem;
             transition: background 0.2s ease;
+            cursor: pointer;
+        }
+
+        .profile-image-delete {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 22px;
+            height: 22px;
+            background: #e74c3c;
+            border: 2px solid white;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            padding: 0;
+        }
+
+        .profile-image-delete:hover {
+            background: #c0392b;
         }
 
         .profile-info {
@@ -548,9 +572,10 @@
     <div id="contentSection" class="content-section">
         <!-- 프로필 헤더 -->
         <div class="profile-header">
-            <div class="profile-image-wrapper" onclick="document.getElementById('profileImageInput').click()" title="클릭하여 프로필 이미지 변경">
-                <div class="profile-image" id="profileImageContainer">👤</div>
-                <div class="profile-image-overlay">📷</div>
+            <div class="profile-image-wrapper" id="profileImageWrapper">
+                <div class="profile-image" id="profileImageContainer" onclick="document.getElementById('profileImageInput').click()" title="클릭하여 프로필 이미지 변경">👤</div>
+                <div class="profile-image-overlay" onclick="document.getElementById('profileImageInput').click()" title="클릭하여 프로필 이미지 변경">📷</div>
+                <button class="profile-image-delete" id="profileImageDeleteBtn" onclick="deleteProfileImage()" title="프로필 이미지 삭제">✕</button>
             </div>
             <input type="file" id="profileImageInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
             <div class="profile-info">
@@ -880,12 +905,7 @@
         document.getElementById('displayNickname').textContent = data.nickname || '닉네임 없음';
         document.getElementById('displayEmail').textContent = data.email;
 
-        const profileImageContainer = document.getElementById('profileImageContainer');
-        if (data.profileImageUrl) {
-            profileImageContainer.innerHTML = `<img src="${data.profileImageUrl}" alt="프로필 이미지">`;
-        } else {
-            profileImageContainer.textContent = '👤';
-        }
+        setProfileImage(data.profileImageUrl);
 
         document.getElementById('nickname').value = data.nickname || '';
         document.getElementById('name').value = data.name || '';
@@ -1032,13 +1052,26 @@
         e.target.value = '';
     });
 
+    // 프로필 이미지 상태 반영 (이미지 표시 + 삭제 버튼 노출 여부)
+    function setProfileImage(url) {
+        const container = document.getElementById('profileImageContainer');
+        const deleteBtn = document.getElementById('profileImageDeleteBtn');
+        if (url) {
+            container.innerHTML = `<img src="${url}" alt="프로필 이미지">`;
+            deleteBtn.style.display = 'flex';
+        } else {
+            container.textContent = '👤';
+            deleteBtn.style.display = 'none';
+        }
+    }
+
     // 프로필 이미지 업로드
     async function uploadProfileImage(file) {
-        const profileImageContainer = document.getElementById('profileImageContainer');
-        const wrapper = profileImageContainer.closest('.profile-image-wrapper');
+        const wrapper = document.getElementById('profileImageWrapper');
+        const container = document.getElementById('profileImageContainer');
 
         wrapper.style.pointerEvents = 'none';
-        profileImageContainer.classList.add('uploading');
+        container.classList.add('uploading');
 
         try {
             const accessToken = localStorage.getItem('accessToken');
@@ -1055,7 +1088,7 @@
 
             if (response.ok) {
                 const data = await response.json();
-                profileImageContainer.innerHTML = `<img src="${data.url}" alt="프로필 이미지">`;
+                setProfileImage(data.url);
                 showAlert('imageUploadAlert', 'success', '프로필 이미지가 업데이트되었습니다.');
             } else if (response.status === 401) {
                 const refreshed = await refreshAccessToken();
@@ -1069,7 +1102,45 @@
             showAlert('imageUploadAlert', 'error', '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
         } finally {
             wrapper.style.pointerEvents = '';
-            profileImageContainer.classList.remove('uploading');
+            container.classList.remove('uploading');
+        }
+    }
+
+    // 프로필 이미지 삭제
+    async function deleteProfileImage() {
+        if (!confirm('프로필 이미지를 삭제하시겠습니까?')) return;
+
+        const wrapper = document.getElementById('profileImageWrapper');
+        const deleteBtn = document.getElementById('profileImageDeleteBtn');
+
+        wrapper.style.pointerEvents = 'none';
+        deleteBtn.textContent = '...';
+
+        try {
+            const accessToken = localStorage.getItem('accessToken');
+            const response = await fetch('/users/me/profile-image', {
+                method: 'DELETE',
+                headers: {
+                    ...(accessToken && {'Authorization': `Bearer ${accessToken}`})
+                }
+            });
+
+            if (response.ok) {
+                setProfileImage(null);
+                showAlert('imageUploadAlert', 'success', '프로필 이미지가 삭제되었습니다.');
+            } else if (response.status === 401) {
+                const refreshed = await refreshAccessToken();
+                if (refreshed) await deleteProfileImage();
+            } else {
+                const errorData = await response.json().catch(() => null);
+                showAlert('imageUploadAlert', 'error', errorData?.message || '이미지 삭제에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('프로필 이미지 삭제 실패:', error);
+            showAlert('imageUploadAlert', 'error', '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        } finally {
+            wrapper.style.pointerEvents = '';
+            deleteBtn.textContent = '✕';
         }
     }
 

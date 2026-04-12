@@ -76,6 +76,16 @@ public class UsersController {
 	}
 
 	/**
+	 * 프로필 이미지 삭제
+	 */
+	@DeleteMapping("/me/profile-image")
+	public ResponseEntity<Void> deleteProfileImage(HttpServletRequest request) {
+		String tsid = authService.getCurrentUserTsid(request);
+		userService.deleteProfileImage(tsid);
+		return ResponseEntity.noContent().build();
+	}
+
+	/**
 	 * 내 정보 수정
 	 */
 	@PatchMapping("/me")
