@@ -45,6 +45,11 @@ spring:
     restart:
       enabled: true
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   # Redis 설정
   data:
     redis:
@@ -67,4 +72,9 @@ jwt:
   secret: ${JWT_SECRET_KEY}
   access-token-validity-in-seconds: 3600 # 1시간
   refresh-token-validity-in-seconds: 7776000 # 90일
+
+file:
+  upload:
+    local-upload-path: uploads
+    url-prefix: /uploads
 
