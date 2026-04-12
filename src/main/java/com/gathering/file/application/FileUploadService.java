@@ -70,8 +70,13 @@ public class FileUploadService {
 				@Override
 				public void afterCompletion(int status) {
 					if (status == STATUS_ROLLED_BACK) {
-						log.warn("트랜잭션 롤백으로 인한 파일 삭제 - storagePath={}", storagePath);
-						storageService.delete(storagePath);
+						log.warn("트랜잭션 롤백으로 인한 파일 삭제 시도 - storagePath={}", storagePath);
+						try {
+							storageService.delete(storagePath);
+						} catch (Exception e) {
+							// afterCompletion 내부 예외는 Spring이 삼키므로 명시적으로 로그 기록
+							log.error("롤백 후 파일 삭제 실패 - storagePath={}, 수동 삭제 필요", storagePath, e);
+						}
 					}
 				}
 			});

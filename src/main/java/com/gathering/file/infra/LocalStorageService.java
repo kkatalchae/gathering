@@ -52,7 +52,8 @@ public class LocalStorageService implements StorageService {
 		try {
 			Files.deleteIfExists(filePath);
 		} catch (IOException e) {
-			log.warn("파일 삭제 실패: {}", storagePath, e);
+			log.error("파일 삭제 실패 - storagePath={}", storagePath, e);
+			throw new BusinessException(ErrorCode.FILE_DELETE_FAILED, e);
 		}
 	}
 
