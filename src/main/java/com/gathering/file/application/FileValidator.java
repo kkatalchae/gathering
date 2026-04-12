@@ -55,6 +55,10 @@ public class FileValidator {
 	}
 
 	private void validateMimeType(MultipartFile file) {
+		if (file == null) {
+			log.warn("파일 검증 실패: 파일이 null");
+			throw new BusinessException(ErrorCode.FILE_EMPTY);
+		}
 		String detectedMimeType = detectMimeType(file);
 		if (!ALLOWED_MIME_TYPES.contains(detectedMimeType)) {
 			log.warn("파일 검증 실패: 허용되지 않는 MIME 타입 - filename={}, detectedMimeType={}, allowed={}", file.getOriginalFilename(), detectedMimeType, ALLOWED_MIME_TYPES);
@@ -74,6 +78,14 @@ public class FileValidator {
 	}
 
 	private void validateSize(MultipartFile file, FileType fileType) {
+		if (file == null) {
+			log.warn("파일 검증 실패: 파일이 null");
+			throw new BusinessException(ErrorCode.FILE_EMPTY);
+		}
+		if (fileType == null) {
+			log.warn("파일 검증 실패: fileType이 null - filename={}", file.getOriginalFilename());
+			throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+		}
 		if (file.getSize() > fileType.getMaxSize()) {
 			log.warn("파일 검증 실패: 파일 크기 초과 - filename={}, size={}bytes, maxSize={}bytes, fileType={}", file.getOriginalFilename(), file.getSize(), fileType.getMaxSize(), fileType);
 			throw new BusinessException(ErrorCode.FILE_SIZE_EXCEEDED);
