@@ -33,7 +33,7 @@ public class LocalStorageService implements StorageService {
 		String storedFilename = UUID.randomUUID() + "." + extension;
 		String storagePath = directory + "/" + storedFilename;
 
-		Path uploadDir = Paths.get(config.getLocalUploadPath(), directory);
+		Path uploadDir = Paths.get(config.getLocalUploadPath(), directory).toAbsolutePath();
 		try {
 			Files.createDirectories(uploadDir);
 			Path targetPath = uploadDir.resolve(storedFilename);
@@ -48,7 +48,7 @@ public class LocalStorageService implements StorageService {
 
 	@Override
 	public void delete(String storagePath) {
-		Path filePath = Paths.get(config.getLocalUploadPath(), storagePath);
+		Path filePath = Paths.get(config.getLocalUploadPath(), storagePath).toAbsolutePath();
 		try {
 			Files.deleteIfExists(filePath);
 		} catch (IOException e) {
