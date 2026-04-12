@@ -13,7 +13,7 @@ import com.gathering.file.domain.model.FileMetadataEntity;
 import com.gathering.file.domain.model.FileType;
 import com.gathering.file.domain.repository.FileMetadataRepository;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -42,7 +42,7 @@ public class FileUploadService {
 	public String upload(MultipartFile file, FileType fileType, String uploaderTsid) {
 		log.info("파일 업로드 시작 - uploaderTsid={}, fileType={}, filename={}, size={}bytes", uploaderTsid, fileType, file.getOriginalFilename(), file.getSize());
 
-		fileValidator.validate(file, fileType);
+		String detectedMimeType = fileValidator.validate(file, fileType);
 
 		String directory = resolveDirectory(fileType);
 		StorageResult storageResult = storageService.store(file, directory);
@@ -54,7 +54,7 @@ public class FileUploadService {
 			.originalFilename(file.getOriginalFilename())
 			.storedFilename(storageResult.storedFilename())
 			.storagePath(storageResult.storagePath())
-			.mimeType(file.getContentType())
+			.mimeType(detectedMimeType)
 			.fileSize(file.getSize())
 			.uploaderTsid(uploaderTsid)
 			.fileType(fileType)

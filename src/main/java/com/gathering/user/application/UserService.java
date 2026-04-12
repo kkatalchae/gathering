@@ -25,7 +25,7 @@ import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 import com.gathering.user.presentation.dto.WithdrawRequest;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -107,16 +107,14 @@ public class UserService {
 	@Transactional
 	public void deleteProfileImage(String tsid) {
 		UsersEntity user = getUsersEntityByTsid(tsid);
-		if (user.getProfileImageUrl() == null) {
+
+		var metadataList = fileUploadService.findFilesByUploaderAndType(tsid, FileType.PROFILE_IMAGE);
+		if (metadataList.isEmpty()) {
 			return;
 		}
 
-		var metadataList = fileUploadService.findFilesByUploaderAndType(tsid, FileType.PROFILE_IMAGE);
 		user.updateProfileImageUrl(null);
-
-		if (!metadataList.isEmpty()) {
-			fileUploadService.deleteFilesWithCleanup(metadataList);
-		}
+		fileUploadService.deleteFilesWithCleanup(metadataList);
 	}
 
 	/**

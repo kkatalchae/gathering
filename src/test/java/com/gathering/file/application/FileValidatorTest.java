@@ -1,4 +1,4 @@
-package com.gathering.file;
+package com.gathering.file.application;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
-import com.gathering.file.application.FileValidator;
 import com.gathering.file.domain.model.FileType;
 
 @DisplayName("FileValidator 단위 테스트")

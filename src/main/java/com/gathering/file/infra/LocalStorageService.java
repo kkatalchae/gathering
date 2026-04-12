@@ -59,7 +59,8 @@ public class LocalStorageService implements StorageService {
 
 	private String extractExtension(String filename) {
 		if (filename == null || !filename.contains(".")) {
-			return "";
+			log.error("파일 저장 실패: 확장자를 추출할 수 없음 - filename={}", filename);
+			throw new BusinessException(ErrorCode.FILE_EXTENSION_NOT_ALLOWED);
 		}
 		return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
 	}

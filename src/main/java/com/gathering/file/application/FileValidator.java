@@ -25,24 +25,25 @@ public class FileValidator {
 
 	private static final Detector DETECTOR = new DefaultDetector();
 
-	public static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
-	public static final Set<String> ALLOWED_MIME_TYPES = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
+	static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
+	static final Set<String> ALLOWED_MIME_TYPES = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
 
-	public void validate(MultipartFile file, FileType fileType) {
+	public String validate(MultipartFile file, FileType fileType) {
 		validateNotEmpty(file);
 		validateExtension(file.getOriginalFilename());
-		validateMimeType(file);
+		String detectedMimeType = validateMimeType(file);
 		validateSize(file, fileType);
+		return detectedMimeType;
 	}
 
-	public void validateNotEmpty(MultipartFile file) {
+	void validateNotEmpty(MultipartFile file) {
 		if (file == null || file.isEmpty()) {
 			log.warn("파일 검증 실패: 파일이 비어있음");
 			throw new BusinessException(ErrorCode.FILE_EMPTY);
 		}
 	}
 
-	public void validateExtension(String filename) {
+	void validateExtension(String filename) {
 		if (filename == null || !filename.contains(".")) {
 			log.warn("파일 검증 실패: 확장자 없음 - filename={}", filename);
 			throw new BusinessException(ErrorCode.FILE_EXTENSION_NOT_ALLOWED);
@@ -54,7 +55,7 @@ public class FileValidator {
 		}
 	}
 
-	public void validateMimeType(MultipartFile file) {
+	String validateMimeType(MultipartFile file) {
 		if (file == null) {
 			log.warn("파일 검증 실패: 파일이 null");
 			throw new BusinessException(ErrorCode.FILE_EMPTY);
@@ -64,6 +65,7 @@ public class FileValidator {
 			log.warn("파일 검증 실패: 허용되지 않는 MIME 타입 - filename={}, detectedMimeType={}, allowed={}", file.getOriginalFilename(), detectedMimeType, ALLOWED_MIME_TYPES);
 			throw new BusinessException(ErrorCode.FILE_MIME_TYPE_NOT_ALLOWED);
 		}
+		return detectedMimeType;
 	}
 
 	private String detectMimeType(MultipartFile file) {
@@ -77,7 +79,7 @@ public class FileValidator {
 		}
 	}
 
-	public void validateSize(MultipartFile file, FileType fileType) {
+	void validateSize(MultipartFile file, FileType fileType) {
 		if (file == null) {
 			log.warn("파일 검증 실패: 파일이 null");
 			throw new BusinessException(ErrorCode.FILE_EMPTY);
