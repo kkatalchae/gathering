@@ -86,7 +86,7 @@ public class FileValidator {
 			log.warn("파일 검증 실패: fileType이 null - filename={}", file.getOriginalFilename());
 			throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
 		}
-		if (file.getSize() > fileType.getMaxSize()) {
+		if (fileType.getMaxSize() > 0 && file.getSize() > fileType.getMaxSize()) {
 			log.warn("파일 검증 실패: 파일 크기 초과 - filename={}, size={}bytes, maxSize={}bytes, fileType={}", file.getOriginalFilename(), file.getSize(), fileType.getMaxSize(), fileType);
 			throw new BusinessException(ErrorCode.FILE_SIZE_EXCEEDED);
 		}
