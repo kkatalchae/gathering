@@ -16,7 +16,11 @@ public interface GatheringParticipantRepository extends JpaRepository<GatheringP
 		SELECT gp FROM GatheringParticipantEntity gp
 		JOIN FETCH gp.user
 		WHERE gp.gatheringTsid = :gatheringTsid
-		ORDER BY gp.role ASC, gp.joinedAt ASC
+		ORDER BY
+		  CASE WHEN gp.role = com.gathering.gathering.domain.model.ParticipantRole.OWNER THEN 1
+		       WHEN gp.role = com.gathering.gathering.domain.model.ParticipantRole.ADMIN THEN 2
+		       ELSE 3 END ASC,
+		  gp.joinedAt ASC
 		""")
 	List<GatheringParticipantEntity> findAllByGatheringTsidWithUser(@Param("gatheringTsid") String gatheringTsid);
 
