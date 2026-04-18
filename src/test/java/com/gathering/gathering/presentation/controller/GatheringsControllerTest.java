@@ -288,11 +288,13 @@ class GatheringsControllerTest {
 		// given: 모임 상세 응답 데이터를 준비
 		List<ParticipantSummary> participants = List.of(
 			ParticipantSummary.builder()
+				.userTsid("01HQUSER000001")
 				.nickname("김철수")
 				.profileImageUrl("https://example.com/profile1.jpg")
 				.role(ParticipantRole.OWNER)
 				.build(),
 			ParticipantSummary.builder()
+				.userTsid("01HQUSER000002")
 				.nickname("이영희")
 				.profileImageUrl("https://example.com/profile2.jpg")
 				.role(ParticipantRole.MEMBER)
@@ -339,6 +341,7 @@ class GatheringsControllerTest {
 					fieldWithPath("category").description("모임 카테고리"),
 					fieldWithPath("regionName").description("지역명"),
 					fieldWithPath("participants[]").description("참여자 목록"),
+					fieldWithPath("participants[].userTsid").description("참여자 사용자 TSID"),
 					fieldWithPath("participants[].nickname").description("참여자 닉네임"),
 					fieldWithPath("participants[].profileImageUrl").description("참여자 프로필 이미지 URL").optional(),
 					fieldWithPath("participants[].role").description("참여자 역할 (OWNER/ADMIN/MEMBER)"),
