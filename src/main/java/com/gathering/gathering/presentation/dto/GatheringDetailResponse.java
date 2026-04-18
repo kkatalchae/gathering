@@ -29,6 +29,9 @@ public class GatheringDetailResponse {
 	private GatheringCategory category;
 
 	@NotNull
+	private String regionTsid;
+
+	@NotNull
 	private String regionName;
 
 	@NotNull
@@ -47,6 +50,7 @@ public class GatheringDetailResponse {
 			.description(gathering.getDescription())
 			.mainImageUrl(gathering.getMainImageUrl())
 			.category(gathering.getCategory())
+			.regionTsid(gathering.getRegionTsid())
 			.regionName(gathering.getRegion().getName())
 			.participants(participants.stream()
 				.map(ParticipantSummary::from)

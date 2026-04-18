@@ -307,6 +307,7 @@ class GatheringsControllerTest {
 			.description("매주 토요일 오전 축구하는 모임입니다.")
 			.mainImageUrl("https://example.com/image.jpg")
 			.category(GatheringCategory.SPORTS)
+			.regionTsid("01HQREGION1234")
 			.regionName("강남구")
 			.participants(participants)
 			.createdAt(Instant.now())
@@ -339,6 +340,7 @@ class GatheringsControllerTest {
 					fieldWithPath("description").description("모임 설명").optional(),
 					fieldWithPath("mainImageUrl").description("대표 이미지 URL").optional(),
 					fieldWithPath("category").description("모임 카테고리"),
+					fieldWithPath("regionTsid").description("지역 TSID"),
 					fieldWithPath("regionName").description("지역명"),
 					fieldWithPath("participants[]").description("참여자 목록"),
 					fieldWithPath("participants[].userTsid").description("참여자 사용자 TSID"),

@@ -250,13 +250,31 @@
         document.getElementById('description').value = gathering.description || '';
         document.getElementById('mainImageUrl').value = gathering.mainImageUrl || '';
         document.getElementById('category').value = gathering.category || '';
+        selectRegion(gathering.regionTsid);
+    }
 
-        // 지역은 regionName만 있어서 선택 복원이 어려우므로 안내 텍스트로 표시
-        // 실제 구현에서는 regionTsid를 응답에 포함하는 것이 이상적
-        const parentSelect = document.getElementById('regionParent');
-        parentSelect.insertAdjacentHTML('afterend',
-            `<p style="font-size:0.82rem;color:#888;margin-top:4px;">현재 지역: ${gathering.regionName} (변경 시 재선택)</p>`
-        );
+    // regionTsid로 시/도 + 구/군 드롭다운을 자동 선택
+    function selectRegion(regionTsid) {
+        if (!regionTsid) return;
+
+        // depth-1 (시/도) 인지 확인
+        const parent = allRegions.find(r => r.tsid === regionTsid);
+        if (parent) {
+            document.getElementById('regionParent').value = regionTsid;
+            onParentRegionChange();
+            return;
+        }
+
+        // depth-2 (구/군): 어느 시/도에 속하는지 찾아서 순서대로 선택
+        for (const p of allRegions) {
+            const child = (p.children || []).find(c => c.tsid === regionTsid);
+            if (child) {
+                document.getElementById('regionParent').value = p.tsid;
+                onParentRegionChange();
+                document.getElementById('regionChild').value = regionTsid;
+                break;
+            }
+        }
     }
 
     function validate() {
