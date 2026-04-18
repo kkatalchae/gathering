@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gathering - 모임 목록</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .logo { font-size: 2rem; font-weight: 700; text-decoration: none; color: white; }
+
+        .auth-buttons { display: flex; gap: 12px; }
+
+        .btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover { background: white; color: #0984e3; }
+        .btn-primary { background: white; color: #0984e3; }
+        .btn-primary:hover { background: #f0f0f0; }
+
+        .filters {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
+        .filter-label { font-weight: 600; color: #555; white-space: nowrap; }
+
+        .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1.5px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .chip:hover, .chip.active { background: #0984e3; color: white; border-color: #0984e3; }
+
+        .main-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .section-title { font-size: 1.6rem; font-weight: 700; color: #333; }
+
+        .gatherings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .gathering-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: block;
+        }
+
+        .gathering-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+
+        .card-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .card-body { padding: 16px; }
+
+        .card-category {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.78rem;
+            color: #0984e3;
+            background: #e3f2fd;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .card-title { font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 8px; }
+
+        .card-region { font-size: 0.85rem; color: #888; display: flex; align-items: center; gap: 4px; }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #aaa;
+        }
+
+        .empty-state h3 { font-size: 1.3rem; margin-bottom: 8px; color: #666; }
+
+        .loading { text-align: center; padding: 60px; color: #888; }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 16px; }
+            .gatherings-grid { grid-template-columns: 1fr; }
+            .filters { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <a href="/" class="logo">Gathering</a>
+        <div class="auth-buttons">
+            <span id="createBtn" style="display:none;">
+                <a href="/gatherings/new" class="btn btn-primary">+ 새 모임</a>
+            </span>
+            <button id="myInfoBtn" class="btn" style="display:none;" onclick="location.href='/my-info'">내 정보</button>
+            <a id="loginBtn" href="/login" class="btn">로그인</a>
+            <button id="logoutBtn" class="btn" style="display:none;">로그아웃</button>
+        </div>
+    </header>
+
+    <!-- 카테고리 필터 -->
+    <div class="filters">
+        <span class="filter-label">카테고리</span>
+        <div class="filter-chips" id="categoryChips">
+            <span class="chip active" data-value="">전체</span>
+            <span class="chip" data-value="SPORTS">스포츠</span>
+            <span class="chip" data-value="CULTURE">문화</span>
+            <span class="chip" data-value="STUDY">스터디</span>
+            <span class="chip" data-value="HOBBY">취미</span>
+            <span class="chip" data-value="FOOD">음식</span>
+            <span class="chip" data-value="TRAVEL">여행</span>
+            <span class="chip" data-value="NETWORKING">네트워킹</span>
+            <span class="chip" data-value="GAME">게임</span>
+            <span class="chip" data-value="MUSIC">음악</span>
+            <span class="chip" data-value="BOOK">독서</span>
+            <span class="chip" data-value="TECH">IT/기술</span>
+            <span class="chip" data-value="ETC">기타</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="section-header">
+            <h1 class="section-title">모임 목록</h1>
+        </div>
+        <div id="loadingState" class="loading">불러오는 중...</div>
+        <div id="gatheringGrid" class="gatherings-grid" style="display:none;"></div>
+        <div id="emptyState" class="empty-state" style="display:none;">
+            <h3>아직 모임이 없습니다</h3>
+            <p>첫 번째 모임을 만들어보세요!</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CATEGORY_LABELS = {
+        SPORTS: '스포츠', CULTURE: '문화', STUDY: '스터디', HOBBY: '취미',
+        FOOD: '음식', TRAVEL: '여행', NETWORKING: '네트워킹', VOLUNTEER: '봉사',
+        GAME: '게임', PET: '반려동물', PHOTOGRAPHY: '사진', MUSIC: '음악',
+        BOOK: '독서', TECH: 'IT/기술', INVESTMENT: '투자', ETC: '기타'
+    };
+
+    const CATEGORY_ICONS = {
+        SPORTS: '⚽', CULTURE: '🎭', STUDY: '📚', HOBBY: '🎨', FOOD: '🍽️',
+        TRAVEL: '✈️', NETWORKING: '🤝', VOLUNTEER: '🌱', GAME: '🎮',
+        PET: '🐾', PHOTOGRAPHY: '📷', MUSIC: '🎵', BOOK: '📖',
+        TECH: '💻', INVESTMENT: '📈', ETC: '✨'
+    };
+
+    let selectedCategory = '';
+    let nextCursor = null;
+    let hasNext = false;
+    let isLoading = false;
+
+    async function apiCall(url, options = {}) {
+        const accessToken = localStorage.getItem('accessToken');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+            ...options.headers
+        };
+        try {
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) {
+                const error = await response.json().catch(() => ({}));
+                if (error.code === 'ACCESS_TOKEN_EXPIRED') {
+                    const refreshed = await refreshToken();
+                    if (refreshed) return apiCall(url, options);
+                }
+            }
+            return response;
+        } catch (e) {
+            console.error('API 호출 실패:', e);
+            throw e;
+        }
+    }
+
+    async function refreshToken() {
+        const response = await fetch('/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('accessToken', data.accessToken);
+            localStorage.setItem('tokenType', data.tokenType);
+            return true;
+        }
+        localStorage.removeItem('accessToken');
+        return false;
+    }
+
+    async function checkLoginStatus() {
+        const response = await apiCall('/users/me');
+        if (response && response.ok) {
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'inline-block';
+            document.getElementById('myInfoBtn').style.display = 'inline-block';
+            document.getElementById('createBtn').style.display = 'inline-block';
+
+            document.getElementById('logoutBtn').addEventListener('click', async () => {
+                await apiCall('/logout', { method: 'POST' });
+                localStorage.removeItem('accessToken');
+                location.href = '/login';
+            });
+        }
+    }
+
+    async function loadGatherings(reset = false) {
+        if (isLoading) return;
+        isLoading = true;
+
+        if (reset) {
+            nextCursor = null;
+            document.getElementById('gatheringGrid').innerHTML = '';
+        }
+
+        const params = new URLSearchParams();
+        if (selectedCategory) params.set('categories', selectedCategory);
+        if (nextCursor) params.set('cursor', nextCursor);
+        params.set('size', '12');
+
+        const response = await apiCall(`/gatherings?${params}`);
+        isLoading = false;
+
+        if (!response || !response.ok) {
+            document.getElementById('loadingState').style.display = 'none';
+            return;
+        }
+
+        const data = await response.json();
+        hasNext = data.hasNext;
+        nextCursor = data.nextCursor;
+
+        document.getElementById('loadingState').style.display = 'none';
+
+        if (data.gatherings.length === 0 && reset) {
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('gatheringGrid').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('gatheringGrid').style.display = 'grid';
+
+        data.gatherings.forEach(g => {
+            const card = document.createElement('a');
+            card.href = `/gatherings/${g.tsid}`;
+            card.className = 'gathering-card';
+            card.innerHTML = `
+                <div class="card-image">${g.mainImageUrl
+                    ? `<img src="${g.mainImageUrl}" alt="${g.name}" style="width:100%;height:100%;object-fit:cover;">`
+                    : CATEGORY_ICONS[g.category] || '✨'}
+                </div>
+                <div class="card-body">
+                    <div class="card-category">${CATEGORY_ICONS[g.category] || ''} ${CATEGORY_LABELS[g.category] || g.category}</div>
+                    <div class="card-title">${g.name}</div>
+                    <div class="card-region">📍 ${g.regionName}</div>
+                </div>
+            `;
+            document.getElementById('gatheringGrid').appendChild(card);
+        });
+    }
+
+    // 카테고리 칩 클릭
+    document.getElementById('categoryChips').addEventListener('click', e => {
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedCategory = chip.dataset.value;
+        loadGatherings(true);
+    });
+
+    // 무한 스크롤
+    window.addEventListener('scroll', () => {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300 && hasNext) {
+            loadGatherings(false);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        checkLoginStatus();
+        loadGatherings(true);
+    });
+</script>
+</body>
+</html>

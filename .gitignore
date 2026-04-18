@@ -42,3 +42,9 @@ local.env
 
 ### wiki
 gathering.wiki
+
+### Cluade
+.claude
+
+### local uploads
+/uploads

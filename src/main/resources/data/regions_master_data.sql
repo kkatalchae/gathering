@@ -2,11 +2,11 @@
 -- TSID는 임의로 생성된 값 (실제 TSID 생성 알고리즘과 무관)
 
 -- 서울특별시 (depth=1)
-INSERT INTO regions (tsid, code, name, path, depth, created_at)
+INSERT IGNORE INTO regions (tsid, code, name, path, depth, created_at)
 VALUES ('0R1G1N0000001', '11', '서울특별시', '11', 1, CURRENT_TIMESTAMP);
 
 -- 서울특별시 25개 구 (depth=2)
-INSERT INTO regions (tsid, code, name, path, depth, created_at)
+INSERT IGNORE INTO regions (tsid, code, name, path, depth, created_at)
 VALUES ('0R1G1N0000010', '11110', '종로구', '11/11110', 2, CURRENT_TIMESTAMP),
        ('0R1G1N0000011', '11140', '중구', '11/11140', 2, CURRENT_TIMESTAMP),
        ('0R1G1N0000012', '11170', '용산구', '11/11170', 2, CURRENT_TIMESTAMP),
@@ -34,11 +34,11 @@ VALUES ('0R1G1N0000010', '11110', '종로구', '11/11110', 2, CURRENT_TIMESTAMP)
        ('0R1G1N000001O', '11740', '강동구', '11/11740', 2, CURRENT_TIMESTAMP);
 
 -- 경기도 (depth=1)
-INSERT INTO regions (tsid, code, name, path, depth, created_at)
+INSERT IGNORE INTO regions (tsid, code, name, path, depth, created_at)
 VALUES ('0R1G1N0000002', '41', '경기도', '41', 1, CURRENT_TIMESTAMP);
 
 -- 경기도 29개 시 (depth=2)
-INSERT INTO regions (tsid, code, name, path, depth, created_at)
+INSERT IGNORE INTO regions (tsid, code, name, path, depth, created_at)
 VALUES ('0R1G1N0000020', '41110', '수원시', '41/41110', 2, CURRENT_TIMESTAMP),
        ('0R1G1N0000021', '41130', '성남시', '41/41130', 2, CURRENT_TIMESTAMP),
        ('0R1G1N0000022', '41150', '의정부시', '41/41150', 2, CURRENT_TIMESTAMP),

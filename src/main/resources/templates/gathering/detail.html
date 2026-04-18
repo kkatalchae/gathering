@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gathering - 모임 상세</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .topbar {
+            background: linear-gradient(135deg, #0984e3, #74b9ff);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .topbar-title { font-size: 1.1rem; font-weight: 600; }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 24px 20px; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .gathering-image {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+        }
+
+        .gathering-image img { width: 100%; height: 100%; object-fit: cover; }
+
+        .card-body { padding: 24px; }
+
+        .meta-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-category { background: #e3f2fd; color: #0984e3; }
+        .badge-owner { background: #fff3e0; color: #e67e22; }
+        .badge-admin { background: #f3e5f5; color: #8e44ad; }
+        .badge-member { background: #e8f5e9; color: #27ae60; }
+
+        .gathering-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+
+        .gathering-region { color: #888; font-size: 0.95rem; margin-bottom: 16px; }
+
+        .gathering-desc {
+            color: #555;
+            line-height: 1.7;
+            margin-bottom: 24px;
+            white-space: pre-wrap;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary { background: #0984e3; color: white; }
+        .btn-primary:hover { background: #0773c5; }
+        .btn-secondary { background: #f8f9fa; color: #555; border: 1.5px solid #dee2e6; }
+        .btn-secondary:hover { background: #e9ecef; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+
+        .participants-card .card-body { padding: 24px; }
+
+        .participants-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .participant-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .participant-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .participant-info { flex: 1; }
+        .participant-name { font-weight: 600; font-size: 0.95rem; }
+
+        .loading { text-align: center; padding: 60px; color: #aaa; }
+
+        .error-msg {
+            background: #ffeaea;
+            color: #e74c3c;
+            padding: 16px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .action-row { flex-direction: column; }
+            .btn { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <a href="/gatherings" class="back-btn">←</a>
+    <span class="topbar-title">모임 상세</span>
+</div>
+
+<div class="container">
+    <div id="loadingState" class="loading">불러오는 중...</div>
+    <div id="errorState" style="display:none;" class="error-msg"></div>
+
+    <div id="content" style="display:none;">
+        <div class="card">
+            <div id="gatheringImage" class="gathering-image"></div>
+            <div class="card-body">
+                <div class="meta-row">
+                    <span id="categoryBadge" class="badge badge-category"></span>
+                </div>
+                <h1 id="gatheringTitle" class="gathering-title"></h1>
+                <p id="gatheringRegion" class="gathering-region"></p>
+                <p id="gatheringDesc" class="gathering-desc"></p>
+                <div id="actionRow" class="action-row"></div>
+            </div>
+        </div>
+
+        <div class="card participants-card">
+            <div class="card-body">
+                <div class="participants-title">참여자 <span id="participantCount"></span></div>
+                <div id="participantList" class="participant-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CATEGORY_LABELS = {
+        SPORTS: '스포츠', CULTURE: '문화', STUDY: '스터디', HOBBY: '취미',
+        FOOD: '음식', TRAVEL: '여행', NETWORKING: '네트워킹', VOLUNTEER: '봉사',
+        GAME: '게임', PET: '반려동물', PHOTOGRAPHY: '사진', MUSIC: '음악',
+        BOOK: '독서', TECH: 'IT/기술', INVESTMENT: '투자', ETC: '기타'
+    };
+
+    const CATEGORY_ICONS = {
+        SPORTS: '⚽', CULTURE: '🎭', STUDY: '📚', HOBBY: '🎨', FOOD: '🍽️',
+        TRAVEL: '✈️', NETWORKING: '🤝', VOLUNTEER: '🌱', GAME: '🎮',
+        PET: '🐾', PHOTOGRAPHY: '📷', MUSIC: '🎵', BOOK: '📖',
+        TECH: '💻', INVESTMENT: '📈', ETC: '✨'
+    };
+
+    const tsid = location.pathname.split('/')[2];
+
+    async function apiCall(url, options = {}) {
+        const accessToken = localStorage.getItem('accessToken');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+            ...options.headers
+        };
+        try {
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) {
+                const error = await response.json().catch(() => ({}));
+                if (error.code === 'ACCESS_TOKEN_EXPIRED') {
+                    const refreshed = await refreshToken();
+                    if (refreshed) return apiCall(url, options);
+                }
+            }
+            return response;
+        } catch (e) {
+            console.error('API 호출 실패:', e);
+            throw e;
+        }
+    }
+
+    async function refreshToken() {
+        const response = await fetch('/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('accessToken', data.accessToken);
+            return true;
+        }
+        localStorage.removeItem('accessToken');
+        return false;
+    }
+
+    function showError(msg) {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorState').textContent = msg;
+    }
+
+    async function loadDetail() {
+        const [gatheringRes, meRes] = await Promise.all([
+            apiCall(`/gatherings/${tsid}`),
+            apiCall('/users/me')
+        ]);
+
+        if (!gatheringRes.ok) {
+            showError('모임 정보를 불러올 수 없습니다.');
+            return;
+        }
+
+        const gathering = await gatheringRes.json();
+        const me = meRes.ok ? await meRes.json() : null;
+
+        renderGathering(gathering, me);
+    }
+
+    function renderGathering(gathering, me) {
+        const icon = CATEGORY_ICONS[gathering.category] || '✨';
+
+        // 이미지 또는 아이콘
+        const imgEl = document.getElementById('gatheringImage');
+        if (gathering.mainImageUrl) {
+            imgEl.innerHTML = `<img src="${gathering.mainImageUrl}" alt="${gathering.name}">`;
+        } else {
+            imgEl.textContent = icon;
+        }
+
+        document.getElementById('categoryBadge').textContent =
+            `${icon} ${CATEGORY_LABELS[gathering.category] || gathering.category}`;
+        document.getElementById('gatheringTitle').textContent = gathering.name;
+        document.getElementById('gatheringRegion').textContent = `📍 ${gathering.regionName}`;
+        document.getElementById('gatheringDesc').textContent = gathering.description || '';
+
+        // 내 참여 정보
+        const myParticipant = me
+            ? gathering.participants.find(p => p.userTsid === me.tsid)
+            : null;
+
+        renderActions(gathering, me, myParticipant);
+        renderParticipants(gathering.participants);
+
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+    }
+
+    function renderActions(gathering, me, myParticipant) {
+        const actionRow = document.getElementById('actionRow');
+        actionRow.innerHTML = '';
+
+        if (!me) {
+            // 비로그인: 참여하기 버튼 (클릭 시 로그인 유도)
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-primary';
+            btn.textContent = '참여하기';
+            btn.onclick = () => location.href = '/login';
+            actionRow.appendChild(btn);
+            return;
+        }
+
+        if (!myParticipant) {
+            // 미참여자: 참여하기
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-primary';
+            btn.textContent = '참여하기';
+            btn.onclick = () => joinGathering();
+            actionRow.appendChild(btn);
+        } else {
+            // 참여자: 역할에 따른 버튼
+            if (myParticipant.role === 'OWNER' || myParticipant.role === 'ADMIN') {
+                const editBtn = document.createElement('a');
+                editBtn.href = `/gatherings/${gathering.tsid}/edit`;
+                editBtn.className = 'btn btn-secondary';
+                editBtn.textContent = '수정하기';
+                actionRow.appendChild(editBtn);
+            }
+
+            if (myParticipant.role === 'OWNER') {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger';
+                deleteBtn.textContent = '삭제하기';
+                deleteBtn.onclick = () => deleteGathering(gathering.tsid);
+                actionRow.appendChild(deleteBtn);
+            } else {
+                // MEMBER, ADMIN은 퇴장 가능
+                const leaveBtn = document.createElement('button');
+                leaveBtn.className = 'btn btn-secondary';
+                leaveBtn.textContent = '퇴장하기';
+                leaveBtn.onclick = () => leaveGathering(gathering.tsid);
+                actionRow.appendChild(leaveBtn);
+            }
+        }
+    }
+
+    function renderParticipants(participants) {
+        document.getElementById('participantCount').textContent = `(${participants.length}명)`;
+        const list = document.getElementById('participantList');
+        list.innerHTML = '';
+
+        participants.forEach(p => {
+            const roleClass = { OWNER: 'badge-owner', ADMIN: 'badge-admin', MEMBER: 'badge-member' }[p.role] || 'badge-member';
+            const roleLabel = { OWNER: '모임장', ADMIN: '운영진', MEMBER: '일반회원' }[p.role] || p.role;
+
+            const item = document.createElement('div');
+            item.className = 'participant-item';
+            item.innerHTML = `
+                <div class="avatar">
+                    ${p.profileImageUrl
+                        ? `<img src="${p.profileImageUrl}" alt="${p.nickname}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+                        : '👤'}
+                </div>
+                <div class="participant-info">
+                    <div class="participant-name">${p.nickname || p.name}</div>
+                </div>
+                <span class="badge ${roleClass}">${roleLabel}</span>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    async function joinGathering() {
+        const response = await apiCall(`/gatherings/${tsid}/participants`, { method: 'POST' });
+        if (response.ok) {
+            location.reload();
+        } else {
+            const err = await response.json().catch(() => ({}));
+            alert(err.message || '참여에 실패했습니다.');
+        }
+    }
+
+    async function leaveGathering(gatheringTsid) {
+        if (!confirm('모임에서 퇴장하시겠습니까?')) return;
+        const response = await apiCall(`/gatherings/${gatheringTsid}/participants/me`, { method: 'DELETE' });
+        if (response.ok) {
+            location.href = '/gatherings';
+        } else {
+            const err = await response.json().catch(() => ({}));
+            alert(err.message || '퇴장에 실패했습니다.');
+        }
+    }
+
+    async function deleteGathering(gatheringTsid) {
+        if (!confirm('모임을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+        const response = await apiCall(`/gatherings/${gatheringTsid}`, { method: 'DELETE' });
+        if (response.ok) {
+            location.href = '/gatherings';
+        } else {
+            const err = await response.json().catch(() => ({}));
+            alert(err.message || '삭제에 실패했습니다.');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDetail);
+</script>
+</body>
+</html>

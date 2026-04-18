@@ -8,21 +8,27 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gathering.ApiDocSpec;
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.presentation.dto.LoginRequest;
 import com.gathering.auth.presentation.dto.LoginResponse;
@@ -41,7 +47,23 @@ import jakarta.servlet.http.HttpServletResponse;
 @SpringBootTest
 @AutoConfigureRestDocs
 @AutoConfigureMockMvc(addFilters = false)
+@TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class AuthControllerTest {
+
+	@TestConfiguration
+	static class TestConfig {
+		@Bean
+		@Primary
+		public AuthService authService() {
+			return Mockito.mock(AuthService.class);
+		}
+
+		@Bean
+		@Primary
+		public AuthenticationManager authenticationManager() {
+			return Mockito.mock(AuthenticationManager.class);
+		}
+	}
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -49,18 +71,23 @@ class AuthControllerTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
-	@MockBean
+	@Autowired
 	private AuthService authService;
 
-	@MockBean
+	@Autowired
 	private AuthenticationManager authenticationManager;
 
 	@Value("${crypto.aes.key}")
 	private String aesKey;
 
+	@BeforeEach
+	void setUp() {
+		Mockito.reset(authService, authenticationManager);
+	}
+
 	@Test
-	@DisplayName("유효한_자격증명으로_로그인하면_액세스_토큰이_발급된다")
-	void 유효한_자격증명으로_로그인하면_액세스_토큰이_발급된다() throws Exception {
+	@DisplayName("유효한 자격 증명으로 로그인하면 액세스 토큰이 발급된다.")
+	void loginSuccess() throws Exception {
 		// given
 		// @AesEncrypted 어노테이션이 HTTP 요청 역직렬화 시 복호화를 수행하므로
 		// 테스트에서는 암호화된 비밀번호를 전달해야 함
@@ -92,7 +119,9 @@ class AuthControllerTest {
 			.andExpect(jsonPath("$.accessToken").value("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."))
 			.andExpect(jsonPath("$.tokenType").value("Bearer"))
 			.andExpect(jsonPath("$.expiresIn").value(3600))
-			.andDo(document("auth-login",
+			.andDo(document("login-success",
+				ApiDocSpec.LOGIN.getDescription(),
+				ApiDocSpec.LOGIN.getSummary(),
 				requestFields(
 					fieldWithPath("email").description("이메일 주소"),
 					fieldWithPath("password").description("AES 암호화된 비밀번호 (Base64 인코딩)")
@@ -108,8 +137,8 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("존재하지_않는_사용자로_로그인하면_401_에러가_발생한다")
-	void 존재하지_않는_사용자로_로그인하면_401_에러가_발생한다() throws Exception {
+	@DisplayName("존재하지 않는 사용자로 로그인하면 404 에러가 발생한다.")
+	void loginWithNonExistingUser() throws Exception {
 		// given
 		String plainPassword = "Password1!";
 		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, aesKey);
@@ -128,7 +157,7 @@ class AuthControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isUnauthorized())
-			.andDo(document("auth-login-fail-user-not-found",
+			.andDo(document("login-with-non-existing-user",
 				requestFields(
 					fieldWithPath("email").description("존재하지 않는 이메일 주소"),
 					fieldWithPath("password").description("AES 암호화된 비밀번호")
@@ -143,8 +172,8 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("잘못된_비밀번호로_로그인하면_401_에러가_발생한다")
-	void 잘못된_비밀번호로_로그인하면_401_에러가_발생한다() throws Exception {
+	@DisplayName("잘못된 비밀번호로 로그인하면 401 에러가 발생한다")
+	void loginWithWrongPassword() throws Exception {
 		// given
 		String plainPassword = "WrongPass1!";
 		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, aesKey);
@@ -163,7 +192,7 @@ class AuthControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isUnauthorized())
-			.andDo(document("auth-login-fail-bad-credentials",
+			.andDo(document("login-with-wrong-password",
 				requestFields(
 					fieldWithPath("email").description("이메일 주소"),
 					fieldWithPath("password").description("잘못된 비밀번호 (AES 암호화)")
@@ -178,8 +207,8 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("유효하지_않은_이메일_형식으로_로그인하면_400_에러가_발생한다")
-	void 유효하지_않은_이메일_형식으로_로그인하면_400_에러가_발생한다() throws Exception {
+	@DisplayName("유효하지 않은 이메일 형식으로 로그인하면 400 에러가 발생한다")
+	void loginWithInvalidEmailFormat() throws Exception {
 		// given
 		// @AesEncrypted deserializer가 빈 문자열은 복호화하지 않으므로 빈 비밀번호 사용
 		LoginRequest request = LoginRequest.builder()
@@ -192,7 +221,7 @@ class AuthControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isBadRequest())
-			.andDo(document("auth-login-fail-invalid-email",
+			.andDo(document("login-with-invalid-email-format",
 				requestFields(
 					fieldWithPath("email").description("유효하지 않은 이메일 형식"),
 					fieldWithPath("password").description("비밀번호")
@@ -205,8 +234,8 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("빈_비밀번호로_로그인하면_400_에러가_발생한다")
-	void 빈_비밀번호로_로그인하면_400_에러가_발생한다() throws Exception {
+	@DisplayName("빈 비밀번호로 로그인하면 400 에러가 발생한다")
+	void loginWithEmptyPassword() throws Exception {
 		// given
 		LoginRequest request = LoginRequest.builder()
 			.email("test@example.com")
@@ -218,7 +247,7 @@ class AuthControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isBadRequest())
-			.andDo(document("auth-login-fail-empty-password",
+			.andDo(document("login-with-empty-password",
 				requestFields(
 					fieldWithPath("email").description("이메일 주소"),
 					fieldWithPath("password").description("빈 비밀번호")
@@ -233,8 +262,8 @@ class AuthControllerTest {
 	// ==================== POST /refresh 테스트 ====================
 
 	@Test
-	@DisplayName("유효한_리프레시_토큰으로_갱신하면_새로운_액세스_토큰이_발급된다")
-	void 유효한_리프레시_토큰으로_갱신하면_새로운_액세스_토큰이_발급된다() throws Exception {
+	@DisplayName("유효한 리프레시 토큰으로 갱신하면 새로운 액세스 토큰이 발급된다")
+	void refreshWithValidToken() throws Exception {
 		// given
 		RefreshResponse response = RefreshResponse.builder()
 			.accessToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new-access-token")
@@ -254,7 +283,9 @@ class AuthControllerTest {
 			.andExpect(jsonPath("$.accessToken").value("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new-access-token"))
 			.andExpect(jsonPath("$.tokenType").value("Bearer"))
 			.andExpect(jsonPath("$.expiresIn").value(3600))
-			.andDo(document("auth-refresh",
+			.andDo(document("refresh",
+				ApiDocSpec.REFRESH.getDescription(),
+				ApiDocSpec.REFRESH.getSummary(),
 				requestCookies(
 					cookieWithName("refreshToken").description("리프레시 토큰 (HTTP-only)")
 				),
@@ -269,8 +300,8 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("리프레시_토큰이_없으면_401_에러가_발생한다")
-	void 리프레시_토큰이_없으면_401_에러가_발생한다() throws Exception {
+	@DisplayName("리프레시 토큰이 없으면 401 에러가 발생한다")
+	void refreshWithoutToken() throws Exception {
 		// given
 		when(authService.refresh(any(HttpServletRequest.class)))
 			.thenThrow(new BusinessException(ErrorCode.REFRESH_TOKEN_MISSING));
@@ -278,7 +309,7 @@ class AuthControllerTest {
 		// when & then
 		mockMvc.perform(post("/refresh"))
 			.andExpect(status().isUnauthorized())
-			.andDo(document("auth-refresh-fail-missing-token",
+			.andDo(document("refresh-without-token",
 				responseFields(
 					fieldWithPath("code").description("에러 코드 (REFRESH_TOKEN_MISSING)"),
 					fieldWithPath("message").description("에러 메시지")
@@ -289,8 +320,8 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("만료된_리프레시_토큰으로_갱신하면_401_에러가_발생한다")
-	void 만료된_리프레시_토큰으로_갱신하면_401_에러가_발생한다() throws Exception {
+	@DisplayName("만료된 리프레시 토큰으로 갱신하면 401 에러가 발생한다")
+	void refreshWithExpiredToken() throws Exception {
 		// given
 		when(authService.refresh(any(HttpServletRequest.class)))
 			.thenThrow(new BusinessException(ErrorCode.REFRESH_TOKEN_EXPIRED));
@@ -301,7 +332,7 @@ class AuthControllerTest {
 		mockMvc.perform(post("/refresh")
 				.cookie(refreshTokenCookie))
 			.andExpect(status().isUnauthorized())
-			.andDo(document("auth-refresh-fail-expired",
+			.andDo(document("refresh-with-expired-token",
 				requestCookies(
 					cookieWithName("refreshToken").description("만료된 리프레시 토큰")
 				),
@@ -315,8 +346,8 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("잘못된_형식의_리프레시_토큰으로_갱신하면_401_에러가_발생한다")
-	void 잘못된_형식의_리프레시_토큰으로_갱신하면_401_에러가_발생한다() throws Exception {
+	@DisplayName("잘못된 형식의 리프레시 토큰으로 갱신하면 401 에러가 발생한다")
+	void refreshWithMalformedToken() throws Exception {
 		// given
 		when(authService.refresh(any(HttpServletRequest.class)))
 			.thenThrow(new BusinessException(ErrorCode.REFRESH_TOKEN_MALFORMED));
@@ -327,7 +358,7 @@ class AuthControllerTest {
 		mockMvc.perform(post("/refresh")
 				.cookie(refreshTokenCookie))
 			.andExpect(status().isUnauthorized())
-			.andDo(document("auth-refresh-fail-malformed",
+			.andDo(document("refresh-with-malformed-token",
 				requestCookies(
 					cookieWithName("refreshToken").description("잘못된 형식의 리프레시 토큰")
 				),
@@ -341,8 +372,8 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("취소된_리프레시_토큰으로_갱신하면_401_에러가_발생한다")
-	void 취소된_리프레시_토큰으로_갱신하면_401_에러가_발생한다() throws Exception {
+	@DisplayName("취소된 리프레시 토큰으로 갱신하면 401 에러가 발생한다")
+	void refreshWithRevokedToken() throws Exception {
 		// given
 		when(authService.refresh(any(HttpServletRequest.class)))
 			.thenThrow(new BusinessException(ErrorCode.REFRESH_TOKEN_REVOKED));
@@ -353,7 +384,7 @@ class AuthControllerTest {
 		mockMvc.perform(post("/refresh")
 				.cookie(refreshTokenCookie))
 			.andExpect(status().isUnauthorized())
-			.andDo(document("auth-refresh-fail-revoked",
+			.andDo(document("refresh-with-revoked-token",
 				requestCookies(
 					cookieWithName("refreshToken").description("취소된 리프레시 토큰")
 				),
@@ -369,8 +400,8 @@ class AuthControllerTest {
 	// ==================== POST /logout 테스트 ====================
 
 	@Test
-	@DisplayName("유효한_리프레시_토큰으로_로그아웃하면_성공한다")
-	void 유효한_리프레시_토큰으로_로그아웃하면_성공한다() throws Exception {
+	@DisplayName("유효한 리프레시 토큰으로 로그아웃하면 성공한다")
+	void logoutWithValidToken() throws Exception {
 		// given
 		doNothing().when(authService).logout(any(HttpServletRequest.class), any(HttpServletResponse.class));
 
@@ -380,7 +411,9 @@ class AuthControllerTest {
 		mockMvc.perform(post("/logout")
 				.cookie(refreshTokenCookie))
 			.andExpect(status().isOk())
-			.andDo(document("auth-logout",
+			.andDo(document("logout",
+				ApiDocSpec.LOGOUT.getDescription(),
+				ApiDocSpec.LOGOUT.getSummary(),
 				requestCookies(
 					cookieWithName("refreshToken").description("삭제할 리프레시 토큰")
 				)
@@ -390,15 +423,15 @@ class AuthControllerTest {
 	}
 
 	@Test
-	@DisplayName("리프레시_토큰_없이_로그아웃하면_성공한다")
-	void 리프레시_토큰_없이_로그아웃하면_성공한다() throws Exception {
+	@DisplayName("리프레시 토큰 없이 로그아웃하면 성공한다")
+	void logoutWithoutToken() throws Exception {
 		// given
 		doNothing().when(authService).logout(any(HttpServletRequest.class), any(HttpServletResponse.class));
 
 		// when & then
 		mockMvc.perform(post("/logout"))
 			.andExpect(status().isOk())
-			.andDo(document("auth-logout-without-token"));
+			.andDo(document("logout-without-token"));
 
 		verify(authService, times(1)).logout(any(HttpServletRequest.class), any(HttpServletResponse.class));
 	}

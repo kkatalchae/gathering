@@ -63,6 +63,10 @@ public class GatheringEntity {
 	@Column(name = "main_image_url", length = 500)
 	private String mainImageUrl;
 
+	@Column(name = "max_participants", nullable = false)
+	@Builder.Default
+	private Integer maxParticipants = 100;
+
 	@Column(name = "created_at", nullable = false, updatable = false)
 	@CreatedDate
 	private Instant createdAt;
@@ -79,4 +83,22 @@ public class GatheringEntity {
 		foreignKey = @ForeignKey(name = "fk_gathering_region")
 	)
 	private RegionEntity region;
+
+	/**
+	 * 모임 정보 수정
+	 *
+	 * @param name 모임 이름
+	 * @param description 모임 설명
+	 * @param regionTsid 지역 TSID
+	 * @param category 카테고리
+	 * @param mainImageUrl 대표 이미지 URL
+	 */
+	public void update(String name, String description, String regionTsid,
+		GatheringCategory category, String mainImageUrl) {
+		this.name = name;
+		this.description = description;
+		this.regionTsid = regionTsid;
+		this.category = category;
+		this.mainImageUrl = mainImageUrl;
+	}
 }

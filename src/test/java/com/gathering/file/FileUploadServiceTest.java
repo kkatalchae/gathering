@@ -51,7 +51,7 @@ class FileUploadServiceTest {
 			"uuid.jpg"
 		);
 
-		willDoNothing().given(fileValidator).validate(any(), any());
+		given(fileValidator.validate(any(), any())).willReturn("image/jpeg");
 		given(storageService.store(any(), anyString())).willReturn(storageResult);
 		given(fileMetadataRepository.save(any(FileMetadataEntity.class))).willAnswer(i -> i.getArgument(0));
 
@@ -68,7 +68,7 @@ class FileUploadServiceTest {
 	void upload_storageFailure_throwsFileUploadFailed() {
 		// given
 		MultipartFile file = createValidJpegFile();
-		willDoNothing().given(fileValidator).validate(any(), any());
+		given(fileValidator.validate(any(), any())).willReturn("image/jpeg");
 		given(storageService.store(any(), anyString()))
 			.willThrow(new BusinessException(ErrorCode.FILE_UPLOAD_FAILED));
 

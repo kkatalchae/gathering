@@ -7,44 +7,383 @@ servers:
   - url: http://localhost
 tags: [ ]
 paths:
-  /login:
+  /gatherings:
+    get:
+      tags:
+        - gatherings
+      summary: 모임 목록 조회(/gatherings)
+      description: |
+        모임 목록을 조회한다.
+        카테고리와 지역으로 필터링할 수 있으며 커서 기반 무한 스크롤을 지원한다.
+
+        **필터링**
+        - categories: 다중 선택 가능 (쉼표 구분)
+        - regionTsids: 다중 선택 가능
+
+        **페이지네이션**
+        - cursor가 없으면 첫 페이지 조회
+        - hasNext=true일 때 nextCursor로 다음 페이지 조회
+      operationId: gatherings-list
+      parameters:
+        - name: categories
+          in: query
+          description: 카테고리 필터 (다중 선택 가능)
+          required: false
+          schema:
+            type: string
+        - name: regionTsids
+          in: query
+          description: 지역 TSID 필터 (다중 선택 가능)
+          required: false
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: 페이지 커서 (이전 응답의 nextCursor 값)
+          required: false
+          schema:
+            type: string
+        - name: size
+          in: query
+          description: "페이지 크기 (기본: 20, 최대: 100)"
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings251537030"
+              examples:
+                gatherings-list:
+                  value: "{\"gatherings\":[{\"tsid\":\"01HQGATHERING1\",\"name\":\"\
+                    주말 축구 모임\",\"mainImageUrl\":\"https://example.com/image1.jpg\"\
+                    ,\"category\":\"SPORTS\",\"regionName\":\"강남구\"},{\"tsid\":\"\
+                    01HQGATHERING2\",\"name\":\"평일 스터디 모임\",\"mainImageUrl\":\"https://example.com/image2.jpg\"\
+                    ,\"category\":\"STUDY\",\"regionName\":\"서초구\"}],\"nextCursor\"\
+                    :\"01HQGATHERING3\",\"hasNext\":true}"
     post:
       tags:
-        - login
-      operationId: auth-login
+        - gatherings
+      summary: 모임 생성(/gatherings)
+      description: |
+        모임이 생성되고 생성한 유저는 오너가 된다.
+        모임 이름, 지역, 카테고리는 필수이며 설명과 대표 이미지는 선택사항이다.
+
+        **실패 케이스**
+        - 모임 이름을 누락하면 400 에러가 발생한다.
+        - 카테고리를 누락하면 400 에러가 발생한다.
+        - 존재하지 않는 지역으로 생성 요청하면 404 에러가 발생한다.
+      operationId: gatherings
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/login-733236850"
+              $ref: "#/components/schemas/gatherings-335326168"
             examples:
-              auth-login-fail-invalid-email:
-                value: "{\"email\":\"invalid-email\",\"password\":\"\"}"
-              auth-login-fail-user-not-found:
-                value: "{\"email\":\"notfound@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
-                  }"
-              auth-login-fail-empty-password:
-                value: "{\"email\":\"test@example.com\",\"password\":\"\"}"
-              auth-login-fail-bad-credentials:
-                value: "{\"email\":\"test@example.com\",\"password\":\"JM/lt9NkRjpaPL2HuukTEQ==\"\
-                  }"
-              auth-login:
-                value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
-                  }"
+              gatherings:
+                value: "{\"name\":\"테스트 모임\",\"description\":\"테스트 설명입니다\",\"regionTsid\"\
+                  :\"01HQREGION1234\",\"category\":\"SPORTS\",\"mainImageUrl\":\"\
+                  https://example.com/image.jpg\"}"
       responses:
-        "400":
-          description: "400"
+        "201":
+          description: "201"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-tsid-1331249008"
+                $ref: "#/components/schemas/gatherings-2016471649"
               examples:
-                auth-login-fail-invalid-email:
-                  value: "{\"code\":\"INVALID_EMAIL_FORMAT\",\"message\":\"올바른 형식의\
-                    \ 이메일이 아닙니다.\"}"
-                auth-login-fail-empty-password:
-                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
-                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
+                gatherings:
+                  value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
+                    :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
+                    :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-15T06:06:13.297107Z\"\
+                    }"
+  /gatherings/{tsid}:
+    get:
+      tags:
+        - gatherings
+      summary: "모임 상세 조회(/gatherings/{tsid})"
+      description: |
+        모임의 상세 정보를 조회한다.
+        목록 정보에 더해 설명, 전체 참여자 리스트가 포함된다.
+        참여자 리스트에는 닉네임, 프로필 이미지, role이 포함되어 OWNER를 구분할 수 있다.
+
+        **실패 케이스**
+        - 존재하지 않는 모임 조회 시 404 에러가 발생한다.
+      operationId: gatherings-detail
+      parameters:
+        - name: tsid
+          in: path
+          description: 모임 TSID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings-tsid816390877"
+              examples:
+                gatherings-detail:
+                  value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"주말 축구 모임\",\"description\"\
+                    :\"매주 토요일 오전 축구하는 모임입니다.\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
+                    ,\"category\":\"SPORTS\",\"regionName\":\"강남구\",\"participants\"\
+                    :[{\"nickname\":\"김철수\",\"profileImageUrl\":\"https://example.com/profile1.jpg\"\
+                    ,\"role\":\"OWNER\"},{\"nickname\":\"이영희\",\"profileImageUrl\"\
+                    :\"https://example.com/profile2.jpg\",\"role\":\"MEMBER\"}],\"\
+                    createdAt\":\"2026-01-15T06:06:13.474804Z\"}"
+    put:
+      tags:
+        - gatherings
+      summary: "모임 정보 수정(/gatherings/{tsid})"
+      description: |
+        OWNER 또는 ADMIN이 모임 정보를 수정한다.
+        PUT 방식으로 모든 필드를 전송해야 하며 필수값은 반드시 포함해야 한다.
+
+        **수정 가능 필드**
+        - name: 모임 이름 (필수, 25자 이하)
+        - regionTsid: 지역 TSID (필수)
+        - category: 카테고리 (필수)
+        - description: 모임 설명 (선택, 1000자 이하)
+        - mainImageUrl: 대표 이미지 URL (선택)
+
+        **실패 케이스**
+        - 모임 이름을 누락하면 400 에러가 발생한다.
+        - 카테고리를 누락하면 400 에러가 발생한다.
+        - 지역을 누락하면 400 에러가 발생한다.
+        - 존재하지 않는 모임을 수정하면 404 에러가 발생한다.
+        - 존재하지 않는 지역으로 수정하면 404 에러가 발생한다.
+        - MEMBER 권한으로 수정하면 403 에러가 발생한다.
+        - 모임에 참여하지 않은 사용자가 수정하면 403 에러가 발생한다.
+      operationId: gatherings-update
+      parameters:
+        - name: tsid
+          in: path
+          description: 모임 TSID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/gatherings-335326168"
+            examples:
+              gatherings-update:
+                value: "{\"name\":\"수정된 모임\",\"description\":\"수정된 설명입니다\",\"regionTsid\"\
+                  :\"01HQREGION5678\",\"category\":\"STUDY\",\"mainImageUrl\":\"https://example.com/new-image.jpg\"\
+                  }"
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings-tsid1947421575"
+              examples:
+                gatherings-update:
+                  value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"수정된 모임\",\"description\"\
+                    :\"수정된 설명입니다\",\"regionTsid\":\"01HQREGION5678\",\"category\"\
+                    :\"STUDY\",\"mainImageUrl\":\"https://example.com/new-image.jpg\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-01-15T06:06:13.382061Z\"\
+                    }"
+    delete:
+      tags:
+        - gatherings
+      summary: "모임 삭제(/gatherings/{tsid})"
+      description: |
+        OWNER가 모임을 삭제한다.
+        모임과 관련된 참여자 데이터가 함께 삭제된다.
+
+        **권한**
+        - OWNER만 삭제 가능
+        - ADMIN은 삭제 권한 없음 (수정만 가능)
+
+        **실패 케이스**
+        - 존재하지 않는 모임을 삭제하면 404 에러가 발생한다.
+        - ADMIN 권한으로 삭제하면 403 에러가 발생한다.
+        - MEMBER 권한으로 삭제하면 403 에러가 발생한다.
+        - 모임에 참여하지 않은 사용자가 삭제하면 403 에러가 발생한다.
+      operationId: gatherings-delete
+      parameters:
+        - name: tsid
+          in: path
+          description: 모임 TSID
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: "204"
+  /gatherings/{gatheringTsid}/participants:
+    post:
+      tags:
+        - gatherings
+      summary: "모임 참여(/gatherings/{gatheringTsid}/participants)"
+      description: |
+        로그인한 사용자가 모임에 MEMBER로 참여한다.
+
+        **권한**
+        - 인증된 사용자 누구나 가능
+
+        **참여 규칙**
+        - 이미 참여중인 모임에는 다시 참여할 수 없음
+        - 모임 정원이 가득 찬 경우 참여 불가
+        - 참여 시 기본 역할은 MEMBER
+
+        **실패 케이스**
+        - 존재하지 않는 모임에 참여하면 404 에러가 발생한다.
+        - 이미 참여중인 모임에 다시 참여하면 409 에러가 발생한다.
+        - 정원이 가득 찬 모임에 참여하면 409 에러가 발생한다.
+      operationId: gatherings-join
+      parameters:
+        - name: gatheringTsid
+          in: path
+          description: 참여할 모임 TSID
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: "201"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings-gatheringTsid-participants947766187"
+              examples:
+                gatherings-join:
+                  value: "{\"participantTsid\":\"01HQPARTIC1234\",\"gatheringTsid\"\
+                    :\"01HQGATHERING1\",\"userTsid\":\"01HQUSER123456\",\"role\":\"\
+                    MEMBER\",\"joinedAt\":\"2026-01-15T06:06:13.437904Z\"}"
+  /gatherings/{gatheringTsid}/participants/me:
+    delete:
+      tags:
+        - gatherings
+      summary: "모임 퇴장(/gatherings/{gatheringTsid}/participants/me)"
+      description: |
+        로그인한 사용자가 모임에서 퇴장한다.
+
+        **권한**
+        - 해당 모임에 참여중인 사용자만 가능
+
+        **퇴장 규칙**
+        - MEMBER, ADMIN만 퇴장 가능
+        - OWNER는 퇴장 불가 (오너 양도 또는 모임 삭제 필요)
+
+        **실패 케이스**
+        - 존재하지 않는 모임에서 퇴장하면 404 에러가 발생한다.
+        - 참여하지 않은 모임에서 퇴장하면 404 에러가 발생한다.
+        - OWNER가 퇴장하려 하면 400 에러가 발생한다.
+      operationId: gatherings-leave
+      parameters:
+        - name: gatheringTsid
+          in: path
+          description: 퇴장할 모임 TSID
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: "204"
+  /gatherings/{gatheringTsid}/participants/{targetUserTsid}/role:
+    patch:
+      tags:
+        - gatherings
+      summary: "참여자 역할 변경(/gatherings/{gatheringTsid}/participants/{targetUserTsid}/role)"
+      description: |
+        OWNER가 모임 참여자의 역할을 변경한다.
+        변경 가능한 역할은 OWNER, ADMIN, MEMBER이다.
+        OWNER로 역할을 변경하면 오너가 양도되고 기존 OWNER는 ADMIN으로 자동 변경된다.
+
+        **권한**
+        - OWNER만 역할 변경 가능
+        - ADMIN, MEMBER는 역할 변경 불가
+
+        **역할 변경 규칙**
+        - MEMBER -> ADMIN: 관리자 권한 부여
+        - ADMIN -> MEMBER: 관리자 권한 회수
+        - MEMBER/ADMIN -> OWNER: 오너 양도 (기존 오너는 ADMIN이 됨)
+
+        **실패 케이스**
+        - ADMIN 권한으로 시도하면 403 에러가 발생한다.
+        - MEMBER 권한으로 시도하면 403 에러가 발생한다.
+        - 모임에 참여하지 않은 사용자가 시도하면 403 에러가 발생한다.
+        - 존재하지 않는 모임의 역할 변경 시 404 에러가 발생한다.
+        - 대상 유저가 모임 참여자가 아니면 404 에러가 발생한다.
+        - 자신의 역할을 변경하려 하면 400 에러가 발생한다.
+      operationId: gatherings-change-participant-role
+      parameters:
+        - name: gatheringTsid
+          in: path
+          description: 모임 TSID
+          required: true
+          schema:
+            type: string
+        - name: targetUserTsid
+          in: path
+          description: 대상 사용자 TSID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/gatherings-gatheringTsid-participants-targetUserTsid-role1837898416"
+            examples:
+              gatherings-change-participant-role:
+                value: "{\"newRole\":\"ADMIN\"}"
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/gatherings-gatheringTsid-participants-targetUserTsid-role-161062674"
+              examples:
+                gatherings-change-participant-role:
+                  value: "{\"participantTsid\":\"01HQPARTIC1234\",\"userTsid\":\"\
+                    01HQMEMBER1234\",\"previousRole\":\"MEMBER\",\"newRole\":\"ADMIN\"\
+                    }"
+  /login:
+    post:
+      tags:
+        - login
+      summary: 로그인(/login)
+      description: |
+        로그인이 성공하면 액세스 토큰 정보를 리턴하고 리프레시 토큰 쿠키가 발급된다.
+
+        **실패 케이스**
+        - 존재하지 않는 사용자로 로그인하면 404 에러가 발생한다.
+        - 잘못된 비밀번호로 로그인하면 401 에러가 발생한다.
+        - 유효하지 않은 이메일 형식으로 로그인 하면 400 에러가 발생한다.
+        - 빈 비밀번호로 로그인하면 400 에러가 발생한다.
+      operationId: login-
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/login-2055163896"
+            examples:
+              login-with-wrong-password:
+                value: "{\"email\":\"test@example.com\",\"password\":\"JM/lt9NkRjpaPL2HuukTEQ==\"\
+                  }"
+              login-success:
+                value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
+                  }"
+              login-with-invalid-email-format:
+                value: "{\"email\":\"invalid-email\",\"password\":\"\"}"
+              login-with-non-existing-user:
+                value: "{\"email\":\"notfound@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
+                  }"
+              login-with-empty-password:
+                value: "{\"email\":\"test@example.com\",\"password\":\"\"}"
+      responses:
         "401":
           description: "401"
           content:
@@ -52,10 +391,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/users-tsid-1331249008"
               examples:
-                auth-login-fail-user-not-found:
+                login-with-wrong-password:
                   value: "{\"code\":\"INVALID_CREDENTIALS\",\"message\":\"이메일 또는 비\
                     밀번호가 올바르지 않습니다\"}"
-                auth-login-fail-bad-credentials:
+                login-with-non-existing-user:
                   value: "{\"code\":\"INVALID_CREDENTIALS\",\"message\":\"이메일 또는 비\
                     밀번호가 올바르지 않습니다\"}"
         "200":
@@ -65,14 +404,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/login1168052559"
               examples:
-                auth-login:
+                login-success:
                   value: "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\
                     ,\"tokenType\":\"Bearer\",\"expiresIn\":3600}"
+        "400":
+          description: "400"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/users-tsid-1331249008"
+              examples:
+                login-with-invalid-email-format:
+                  value: "{\"code\":\"INVALID_EMAIL_FORMAT\",\"message\":\"올바른 형식의\
+                    \ 이메일이 아닙니다.\"}"
+                login-with-empty-password:
+                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
+                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
   /logout:
     post:
       tags:
         - logout
-      operationId: auth-logout
+      summary: 로그아웃(/logout)
+      description: |
+        로그아웃하면 리프레시 토큰이 삭제되고 무효화된다.
+        리프레시 토큰이 없어도 로그아웃이 가능하다.
+      operationId: logout
       responses:
         "200":
           description: "200"
@@ -80,27 +436,36 @@ paths:
     post:
       tags:
         - refresh
-      operationId: auth-refresh
+      summary: 토큰 리프레시(/refresh)
+      description: |
+        리프레시 토큰 쿠키를 사용하여 새로운 액세스 토큰을 발급받는다.
+
+        **실패 케이스**
+        - 리프레시 토큰이 없으면 401 에러가 발생한다.
+        - 만료된 리프레시 토큰으로 갱신하면 401 에러가 발생한다.
+        - 잘못된 형식의 리프레시 토큰으로 갱신하면 401 에러가 발생한다.
+        - 취소된 리프레시 토큰으로 갱신하면 401 에러가 발생한다.
+      operationId: refresh
       responses:
         "401":
           description: "401"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/refresh388130491"
+                $ref: "#/components/schemas/refresh2110093555"
               examples:
-                auth-refresh-fail-expired:
+                refresh-with-expired-token:
                   value: "{\"code\":\"REFRESH_TOKEN_EXPIRED\",\"message\":\"리프레시 토\
                     큰이 만료되었습니다. 다시 로그인해주세요\"}"
-                auth-refresh-fail-revoked:
-                  value: "{\"code\":\"REFRESH_TOKEN_REVOKED\",\"message\":\"리프레시 토\
-                    큰이 취소되었습니다. 다시 로그인해주세요\"}"
-                auth-refresh-fail-malformed:
+                refresh-with-malformed-token:
                   value: "{\"code\":\"REFRESH_TOKEN_MALFORMED\",\"message\":\"리프레시\
                     \ 토큰 형식이 올바르지 않습니다\"}"
-                auth-refresh-fail-missing-token:
+                refresh-without-token:
                   value: "{\"code\":\"REFRESH_TOKEN_MISSING\",\"message\":\"리프레시 토\
                     큰이 필요합니다\"}"
+                refresh-with-revoked-token:
+                  value: "{\"code\":\"REFRESH_TOKEN_REVOKED\",\"message\":\"리프레시 토\
+                    큰이 취소되었습니다. 다시 로그인해주세요\"}"
         "200":
           description: "200"
           content:
@@ -108,19 +473,59 @@ paths:
               schema:
                 $ref: "#/components/schemas/refresh-542310961"
               examples:
-                auth-refresh:
+                refresh:
                   value: "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new-access-token\"\
                     ,\"tokenType\":\"Bearer\",\"expiresIn\":3600}"
+  /regions:
+    get:
+      tags:
+        - regions
+      summary: 지역 목록 조회(/regions)
+      description: |
+        전체 지역 목록을 계층 구조로 조회한다.
+        depth-1 지역(서울특별시, 경기도)이 children 배열에 depth-2 지역(구/시)을 포함한다.
+
+        **응답 구조**
+        - 최상위 배열: depth-1 지역들 (서울특별시, 경기도)
+        - 각 depth-1 지역의 children: 해당 지역의 구/시 목록
+        - tsid: 모임 필터링에 사용
+        - code: 행정구역 코드
+
+        **모바일 최적화**
+        - 단일 요청으로 전체 지역 데이터 로드 (56개 - 가벼움)
+        - 클라이언트에서 캐싱 권장
+      operationId: regions-list
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/regions1337480724"
+              examples:
+                regions-list:
+                  value: "[{\"tsid\":\"0R1G1N0000001\",\"code\":\"11\",\"name\":\"\
+                    서울특별시\",\"depth\":1,\"children\":[{\"tsid\":\"0R1G1N0000010\"\
+                    ,\"code\":\"11680\",\"name\":\"강남구\",\"depth\":2,\"children\"\
+                    :[]},{\"tsid\":\"0R1G1N0000011\",\"code\":\"11740\",\"name\":\"\
+                    강동구\",\"depth\":2,\"children\":[]}]},{\"tsid\":\"0R1G1N0000002\"\
+                    ,\"code\":\"41\",\"name\":\"경기도\",\"depth\":1,\"children\":[{\"\
+                    tsid\":\"0R1G1N0000020\",\"code\":\"41131\",\"name\":\"수원시\",\"\
+                    depth\":2,\"children\":[]}]}]"
   /users/join:
     post:
       tags:
         - users
+      summary: 회원가입(/users/join)
+      description: |
+        회원 정보가 DB에 저장되고 비밀번호는 암호화되어 저장된다.
+        이메일은 중복될 수 없으며, 비밀번호는 AES로 암호화하여 전송해야 한다.
       operationId: users-join
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/users-join-1381348445"
+              $ref: "#/components/schemas/users-join-1337455905"
             examples:
               users-join:
                 value: "{\"email\":\"test@example.com\",\"password\":\"qARwtu22gWm4DtnttjuQbg==\"\
@@ -133,6 +538,10 @@ paths:
     get:
       tags:
         - users
+      summary: 내 정보 조회(/users/me)
+      description: |
+        로그인한 사용자의 상세 정보를 조회한다.
+        이메일, 전화번호, 계정 상태, 비밀번호 설정 여부, 연동된 소셜 계정 목록이 포함된다.
       operationId: users-me
       responses:
         "200":
@@ -140,7 +549,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me-656631050"
+                $ref: "#/components/schemas/users-me1442001226"
               examples:
                 users-me:
                   value: "{\"tsid\":\"1234567890123\",\"email\":\"test@example.com\"\
@@ -151,6 +560,11 @@ paths:
     delete:
       tags:
         - users
+      summary: 회원 탈퇴(/users/me)
+      description: |
+        회원 탈퇴를 진행한다.
+        비밀번호로 본인 확인 후 계정이 삭제 상태로 변경된다.
+        연동된 모든 소셜 계정도 함께 해제된다.
       operationId: DELETE /users/me - 회원 탈퇴
       requestBody:
         content:
@@ -166,6 +580,11 @@ paths:
     patch:
       tags:
         - users
+      summary: 내 정보 수정(/users/me)
+      description: |
+        로그인한 사용자의 정보(닉네임, 이름, 전화번호)를 수정한다.
+        변경하지 않을 필드는 null로 전송하면 된다.
+        이메일은 변경할 수 없다.
       operationId: users-update-me
       requestBody:
         content:
@@ -182,7 +601,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-me54274076"
+                $ref: "#/components/schemas/users-me-2142060944"
               examples:
                 users-update-me:
                   value: "{\"tsid\":\"1234567890123\",\"email\":\"test@example.com\"\
@@ -194,6 +613,14 @@ paths:
     get:
       tags:
         - users
+      summary: "사용자 정보 조회(/users/{tsid})"
+      description: |
+        특정 사용자의 공개 정보(닉네임, 이름, 프로필 이미지)를 조회한다.
+        민감한 정보(이메일, 전화번호, TSID)는 포함되지 않는다.
+
+        **실패 케이스**
+        - 삭제된 사용자를 조회하면 404 에러가 발생한다.
+        - 정지된 사용자를 조회하면 404 에러가 발생한다.
       operationId: users-get
       parameters:
         - name: tsid
@@ -217,7 +644,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/users-tsid-370292314"
+                $ref: "#/components/schemas/users-tsid-982397607"
               examples:
                 users-get:
                   value: "{\"nickname\":\"테스터\",\"name\":\"홍길동\",\"profileImageUrl\"\
@@ -226,12 +653,20 @@ paths:
     put:
       tags:
         - users
+      summary: 비밀번호 변경(/users/me/password)
+      description: |
+        현재 비밀번호를 확인한 후 새 비밀번호로 변경한다.
+        비밀번호는 AES로 암호화하여 전송해야 한다.
+
+        **실패 케이스**
+        - 현재 비밀번호가 일치하지 않으면 400 에러가 발생한다.
+        - 새 비밀번호가 정책(최소 8자, 숫자+특수문자 포함)을 위반하면 400 에러가 발생한다.
       operationId: users-change-password
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/users-me-password443516385"
+              $ref: "#/components/schemas/users-me-password-2065468587"
             examples:
               users-change-password-invalid-current:
                 value: "{\"currentPassword\":\"JM/lt9NkRjpaPL2HuukTEQ==\",\"newPassword\"\
@@ -262,6 +697,14 @@ paths:
     delete:
       tags:
         - users
+      summary: "소셜 연동 해제(/users/me/oauth/{provider})"
+      description: |
+        특정 OAuth 제공자와의 연동을 해제한다.
+        비밀번호가 설정되어 있거나 다른 소셜 연동이 있어야 해제가 가능하다.
+
+        **실패 케이스**
+        - 비밀번호가 없고 마지막 소셜 연동을 해제하려 하면 400 에러가 발생한다.
+        - 연동되지 않은 제공자를 해제하려 하면 404 에러가 발생한다.
       operationId: "DELETE /users/me/oauth/{provider}"
       parameters:
         - name: provider
@@ -295,23 +738,9 @@ paths:
                     :\"마지막 로그인 수단입니다. 비밀번호를 설정하거나 다른 소셜 계정을 연동한 후 해제할 수 있습니다.\"}"
 components:
   schemas:
-    users-me-458480484:
-      type: object
-      properties:
-        phoneNumber:
-          type: string
-          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
-          nullable: true
-        name:
-          type: string
-          description: 이름 (null이면 변경하지 않음)
-          nullable: true
-        nickname:
-          type: string
-          description: 닉네임 (null이면 변경하지 않음)
-          nullable: true
-    users-me54274076:
+    users-me-2142060944:
       required:
+        - connectedProviders
         - createdAt
         - email
         - hasPassword
@@ -326,7 +755,6 @@ components:
         connectedProviders:
           type: array
           description: 연동된 소셜 계정 목록 (GOOGLE 등)
-          nullable: true
           items:
             oneOf:
               - type: object
@@ -360,22 +788,6 @@ components:
         status:
           type: string
           description: 계정 상태
-    login1168052559:
-      required:
-        - accessToken
-        - expiresIn
-        - tokenType
-      type: object
-      properties:
-        expiresIn:
-          type: number
-          description: 액세스 토큰 만료 시간 (초)
-        tokenType:
-          type: string
-          description: 토큰 타입 (Bearer)
-        accessToken:
-          type: string
-          description: 액세스 토큰 (JWT)
     refresh-542310961:
       required:
         - accessToken
@@ -392,7 +804,43 @@ components:
         accessToken:
           type: string
           description: 새로운 액세스 토큰 (JWT)
-    login-733236850:
+    users-tsid-982397607:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          description: 사용자 이름
+        nickname:
+          type: string
+          description: 닉네임
+          nullable: true
+        profileImageUrl:
+          type: string
+          description: 프로필 이미지 URL
+          nullable: true
+    gatherings-gatheringTsid-participants-targetUserTsid-role-161062674:
+      required:
+        - newRole
+        - participantTsid
+        - previousRole
+        - userTsid
+      type: object
+      properties:
+        userTsid:
+          type: string
+          description: 사용자 TSID
+        participantTsid:
+          type: string
+          description: 참여자 고유 ID
+        previousRole:
+          type: string
+          description: 변경 전 역할
+        newRole:
+          type: string
+          description: 변경 후 역할
+    login-2055163896:
       required:
         - email
         - password
@@ -400,10 +848,245 @@ components:
       properties:
         password:
           type: string
-          description: AES 암호화된 비밀번호 (Base64 인코딩)
+          description: 빈 비밀번호
         email:
           type: string
           description: 이메일 주소
+    gatherings-335326168:
+      required:
+        - category
+        - name
+        - regionTsid
+      type: object
+      properties:
+        regionTsid:
+          type: string
+          description: 지역 TSID (필수)
+        name:
+          type: string
+          description: "모임 이름 (필수, 25자 이하)"
+        description:
+          type: string
+          description: "모임 설명 (선택, 1000자 이하)"
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리 (필수)
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL (선택)
+          nullable: true
+    regions1337480724:
+      type: array
+      items:
+        required:
+          - children
+          - code
+          - depth
+          - name
+          - tsid
+        type: object
+        properties:
+          depth:
+            type: number
+            description: "지역 깊이 (1: 시/도, 2: 구/시)"
+          code:
+            type: string
+            description: 행정구역 코드
+          children:
+            type: array
+            description: 하위 지역 목록 (depth-2)
+            items:
+              required:
+                - children
+                - code
+                - depth
+                - name
+                - tsid
+              type: object
+              properties:
+                depth:
+                  type: number
+                  description: 하위 지역 깊이 (2)
+                code:
+                  type: string
+                  description: 하위 지역 코드
+                children:
+                  type: array
+                  description: 하위 지역의 children (항상 빈 배열)
+                  items:
+                    oneOf:
+                      - type: object
+                      - type: boolean
+                      - type: string
+                      - type: number
+                name:
+                  type: string
+                  description: 하위 지역명
+                tsid:
+                  type: string
+                  description: 하위 지역 고유 ID
+          name:
+            type: string
+            description: 지역명
+          tsid:
+            type: string
+            description: 지역 고유 ID (모임 필터링에 사용)
+    gatherings-2016471649:
+      required:
+        - category
+        - createdAt
+        - maxParticipants
+        - name
+        - regionTsid
+        - tsid
+      type: object
+      properties:
+        createdAt:
+          type: string
+          description: 생성 일시
+        regionTsid:
+          type: string
+          description: 지역 TSID
+        name:
+          type: string
+          description: 모임 이름
+        description:
+          type: string
+          description: 모임 설명
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리
+        tsid:
+          type: string
+          description: 모임 고유 ID
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL
+          nullable: true
+        maxParticipants:
+          type: number
+          description: "최대 참가 인원 (기본값: 100)"
+    users-me-458480484:
+      type: object
+      properties:
+        phoneNumber:
+          type: string
+          description: "전화번호 (null이면 변경하지 않음, 10-11자리 숫자)"
+          nullable: true
+        name:
+          type: string
+          description: 이름 (null이면 변경하지 않음)
+          nullable: true
+        nickname:
+          type: string
+          description: 닉네임 (null이면 변경하지 않음)
+          nullable: true
+    login1168052559:
+      required:
+        - accessToken
+        - expiresIn
+        - tokenType
+      type: object
+      properties:
+        expiresIn:
+          type: number
+          description: 액세스 토큰 만료 시간 (초)
+        tokenType:
+          type: string
+          description: 토큰 타입 (Bearer)
+        accessToken:
+          type: string
+          description: 액세스 토큰 (JWT)
+    gatherings-tsid816390877:
+      required:
+        - category
+        - createdAt
+        - name
+        - participants
+        - regionName
+        - tsid
+      type: object
+      properties:
+        createdAt:
+          type: string
+          description: 생성 일시
+        regionName:
+          type: string
+          description: 지역명
+        name:
+          type: string
+          description: 모임 이름
+        description:
+          type: string
+          description: 모임 설명
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리
+        tsid:
+          type: string
+          description: 모임 고유 ID
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL
+          nullable: true
+        participants:
+          type: array
+          description: 참여자 목록
+          items:
+            required:
+              - nickname
+              - role
+            type: object
+            properties:
+              role:
+                type: string
+                description: 참여자 역할 (OWNER/ADMIN/MEMBER)
+              nickname:
+                type: string
+                description: 참여자 닉네임
+              profileImageUrl:
+                type: string
+                description: 참여자 프로필 이미지 URL
+                nullable: true
+    gatherings-tsid1947421575:
+      required:
+        - category
+        - createdAt
+        - maxParticipants
+        - name
+        - regionTsid
+        - tsid
+      type: object
+      properties:
+        createdAt:
+          type: string
+          description: 생성 일시
+        regionTsid:
+          type: string
+          description: 지역 TSID
+        name:
+          type: string
+          description: 모임 이름
+        description:
+          type: string
+          description: 모임 설명
+          nullable: true
+        category:
+          type: string
+          description: 모임 카테고리
+        tsid:
+          type: string
+          description: 모임 고유 ID
+        mainImageUrl:
+          type: string
+          description: 대표 이미지 URL
+          nullable: true
+        maxParticipants:
+          type: number
+          description: 최대 참가 인원
     users-tsid-1331249008:
       required:
         - code
@@ -416,31 +1099,31 @@ components:
         message:
           type: string
           description: 에러 메시지
-    users-join-1381348445:
+    gatherings-gatheringTsid-participants947766187:
       required:
-        - email
-        - name
-        - password
-        - phoneNumber
+        - gatheringTsid
+        - joinedAt
+        - participantTsid
+        - role
+        - userTsid
       type: object
       properties:
-        password:
+        role:
           type: string
-          description: AES 암호화된 비밀번호 (Base64 인코딩)
-        phoneNumber:
+          description: 참여자 역할 (MEMBER)
+        joinedAt:
           type: string
-          description: "전화번호 (숫자만 입력, 예: 01012345678)"
-        name:
+          description: 참여 일시
+        userTsid:
           type: string
-          description: 사용자 이름
-        nickname:
+          description: 사용자 TSID
+        participantTsid:
           type: string
-          description: 닉네임 (선택 사항)
-          nullable: true
-        email:
+          description: 참여자 고유 ID
+        gatheringTsid:
           type: string
-          description: 이메일 주소 (이메일 형식)
-    refresh388130491:
+          description: 모임 TSID
+    refresh2110093555:
       required:
         - code
         - message
@@ -448,12 +1131,89 @@ components:
       properties:
         code:
           type: string
-          description: 에러 코드 (REFRESH_TOKEN_MISSING)
+          description: 에러 코드 (REFRESH_TOKEN_REVOKED)
         message:
           type: string
           description: 에러 메시지
-    users-me-656631050:
+    users-me-password-2065468587:
       required:
+        - newPassword
+      type: object
+      properties:
+        newPassword:
+          type: string
+          description: "새 비밀번호 (AES 암호화, 최소 8자, 숫자+특수문자 포함)"
+        currentPassword:
+          type: string
+          description: 현재 비밀번호 (AES 암호화) 소셜 가입자의 경우 null 을 보낼 수 있다.
+          nullable: true
+    users-join-1337455905:
+      required:
+        - email
+        - name
+        - password
+      type: object
+      properties:
+        password:
+          type: string
+          description: "AES 암호화된 비밀번호 (Base64 인코딩, 필수)"
+        phoneNumber:
+          type: string
+          description: "전화번호 (숫자만 입력, 예: 01012345678)"
+          nullable: true
+        name:
+          type: string
+          description: 사용자 이름 (필수)
+        nickname:
+          type: string
+          description: 닉네임 (선택)
+          nullable: true
+        email:
+          type: string
+          description: "이메일 주소 (이메일 형식, 필수)"
+    gatherings251537030:
+      required:
+        - gatherings
+        - hasNext
+      type: object
+      properties:
+        nextCursor:
+          type: string
+          description: 다음 페이지 커서 (null이면 마지막 페이지)
+          nullable: true
+        gatherings:
+          type: array
+          description: 모임 목록
+          items:
+            required:
+              - category
+              - name
+              - regionName
+              - tsid
+            type: object
+            properties:
+              regionName:
+                type: string
+                description: 지역명
+              name:
+                type: string
+                description: 모임 이름
+              category:
+                type: string
+                description: 모임 카테고리
+              tsid:
+                type: string
+                description: 모임 고유 ID
+              mainImageUrl:
+                type: string
+                description: 대표 이미지 URL
+                nullable: true
+        hasNext:
+          type: boolean
+          description: 다음 페이지 존재 여부
+    users-me1442001226:
+      required:
+        - connectedProviders
         - createdAt
         - email
         - hasPassword
@@ -468,7 +1228,6 @@ components:
         connectedProviders:
           type: array
           description: 연동된 소셜 계정 목록 (GOOGLE 등)
-          nullable: true
           items:
             oneOf:
               - type: object
@@ -502,22 +1261,6 @@ components:
         status:
           type: string
           description: 계정 상태
-    users-tsid-370292314:
-      required:
-        - name
-        - nickname
-      type: object
-      properties:
-        name:
-          type: string
-          description: 사용자 이름
-        nickname:
-          type: string
-          description: 닉네임
-        profileImageUrl:
-          type: string
-          description: 프로필 이미지 URL
-          nullable: true
     users-me192728359:
       required:
         - password
@@ -526,15 +1269,11 @@ components:
         password:
           type: string
           description: "비밀번호 (AES 암호화, 본인 확인용)"
-    users-me-password443516385:
+    gatherings-gatheringTsid-participants-targetUserTsid-role1837898416:
       required:
-        - currentPassword
-        - newPassword
+        - newRole
       type: object
       properties:
-        newPassword:
+        newRole:
           type: string
-          description: "새 비밀번호 (AES 암호화, 최소 8자, 숫자+특수문자 포함)"
-        currentPassword:
-          type: string
-          description: 현재 비밀번호 (AES 암호화)
+          description: "변경할 역할 (OWNER, ADMIN, MEMBER)"

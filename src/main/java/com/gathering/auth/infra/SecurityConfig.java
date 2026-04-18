@@ -2,6 +2,7 @@ package com.gathering.auth.infra;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,6 +28,8 @@ public class SecurityConfig {
 		"/oauth/**", "/login/oauth2/**",
 		// API 문서
 		"/docs/**", "/redoc.html", "/my-info",
+		// 지역 API (모임 폼 드롭다운용)
+		"/regions",
 		// 업로드된 파일 (개발 환경 정적 리소스 서빙)
 		"/uploads/**"
 	};
@@ -67,10 +70,12 @@ public class SecurityConfig {
 
 	/**
 	 * 인증/인가 설정
+	 * 모임 목록/상세 조회(GET)는 비로그인 허용, 생성/수정/삭제 등 쓰기는 인증 필요
 	 */
 	private void configureAuthorization(HttpSecurity http) throws Exception {
 		http.authorizeHttpRequests(authorize -> authorize
 			.requestMatchers(PERMIT_ALL_URLS).permitAll()
+			.requestMatchers(HttpMethod.GET, "/gatherings", "/gatherings/**").permitAll()
 			.anyRequest().authenticated()
 		);
 	}

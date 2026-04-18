@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gathering.ApiDocSpec;
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.common.exception.BusinessException;
@@ -90,11 +91,9 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("POST /users/join - 회원가입")
+	@DisplayName("유효한 정보로 회원가입하면 204 상태코드를 반환한다")
 	void join() throws Exception {
-		// given
-		// @AesEncrypted 어노테이션이 HTTP 요청 역직렬화 시 복호화를 수행하므로
-		// 테스트에서는 암호화된 비밀번호를 전달해야 함
+		// given: 회원가입 요청 데이터를 준비 (비밀번호는 AES 암호화)
 		String plainPassword = "Password1!";
 		String encryptedPassword = CryptoUtil.encryptAES(plainPassword, aesKey);
 
@@ -108,18 +107,21 @@ class UserControllerTest {
 
 		doNothing().when(userService).join(any(UserJoinRequest.class));
 
-		// when & then
+		// when: POST /users/join 요청을 전송
+		// then: 204 No Content 응답을 검증
 		mockMvc.perform(post("/users/join")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isNoContent())
 			.andDo(document("users-join",
+				ApiDocSpec.USER_JOIN.getDescription(),
+				ApiDocSpec.USER_JOIN.getSummary(),
 				requestFields(
-					fieldWithPath("email").description("이메일 주소 (이메일 형식)"),
-					fieldWithPath("password").description("AES 암호화된 비밀번호 (Base64 인코딩)"),
-					fieldWithPath("nickname").description("닉네임 (선택 사항)").optional(),
-					fieldWithPath("name").description("사용자 이름"),
-					fieldWithPath("phoneNumber").description("전화번호 (숫자만 입력, 예: 01012345678)")
+					fieldWithPath("email").description("이메일 주소 (이메일 형식, 필수)"),
+					fieldWithPath("password").description("AES 암호화된 비밀번호 (Base64 인코딩, 필수)"),
+					fieldWithPath("nickname").description("닉네임 (선택)").optional(),
+					fieldWithPath("name").description("사용자 이름 (필수)"),
+					fieldWithPath("phoneNumber").description("전화번호 (숫자만 입력, 예: 01012345678)").optional()
 				)
 			));
 
@@ -127,7 +129,7 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("GET /users/{tsid} - 사용자 정보 조회 (정상)")
+	@DisplayName("가입된 유저의 공개된 정보를 조회할 수 있다.")
 	void getUserInfo() throws Exception {
 		// given
 		String tsid = "1234567890123";
@@ -155,8 +157,10 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.phoneNumber").doesNotExist())
 			.andExpect(jsonPath("$.tsid").doesNotExist())
 			.andDo(document("users-get",
+				ApiDocSpec.USER_GET.getDescription(),
+				ApiDocSpec.USER_GET.getSummary(),
 				responseFields(
-					fieldWithPath("nickname").description("닉네임"),
+					fieldWithPath("nickname").description("닉네임").optional(),
 					fieldWithPath("name").description("사용자 이름"),
 					fieldWithPath("profileImageUrl").description("프로필 이미지 URL").optional()
 				)
@@ -166,8 +170,8 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("GET /users/{tsid} - 삭제된 사용자 조회")
-	void getUserInfo_Deleted() throws Exception {
+	@DisplayName("삭제된 사용자를 조회했을 때는 404 에러를 반환한다.")
+	void getUserInfoDeleted() throws Exception {
 		// given
 		String tsid = "1234567890123";
 
@@ -191,7 +195,7 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("GET /users/me - 내 정보 조회 (정상)")
+	@DisplayName("본인의 정보를 조회할 수 있다.")
 	void getMyInfo() throws Exception {
 		// given
 		String tsid = "1234567890123";
@@ -226,6 +230,8 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.hasPassword").value(true))
 			.andExpect(jsonPath("$.connectedProviders").isArray())
 			.andDo(document("users-me",
+				ApiDocSpec.USER_GET_ME.getDescription(),
+				ApiDocSpec.USER_GET_ME.getSummary(),
 				responseFields(
 					fieldWithPath("tsid").description("사용자 고유 ID"),
 					fieldWithPath("email").description("이메일"),
@@ -236,7 +242,7 @@ class UserControllerTest {
 					fieldWithPath("status").description("계정 상태"),
 					fieldWithPath("createdAt").description("가입일시"),
 					fieldWithPath("hasPassword").description("비밀번호 설정 여부"),
-					fieldWithPath("connectedProviders").description("연동된 소셜 계정 목록 (GOOGLE 등)").optional()
+					fieldWithPath("connectedProviders").description("연동된 소셜 계정 목록 (GOOGLE 등)")
 				)
 			));
 
@@ -245,8 +251,8 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("PATCH /users/me - 내 정보 수정 (성공)")
-	void updateMyInfo_Success() throws Exception {
+	@DisplayName("수정할 수 있는 정보들을 업데이트한다.")
+	void updateMyInfoSuccess() throws Exception {
 		// given
 		String tsid = "1234567890123";
 
@@ -279,6 +285,8 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.hasPassword").value(true))
 			.andExpect(jsonPath("$.connectedProviders").isArray())
 			.andDo(document("users-update-me",
+				ApiDocSpec.USER_UPDATE_ME.getDescription(),
+				ApiDocSpec.USER_UPDATE_ME.getSummary(),
 				requestFields(
 					fieldWithPath("nickname").description("닉네임 (null이면 변경하지 않음)").optional(),
 					fieldWithPath("name").description("이름 (null이면 변경하지 않음)").optional(),
@@ -294,7 +302,7 @@ class UserControllerTest {
 					fieldWithPath("status").description("계정 상태"),
 					fieldWithPath("createdAt").description("가입일시"),
 					fieldWithPath("hasPassword").description("비밀번호 설정 여부"),
-					fieldWithPath("connectedProviders").description("연동된 소셜 계정 목록 (GOOGLE 등)").optional()
+					fieldWithPath("connectedProviders").description("연동된 소셜 계정 목록 (GOOGLE 등)")
 				)
 			));
 
@@ -303,8 +311,8 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("PUT /users/me/password - 비밀번호 변경 (성공)")
-	void changePassword_Success() throws Exception {
+	@DisplayName("전송된 비밀번호로 비밀번호가 변경된다.")
+	void changePasswordSuccess() throws Exception {
 		// given
 		String tsid = "1234567890123";
 
@@ -324,8 +332,11 @@ class UserControllerTest {
 				.content(objectMapper.writeValueAsString(changePasswordRequest)))
 			.andExpect(status().isNoContent())
 			.andDo(document("users-change-password",
+				ApiDocSpec.USER_CHANGE_PASSWORD.getDescription(),
+				ApiDocSpec.USER_CHANGE_PASSWORD.getSummary(),
 				requestFields(
-					fieldWithPath("currentPassword").description("현재 비밀번호 (AES 암호화)"),
+					fieldWithPath("currentPassword").description("현재 비밀번호 (AES 암호화) 소셜 가입자의 경우 null 을 보낼 수 있다.")
+						.optional(),
 					fieldWithPath("newPassword").description("새 비밀번호 (AES 암호화, 최소 8자, 숫자+특수문자 포함)")
 				)
 			));
@@ -335,8 +346,8 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("PUT /users/me/password - 현재 비밀번호 불일치")
-	void changePassword_InvalidCurrentPassword() throws Exception {
+	@DisplayName("현재 설정된 비밀번호와 다른 비밀번호라면 400 에러가 발생한다.")
+	void changePasswordInvalidCurrentPassword() throws Exception {
 		// given
 		String tsid = "1234567890123";
 
@@ -370,8 +381,8 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("PUT /users/me/password - 새 비밀번호 형식 오류")
-	void changePassword_InvalidPasswordFormat() throws Exception {
+	@DisplayName("새로운 비밀번호가 정책에 위반될 시에 400 에러를 반환한다.")
+	void changePasswordInvalidPasswordFormat() throws Exception {
 		// given
 		String tsid = "1234567890123";
 
@@ -403,7 +414,6 @@ class UserControllerTest {
 		verify(userService, times(1)).changePassword(eq(tsid), any());
 	}
 
-
 	@Test
 	@DisplayName("비밀번호가 있는 사용자가 소셜 연동을 해제하면 204 응답을 반환한다")
 	void unlinkOAuthWithPasswordSuccess() throws Exception {
@@ -421,6 +431,8 @@ class UserControllerTest {
 		mockMvc.perform(delete("/users/me/oauth/{provider}", provider))
 			.andExpect(status().isNoContent())
 			.andDo(document("DELETE /users/me/oauth/{provider}",
+				ApiDocSpec.USER_UNLINK_OAUTH.getDescription(),
+				ApiDocSpec.USER_UNLINK_OAUTH.getSummary(),
 				pathParameters(
 					parameterWithName("provider").description("OAuth 제공자 (GOOGLE, KAKAO 등)")
 				)
@@ -532,6 +544,8 @@ class UserControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isNoContent())
 			.andDo(document("DELETE /users/me - 회원 탈퇴",
+				ApiDocSpec.USER_WITHDRAW.getDescription(),
+				ApiDocSpec.USER_WITHDRAW.getSummary(),
 				requestFields(
 					fieldWithPath("password").description("비밀번호 (AES 암호화, 본인 확인용)")
 				)

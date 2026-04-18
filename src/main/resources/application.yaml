@@ -29,6 +29,14 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
+    # Hibernate DDL 완료 후 data.sql 실행 (순서 보장)
+    defer-datasource-initialization: true
+
+  # SQL 초기 데이터 설정
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data/regions_master_data.sql
 
   # Thymeleaf 설정
   thymeleaf:

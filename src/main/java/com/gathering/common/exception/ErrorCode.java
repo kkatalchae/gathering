@@ -57,8 +57,35 @@ public enum ErrorCode {
 		"마지막 로그인 수단입니다. 비밀번호를 설정하거나 다른 소셜 계정을 연동한 후 해제할 수 있습니다."
 	),
 
-	// 모임 관련 에러
-	GATHERING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없습니다."),
+	// Gathering 관련 에러 (400 Bad Request)
+	GATHERING_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "모임 이름은 필수입니다"),
+	GATHERING_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "모임 이름은 25자를 초과할 수 없습니다"),
+	GATHERING_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "모임 설명은 1000자를 초과할 수 없습니다"),
+
+	// Region 관련 에러 (404 Not Found)
+	REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 지역입니다"),
+
+	// Gathering 조회 관련 에러 (404 Not Found)
+	GATHERING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없습니다"),
+
+	// Gathering 권한 관련 에러 (403 Forbidden)
+	GATHERING_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "모임을 수정할 권한이 없습니다"),
+	GATHERING_OWNER_PERMISSION_NEEDED(HttpStatus.FORBIDDEN, "모임의 오너 권한이 필요합니다"),
+
+	// Gathering 참여자 관련 에러 (404 Not Found)
+	PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 모임에서 사용자를 찾을 수 없습니다"),
+
+	// Gathering 역할 변경 관련 에러 (400 Bad Request)
+	CANNOT_CHANGE_OWN_ROLE(HttpStatus.BAD_REQUEST, "자신의 역할은 변경할 수 없습니다"),
+
+	// Gathering 참여/퇴장 관련 에러
+	ALREADY_JOINED_GATHERING(HttpStatus.CONFLICT, "이미 참여중인 모임입니다"),
+	GATHERING_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "모임 정원이 초과되었습니다"),
+	OWNER_CANNOT_LEAVE_GATHERING(HttpStatus.BAD_REQUEST, "오너는 모임을 나갈 수 없습니다. 오너를 양도하거나 모임을 삭제해주세요"),
+
+	// Pagination 관련 에러 (400 Bad Request)
+	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다"),
+
 	GATHERING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 모임에 대한 권한이 없습니다."),
 
 	// 파일 업로드 관련 에러 (400 Bad Request)

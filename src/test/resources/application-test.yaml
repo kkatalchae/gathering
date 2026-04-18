@@ -23,6 +23,11 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
 
+  # 테스트에서는 MySQL 전용 SQL 초기화 비활성화
+  sql:
+    init:
+      mode: never
+
   # Thymeleaf 설정
   thymeleaf:
     enabled: true

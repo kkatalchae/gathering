@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gathering - 모임 수정</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .topbar {
+            background: linear-gradient(135deg, #0984e3, #74b9ff);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 1.5rem;
+        }
+
+        .topbar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .required {
+            color: #e74c3c;
+            margin-left: 2px;
+        }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            background: white;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #0984e3;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .region-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .image-upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            background: #fafafa;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .image-upload-area:hover {
+            border-color: #0984e3;
+            background: #f0f7ff;
+        }
+
+        .image-upload-area .upload-icon {
+            font-size: 2rem;
+        }
+
+        .image-upload-area .upload-hint {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .image-preview-wrap {
+            position: relative;
+            display: inline-block;
+        }
+
+        .image-preview-wrap img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-remove-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .error-text {
+            color: #e74c3c;
+            font-size: 0.82rem;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+
+        .btn {
+            padding: 11px 28px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: #0984e3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0773c5;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #555;
+            border: 1.5px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .api-error {
+            background: #ffeaea;
+            color: #e74c3c;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <a id="backBtn" href="/gatherings" class="back-btn">←</a>
+    <span class="topbar-title">모임 수정</span>
+</div>
+
+<div class="container">
+    <div id="loadingState" class="loading">불러오는 중...</div>
+
+    <div id="formCard" class="card" style="display:none;">
+        <div id="apiError" class="api-error"></div>
+
+        <form id="editForm" novalidate>
+            <div class="form-group">
+                <label>모임 이름 <span class="required">*</span></label>
+                <input type="text" id="name" placeholder="모임 이름을 입력하세요 (최대 25자)" maxlength="25">
+                <div class="error-text" id="nameError">모임 이름을 입력해주세요.</div>
+            </div>
+
+            <div class="form-group">
+                <label>카테고리 <span class="required">*</span></label>
+                <select id="category">
+                    <option value="">카테고리를 선택하세요</option>
+                    <option value="SPORTS">⚽ 스포츠</option>
+                    <option value="CULTURE">🎭 문화</option>
+                    <option value="STUDY">📚 스터디</option>
+                    <option value="HOBBY">🎨 취미</option>
+                    <option value="FOOD">🍽️ 음식</option>
+                    <option value="TRAVEL">✈️ 여행</option>
+                    <option value="NETWORKING">🤝 네트워킹</option>
+                    <option value="VOLUNTEER">🌱 봉사</option>
+                    <option value="GAME">🎮 게임</option>
+                    <option value="PET">🐾 반려동물</option>
+                    <option value="PHOTOGRAPHY">📷 사진</option>
+                    <option value="MUSIC">🎵 음악</option>
+                    <option value="BOOK">📖 독서</option>
+                    <option value="TECH">💻 IT/기술</option>
+                    <option value="INVESTMENT">📈 투자</option>
+                    <option value="ETC">✨ 기타</option>
+                </select>
+                <div class="error-text" id="categoryError">카테고리를 선택해주세요.</div>
+            </div>
+
+            <div class="form-group">
+                <label>지역 <span class="required">*</span></label>
+                <div class="region-row">
+                    <select id="regionParent" onchange="onParentRegionChange()">
+                        <option value="">시/도 선택</option>
+                    </select>
+                    <select id="regionChild" disabled>
+                        <option value="">구/군 선택</option>
+                    </select>
+                </div>
+                <div class="error-text" id="regionError">지역을 선택해주세요.</div>
+            </div>
+
+            <div class="form-group">
+                <label>소개글</label>
+                <textarea id="description" placeholder="모임을 소개해주세요"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>대표 이미지</label>
+                <div class="image-upload-area" id="imageUploadArea"
+                     onclick="document.getElementById('imageFile').click()">
+                    <div id="imagePlaceholder" style="display:none;">
+                        <div class="upload-icon">📷</div>
+                        <div>클릭하여 이미지 선택</div>
+                        <div class="upload-hint">JPG, PNG, GIF, WebP (최대 10MB)</div>
+                    </div>
+                    <div class="image-preview-wrap" id="imagePreviewWrap" style="display:none;">
+                        <img id="imagePreview" src="" alt="미리보기">
+                        <button type="button" class="image-remove-btn" onclick="removeImage(event)">✕</button>
+                    </div>
+                </div>
+                <input type="file" id="imageFile" accept="image/jpeg,image/png,image/gif,image/webp"
+                       style="display:none" onchange="onImageSelected()">
+            </div>
+
+            <div class="btn-row">
+                <a id="cancelBtn" href="/gatherings" class="btn btn-secondary">취소</a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">수정 완료</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const tsid = location.pathname.split('/')[2];
+    let allRegions = [];
+
+    async function apiCall(url, options = {}) {
+        const accessToken = localStorage.getItem('accessToken');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(accessToken && {'Authorization': `Bearer ${accessToken}`}),
+            ...options.headers
+        };
+        try {
+            const response = await fetch(url, {...options, headers});
+            if (response.status === 401) {
+                const error = await response.json().catch(() => ({}));
+                if (error.code === 'ACCESS_TOKEN_EXPIRED') {
+                    const refreshed = await refreshToken();
+                    if (refreshed) return apiCall(url, options);
+                }
+                location.href = '/login';
+                return null;
+            }
+            return response;
+        } catch (e) {
+            console.error('API 호출 실패:', e);
+            throw e;
+        }
+    }
+
+    async function refreshToken() {
+        const response = await fetch('/refresh', {method: 'POST', headers: {'Content-Type': 'application/json'}});
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('accessToken', data.accessToken);
+            return true;
+        }
+        localStorage.removeItem('accessToken');
+        return false;
+    }
+
+    let existingImageUrl = null;
+
+    function onImageSelected() {
+        const file = document.getElementById('imageFile').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('imagePreview').src = e.target.result;
+            document.getElementById('imagePlaceholder').style.display = 'none';
+            document.getElementById('imagePreviewWrap').style.display = 'inline-block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function removeImage(event) {
+        event.stopPropagation();
+        document.getElementById('imageFile').value = '';
+        document.getElementById('imagePreview').src = '';
+        existingImageUrl = null;
+        document.getElementById('imagePlaceholder').style.display = '';
+        document.getElementById('imagePreviewWrap').style.display = 'none';
+    }
+
+    function showImagePreview(url) {
+        if (!url) {
+            document.getElementById('imagePlaceholder').style.display = '';
+            document.getElementById('imagePreviewWrap').style.display = 'none';
+            return;
+        }
+        document.getElementById('imagePreview').src = url;
+        document.getElementById('imagePlaceholder').style.display = 'none';
+        document.getElementById('imagePreviewWrap').style.display = 'inline-block';
+    }
+
+    async function uploadImageIfSelected() {
+        const file = document.getElementById('imageFile').files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        const accessToken = localStorage.getItem('accessToken');
+        await fetch(`/gatherings/${tsid}/main-image`, {
+            method: 'PATCH',
+            headers: {...(accessToken && {'Authorization': `Bearer ${accessToken}`})},
+            body: formData
+        });
+    }
+
+    async function loadRegions() {
+        const response = await fetch('/regions', {headers: {'Accept': 'application/json'}});
+        if (!response.ok) return;
+        allRegions = await response.json();
+
+        const parentSelect = document.getElementById('regionParent');
+        allRegions.forEach(r => parentSelect.add(new Option(r.name, r.tsid)));
+    }
+
+    function onParentRegionChange() {
+        const parentTsid = document.getElementById('regionParent').value;
+        const childSelect = document.getElementById('regionChild');
+        childSelect.innerHTML = '<option value="">구/군 선택</option>';
+
+        if (!parentTsid) {
+            childSelect.disabled = true;
+            return;
+        }
+
+        const parent = allRegions.find(r => r.tsid === parentTsid);
+        if (parent && parent.children && parent.children.length > 0) {
+            parent.children.forEach(c => childSelect.add(new Option(c.name, c.tsid)));
+            childSelect.disabled = false;
+        } else {
+            childSelect.disabled = true;
+        }
+    }
+
+    function getRegionTsid() {
+        return document.getElementById('regionChild').value || document.getElementById('regionParent').value;
+    }
+
+    // 기존 데이터를 폼에 채움
+    function fillForm(gathering) {
+        document.getElementById('name').value = gathering.name || '';
+        document.getElementById('description').value = gathering.description || '';
+        document.getElementById('category').value = gathering.category || '';
+        existingImageUrl = gathering.mainImageUrl || null;
+        showImagePreview(existingImageUrl);
+        selectRegion(gathering.regionTsid);
+    }
+
+    // regionTsid로 시/도 + 구/군 드롭다운을 자동 선택
+    function selectRegion(regionTsid) {
+        if (!regionTsid) return;
+
+        // depth-1 (시/도) 인지 확인
+        const parent = allRegions.find(r => r.tsid === regionTsid);
+        if (parent) {
+            document.getElementById('regionParent').value = regionTsid;
+            onParentRegionChange();
+            return;
+        }
+
+        // depth-2 (구/군): 어느 시/도에 속하는지 찾아서 순서대로 선택
+        for (const p of allRegions) {
+            const child = (p.children || []).find(c => c.tsid === regionTsid);
+            if (child) {
+                document.getElementById('regionParent').value = p.tsid;
+                onParentRegionChange();
+                document.getElementById('regionChild').value = regionTsid;
+                break;
+            }
+        }
+    }
+
+    function validate() {
+        let valid = true;
+
+        const name = document.getElementById('name').value.trim();
+        const nameError = document.getElementById('nameError');
+        if (!name) {
+            nameError.style.display = 'block';
+            valid = false;
+        } else nameError.style.display = 'none';
+
+        const category = document.getElementById('category').value;
+        const categoryError = document.getElementById('categoryError');
+        if (!category) {
+            categoryError.style.display = 'block';
+            valid = false;
+        } else categoryError.style.display = 'none';
+
+        const regionTsid = getRegionTsid();
+        const regionError = document.getElementById('regionError');
+        if (!regionTsid) {
+            regionError.style.display = 'block';
+            valid = false;
+        } else regionError.style.display = 'none';
+
+        return valid;
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!validate()) return;
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = '수정 중...';
+
+        const body = {
+            name: document.getElementById('name').value.trim(),
+            category: document.getElementById('category').value,
+            regionTsid: getRegionTsid(),
+            description: document.getElementById('description').value.trim() || null,
+            mainImageUrl: existingImageUrl
+        };
+
+        const response = await apiCall(`/gatherings/${tsid}`, {
+            method: 'PUT',
+            body: JSON.stringify(body)
+        });
+
+        if (!response) return;
+
+        if (response.ok) {
+            await uploadImageIfSelected();
+            location.href = `/gatherings/${tsid}`;
+        } else {
+            const err = await response.json().catch(() => ({}));
+            const apiError = document.getElementById('apiError');
+            apiError.textContent = err.message || '수정에 실패했습니다.';
+            apiError.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '수정 완료';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('backBtn').href = `/gatherings/${tsid}`;
+        document.getElementById('cancelBtn').href = `/gatherings/${tsid}`;
+
+        await loadRegions();
+
+        const gatheringRes = await apiCall(`/gatherings/${tsid}`);
+        if (!gatheringRes || !gatheringRes.ok) {
+            location.href = `/gatherings/${tsid}`;
+            return;
+        }
+
+        const gathering = await gatheringRes.json();
+        fillForm(gathering);
+
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('formCard').style.display = 'block';
+    });
+</script>
+</body>
+</html>
