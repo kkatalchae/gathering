@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gathering - 새 모임 만들기</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .topbar {
+            background: linear-gradient(135deg, #0984e3, #74b9ff);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn { color: white; text-decoration: none; font-size: 1.5rem; }
+        .topbar-title { font-size: 1.1rem; font-weight: 600; }
+
+        .container { max-width: 640px; margin: 0 auto; padding: 24px 20px; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .required { color: #e74c3c; margin-left: 2px; }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            background: white;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #0984e3;
+        }
+
+        textarea { resize: vertical; min-height: 120px; }
+
+        .region-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .error-text { color: #e74c3c; font-size: 0.82rem; margin-top: 4px; display: none; }
+
+        .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
+        .btn {
+            padding: 11px 28px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary { background: #0984e3; color: white; }
+        .btn-primary:hover { background: #0773c5; }
+        .btn-secondary { background: #f8f9fa; color: #555; border: 1.5px solid #dee2e6; }
+        .btn-secondary:hover { background: #e9ecef; }
+
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .api-error {
+            background: #ffeaea;
+            color: #e74c3c;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <a href="/gatherings" class="back-btn">←</a>
+    <span class="topbar-title">새 모임 만들기</span>
+</div>
+
+<div class="container">
+    <div class="card">
+        <div id="apiError" class="api-error"></div>
+
+        <form id="createForm" novalidate>
+            <div class="form-group">
+                <label>모임 이름 <span class="required">*</span></label>
+                <input type="text" id="name" placeholder="모임 이름을 입력하세요 (최대 25자)" maxlength="25">
+                <div class="error-text" id="nameError">모임 이름을 입력해주세요.</div>
+            </div>
+
+            <div class="form-group">
+                <label>카테고리 <span class="required">*</span></label>
+                <select id="category">
+                    <option value="">카테고리를 선택하세요</option>
+                    <option value="SPORTS">⚽ 스포츠</option>
+                    <option value="CULTURE">🎭 문화</option>
+                    <option value="STUDY">📚 스터디</option>
+                    <option value="HOBBY">🎨 취미</option>
+                    <option value="FOOD">🍽️ 음식</option>
+                    <option value="TRAVEL">✈️ 여행</option>
+                    <option value="NETWORKING">🤝 네트워킹</option>
+                    <option value="VOLUNTEER">🌱 봉사</option>
+                    <option value="GAME">🎮 게임</option>
+                    <option value="PET">🐾 반려동물</option>
+                    <option value="PHOTOGRAPHY">📷 사진</option>
+                    <option value="MUSIC">🎵 음악</option>
+                    <option value="BOOK">📖 독서</option>
+                    <option value="TECH">💻 IT/기술</option>
+                    <option value="INVESTMENT">📈 투자</option>
+                    <option value="ETC">✨ 기타</option>
+                </select>
+                <div class="error-text" id="categoryError">카테고리를 선택해주세요.</div>
+            </div>
+
+            <div class="form-group">
+                <label>지역 <span class="required">*</span></label>
+                <div class="region-row">
+                    <select id="regionParent" onchange="onParentRegionChange()">
+                        <option value="">시/도 선택</option>
+                    </select>
+                    <select id="regionChild" disabled>
+                        <option value="">구/군 선택</option>
+                    </select>
+                </div>
+                <div class="error-text" id="regionError">지역을 선택해주세요.</div>
+            </div>
+
+            <div class="form-group">
+                <label>소개글</label>
+                <textarea id="description" placeholder="모임을 소개해주세요"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>대표 이미지 URL</label>
+                <input type="text" id="mainImageUrl" placeholder="https://example.com/image.jpg">
+            </div>
+
+            <div class="btn-row">
+                <a href="/gatherings" class="btn btn-secondary">취소</a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">모임 만들기</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let allRegions = [];
+
+    async function apiCall(url, options = {}) {
+        const accessToken = localStorage.getItem('accessToken');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+            ...options.headers
+        };
+        try {
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) {
+                const error = await response.json().catch(() => ({}));
+                if (error.code === 'ACCESS_TOKEN_EXPIRED') {
+                    const refreshed = await refreshToken();
+                    if (refreshed) return apiCall(url, options);
+                }
+                location.href = '/login';
+                return null;
+            }
+            return response;
+        } catch (e) {
+            console.error('API 호출 실패:', e);
+            throw e;
+        }
+    }
+
+    async function refreshToken() {
+        const response = await fetch('/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('accessToken', data.accessToken);
+            return true;
+        }
+        localStorage.removeItem('accessToken');
+        return false;
+    }
+
+    async function loadRegions() {
+        const response = await fetch('/regions', { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) return;
+        allRegions = await response.json();
+
+        const parentSelect = document.getElementById('regionParent');
+        allRegions.forEach(r => {
+            const opt = new Option(r.name, r.tsid);
+            parentSelect.add(opt);
+        });
+    }
+
+    function onParentRegionChange() {
+        const parentTsid = document.getElementById('regionParent').value;
+        const childSelect = document.getElementById('regionChild');
+        childSelect.innerHTML = '<option value="">구/군 선택</option>';
+
+        if (!parentTsid) {
+            childSelect.disabled = true;
+            return;
+        }
+
+        const parent = allRegions.find(r => r.tsid === parentTsid);
+        if (parent && parent.children && parent.children.length > 0) {
+            parent.children.forEach(c => childSelect.add(new Option(c.name, c.tsid)));
+            childSelect.disabled = false;
+        } else {
+            // 하위 지역 없으면 부모 tsid를 직접 사용
+            childSelect.disabled = true;
+        }
+    }
+
+    function getRegionTsid() {
+        const child = document.getElementById('regionChild').value;
+        const parent = document.getElementById('regionParent').value;
+        return child || parent;
+    }
+
+    function validate() {
+        let valid = true;
+
+        const name = document.getElementById('name').value.trim();
+        const nameError = document.getElementById('nameError');
+        if (!name) {
+            nameError.style.display = 'block';
+            valid = false;
+        } else {
+            nameError.style.display = 'none';
+        }
+
+        const category = document.getElementById('category').value;
+        const categoryError = document.getElementById('categoryError');
+        if (!category) {
+            categoryError.style.display = 'block';
+            valid = false;
+        } else {
+            categoryError.style.display = 'none';
+        }
+
+        const regionTsid = getRegionTsid();
+        const regionError = document.getElementById('regionError');
+        if (!regionTsid) {
+            regionError.style.display = 'block';
+            valid = false;
+        } else {
+            regionError.style.display = 'none';
+        }
+
+        return valid;
+    }
+
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!validate()) return;
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = '생성 중...';
+
+        const body = {
+            name: document.getElementById('name').value.trim(),
+            category: document.getElementById('category').value,
+            regionTsid: getRegionTsid(),
+            description: document.getElementById('description').value.trim() || null,
+            mainImageUrl: document.getElementById('mainImageUrl').value.trim() || null
+        };
+
+        const response = await apiCall('/gatherings', {
+            method: 'POST',
+            body: JSON.stringify(body)
+        });
+
+        if (!response) return;
+
+        if (response.ok) {
+            const data = await response.json();
+            location.href = `/gatherings/${data.tsid}`;
+        } else {
+            const err = await response.json().catch(() => ({}));
+            const apiError = document.getElementById('apiError');
+            apiError.textContent = err.message || '모임 생성에 실패했습니다.';
+            apiError.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '모임 만들기';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 로그인 여부 확인 (비로그인이면 생성 불가)
+        apiCall('/users/me').then(response => {
+            if (!response || !response.ok) location.href = '/login';
+        });
+        loadRegions();
+    });
+</script>
+</body>
+</html>
