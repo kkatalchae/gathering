@@ -368,7 +368,7 @@
                         : '👤'}
                 </div>
                 <div class="participant-info">
-                    <div class="participant-name">${p.nickname || '(이름 없음)'}</div>
+                    <div class="participant-name">${p.nickname || p.name}</div>
                 </div>
                 <span class="badge ${roleClass}">${roleLabel}</span>
             `;

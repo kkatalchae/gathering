@@ -289,13 +289,15 @@ class GatheringsControllerTest {
 		List<ParticipantSummary> participants = List.of(
 			ParticipantSummary.builder()
 				.userTsid("01HQUSER000001")
-				.nickname("김철수")
+				.nickname("철수")
+				.name("김철수")
 				.profileImageUrl("https://example.com/profile1.jpg")
 				.role(ParticipantRole.OWNER)
 				.build(),
 			ParticipantSummary.builder()
 				.userTsid("01HQUSER000002")
-				.nickname("이영희")
+				.nickname("영희")
+				.name("이영희")
 				.profileImageUrl("https://example.com/profile2.jpg")
 				.role(ParticipantRole.MEMBER)
 				.build()
@@ -326,7 +328,7 @@ class GatheringsControllerTest {
 			.andExpect(jsonPath("$.category").value("SPORTS"))
 			.andExpect(jsonPath("$.regionName").value("강남구"))
 			.andExpect(jsonPath("$.participants").isArray())
-			.andExpect(jsonPath("$.participants[0].nickname").value("김철수"))
+			.andExpect(jsonPath("$.participants[0].nickname").value("철수"))
 			.andExpect(jsonPath("$.participants[0].role").value("OWNER"))
 			.andDo(document("gatherings-detail",
 				ApiDocSpec.GATHERING_DETAIL.getDescription(),
@@ -344,7 +346,8 @@ class GatheringsControllerTest {
 					fieldWithPath("regionName").description("지역명"),
 					fieldWithPath("participants[]").description("참여자 목록"),
 					fieldWithPath("participants[].userTsid").description("참여자 사용자 TSID"),
-					fieldWithPath("participants[].nickname").description("참여자 닉네임"),
+					fieldWithPath("participants[].nickname").description("참여자 닉네임").optional(),
+					fieldWithPath("participants[].name").description("참여자 이름 (닉네임 없을 때 사용)"),
 					fieldWithPath("participants[].profileImageUrl").description("참여자 프로필 이미지 URL").optional(),
 					fieldWithPath("participants[].role").description("참여자 역할 (OWNER/ADMIN/MEMBER)"),
 					fieldWithPath("createdAt").description("생성 일시")

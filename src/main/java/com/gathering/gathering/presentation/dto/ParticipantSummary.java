@@ -14,8 +14,10 @@ public class ParticipantSummary {
 	@NotNull
 	private String userTsid;
 
-	@NotNull
 	private String nickname;
+
+	@NotNull
+	private String name;
 
 	private String profileImageUrl;
 
@@ -26,6 +28,7 @@ public class ParticipantSummary {
 		return ParticipantSummary.builder()
 			.userTsid(participant.getUserTsid())
 			.nickname(participant.getUser().getNickname())
+			.name(participant.getUser().getName())
 			.profileImageUrl(participant.getUser().getProfileImageUrl())
 			.role(participant.getRole())
 			.build();
