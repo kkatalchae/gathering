@@ -7,7 +7,6 @@ import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.domain.model.GatheringEntity;
 import com.gathering.gathering.domain.model.GatheringParticipantEntity;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -15,29 +14,22 @@ import lombok.Getter;
 @Builder
 public class GatheringDetailResponse {
 
-	@NotNull
 	private String tsid;
 
-	@NotNull
 	private String name;
 
 	private String description;
 
 	private String mainImageUrl;
 
-	@NotNull
 	private GatheringCategory category;
 
-	@NotNull
 	private String regionTsid;
 
-	@NotNull
 	private String regionName;
 
-	@NotNull
 	private List<ParticipantSummary> participants;
 
-	@NotNull
 	private Instant createdAt;
 
 	public static GatheringDetailResponse from(

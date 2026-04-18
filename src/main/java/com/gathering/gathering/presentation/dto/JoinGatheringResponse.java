@@ -5,7 +5,6 @@ import java.time.Instant;
 import com.gathering.gathering.domain.model.GatheringParticipantEntity;
 import com.gathering.gathering.domain.model.ParticipantRole;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,15 +15,10 @@ import lombok.Getter;
 @Builder
 public class JoinGatheringResponse {
 
-	@NotNull
 	private String participantTsid;
-	@NotNull
 	private String gatheringTsid;
-	@NotNull
 	private String userTsid;
-	@NotNull
 	private ParticipantRole role;
-	@NotNull
 	private Instant joinedAt;
 
 	public static JoinGatheringResponse from(GatheringParticipantEntity participant) {

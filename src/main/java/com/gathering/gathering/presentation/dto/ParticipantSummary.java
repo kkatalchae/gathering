@@ -3,7 +3,6 @@ package com.gathering.gathering.presentation.dto;
 import com.gathering.gathering.domain.model.GatheringParticipantEntity;
 import com.gathering.gathering.domain.model.ParticipantRole;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -11,17 +10,14 @@ import lombok.Getter;
 @Builder
 public class ParticipantSummary {
 
-	@NotNull
 	private String userTsid;
 
 	private String nickname;
 
-	@NotNull
 	private String name;
 
 	private String profileImageUrl;
 
-	@NotNull
 	private ParticipantRole role;
 
 	public static ParticipantSummary from(GatheringParticipantEntity participant) {

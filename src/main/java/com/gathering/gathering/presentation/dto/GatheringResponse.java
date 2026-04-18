@@ -5,7 +5,6 @@ import java.time.Instant;
 import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.domain.model.GatheringEntity;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,19 +15,13 @@ import lombok.Getter;
 @Builder
 public class GatheringResponse {
 
-	@NotNull
 	private String tsid;
-	@NotNull
 	private String name;
 	private String description;
-	@NotNull
 	private String regionTsid;
-	@NotNull
 	private GatheringCategory category;
 	private String mainImageUrl;
-	@NotNull
 	private Integer maxParticipants;
-	@NotNull
 	private Instant createdAt;
 
 	/**
