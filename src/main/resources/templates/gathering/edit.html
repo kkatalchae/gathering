@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gathering - 모임 수정</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -23,19 +27,33 @@
             gap: 16px;
         }
 
-        .back-btn { color: white; text-decoration: none; font-size: 1.5rem; }
-        .topbar-title { font-size: 1.1rem; font-weight: 600; }
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 1.5rem;
+        }
 
-        .container { max-width: 640px; margin: 0 auto; padding: 24px 20px; }
+        .topbar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
 
         .card {
             background: white;
             border-radius: 16px;
             padding: 28px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
-        .form-group { margin-bottom: 20px; }
+        .form-group {
+            margin-bottom: 20px;
+        }
 
         label {
             display: block;
@@ -45,7 +63,10 @@
             margin-bottom: 6px;
         }
 
-        .required { color: #e74c3c; margin-left: 2px; }
+        .required {
+            color: #e74c3c;
+            margin-left: 2px;
+        }
 
         input[type="text"], textarea, select {
             width: 100%;
@@ -63,13 +84,91 @@
             border-color: #0984e3;
         }
 
-        textarea { resize: vertical; min-height: 120px; }
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
 
-        .region-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .region-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
 
-        .error-text { color: #e74c3c; font-size: 0.82rem; margin-top: 4px; display: none; }
+        .image-upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            background: #fafafa;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+        }
 
-        .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+        .image-upload-area:hover {
+            border-color: #0984e3;
+            background: #f0f7ff;
+        }
+
+        .image-upload-area .upload-icon {
+            font-size: 2rem;
+        }
+
+        .image-upload-area .upload-hint {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .image-preview-wrap {
+            position: relative;
+            display: inline-block;
+        }
+
+        .image-preview-wrap img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-remove-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .error-text {
+            color: #e74c3c;
+            font-size: 0.82rem;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
 
         .btn {
             padding: 11px 28px;
@@ -82,11 +181,29 @@
             text-decoration: none;
         }
 
-        .btn-primary { background: #0984e3; color: white; }
-        .btn-primary:hover { background: #0773c5; }
-        .btn-secondary { background: #f8f9fa; color: #555; border: 1.5px solid #dee2e6; }
-        .btn-secondary:hover { background: #e9ecef; }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-primary {
+            background: #0984e3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0773c5;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #555;
+            border: 1.5px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
         .api-error {
             background: #ffeaea;
@@ -97,7 +214,11 @@
             display: none;
         }
 
-        .loading { text-align: center; padding: 60px; color: #aaa; }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
@@ -162,8 +283,21 @@
             </div>
 
             <div class="form-group">
-                <label>대표 이미지 URL</label>
-                <input type="text" id="mainImageUrl" placeholder="https://example.com/image.jpg">
+                <label>대표 이미지</label>
+                <div class="image-upload-area" id="imageUploadArea"
+                     onclick="document.getElementById('imageFile').click()">
+                    <div id="imagePlaceholder" style="display:none;">
+                        <div class="upload-icon">📷</div>
+                        <div>클릭하여 이미지 선택</div>
+                        <div class="upload-hint">JPG, PNG, GIF, WebP (최대 10MB)</div>
+                    </div>
+                    <div class="image-preview-wrap" id="imagePreviewWrap" style="display:none;">
+                        <img id="imagePreview" src="" alt="미리보기">
+                        <button type="button" class="image-remove-btn" onclick="removeImage(event)">✕</button>
+                    </div>
+                </div>
+                <input type="file" id="imageFile" accept="image/jpeg,image/png,image/gif,image/webp"
+                       style="display:none" onchange="onImageSelected()">
             </div>
 
             <div class="btn-row">
@@ -183,11 +317,11 @@
         const headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+            ...(accessToken && {'Authorization': `Bearer ${accessToken}`}),
             ...options.headers
         };
         try {
-            const response = await fetch(url, { ...options, headers });
+            const response = await fetch(url, {...options, headers});
             if (response.status === 401) {
                 const error = await response.json().catch(() => ({}));
                 if (error.code === 'ACCESS_TOKEN_EXPIRED') {
@@ -205,7 +339,7 @@
     }
 
     async function refreshToken() {
-        const response = await fetch('/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const response = await fetch('/refresh', {method: 'POST', headers: {'Content-Type': 'application/json'}});
         if (response.ok) {
             const data = await response.json();
             localStorage.setItem('accessToken', data.accessToken);
@@ -215,8 +349,55 @@
         return false;
     }
 
+    let existingImageUrl = null;
+
+    function onImageSelected() {
+        const file = document.getElementById('imageFile').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('imagePreview').src = e.target.result;
+            document.getElementById('imagePlaceholder').style.display = 'none';
+            document.getElementById('imagePreviewWrap').style.display = 'inline-block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function removeImage(event) {
+        event.stopPropagation();
+        document.getElementById('imageFile').value = '';
+        document.getElementById('imagePreview').src = '';
+        existingImageUrl = null;
+        document.getElementById('imagePlaceholder').style.display = '';
+        document.getElementById('imagePreviewWrap').style.display = 'none';
+    }
+
+    function showImagePreview(url) {
+        if (!url) {
+            document.getElementById('imagePlaceholder').style.display = '';
+            document.getElementById('imagePreviewWrap').style.display = 'none';
+            return;
+        }
+        document.getElementById('imagePreview').src = url;
+        document.getElementById('imagePlaceholder').style.display = 'none';
+        document.getElementById('imagePreviewWrap').style.display = 'inline-block';
+    }
+
+    async function uploadImageIfSelected() {
+        const file = document.getElementById('imageFile').files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        const accessToken = localStorage.getItem('accessToken');
+        await fetch(`/gatherings/${tsid}/main-image`, {
+            method: 'PATCH',
+            headers: {...(accessToken && {'Authorization': `Bearer ${accessToken}`})},
+            body: formData
+        });
+    }
+
     async function loadRegions() {
-        const response = await fetch('/regions', { headers: { 'Accept': 'application/json' } });
+        const response = await fetch('/regions', {headers: {'Accept': 'application/json'}});
         if (!response.ok) return;
         allRegions = await response.json();
 
@@ -229,7 +410,10 @@
         const childSelect = document.getElementById('regionChild');
         childSelect.innerHTML = '<option value="">구/군 선택</option>';
 
-        if (!parentTsid) { childSelect.disabled = true; return; }
+        if (!parentTsid) {
+            childSelect.disabled = true;
+            return;
+        }
 
         const parent = allRegions.find(r => r.tsid === parentTsid);
         if (parent && parent.children && parent.children.length > 0) {
@@ -248,8 +432,9 @@
     function fillForm(gathering) {
         document.getElementById('name').value = gathering.name || '';
         document.getElementById('description').value = gathering.description || '';
-        document.getElementById('mainImageUrl').value = gathering.mainImageUrl || '';
         document.getElementById('category').value = gathering.category || '';
+        existingImageUrl = gathering.mainImageUrl || null;
+        showImagePreview(existingImageUrl);
         selectRegion(gathering.regionTsid);
     }
 
@@ -282,18 +467,24 @@
 
         const name = document.getElementById('name').value.trim();
         const nameError = document.getElementById('nameError');
-        if (!name) { nameError.style.display = 'block'; valid = false; }
-        else nameError.style.display = 'none';
+        if (!name) {
+            nameError.style.display = 'block';
+            valid = false;
+        } else nameError.style.display = 'none';
 
         const category = document.getElementById('category').value;
         const categoryError = document.getElementById('categoryError');
-        if (!category) { categoryError.style.display = 'block'; valid = false; }
-        else categoryError.style.display = 'none';
+        if (!category) {
+            categoryError.style.display = 'block';
+            valid = false;
+        } else categoryError.style.display = 'none';
 
         const regionTsid = getRegionTsid();
         const regionError = document.getElementById('regionError');
-        if (!regionTsid) { regionError.style.display = 'block'; valid = false; }
-        else regionError.style.display = 'none';
+        if (!regionTsid) {
+            regionError.style.display = 'block';
+            valid = false;
+        } else regionError.style.display = 'none';
 
         return valid;
     }
@@ -311,7 +502,7 @@
             category: document.getElementById('category').value,
             regionTsid: getRegionTsid(),
             description: document.getElementById('description').value.trim() || null,
-            mainImageUrl: document.getElementById('mainImageUrl').value.trim() || null
+            mainImageUrl: existingImageUrl
         };
 
         const response = await apiCall(`/gatherings/${tsid}`, {
@@ -322,6 +513,7 @@
         if (!response) return;
 
         if (response.ok) {
+            await uploadImageIfSelected();
             location.href = `/gatherings/${tsid}`;
         } else {
             const err = await response.json().catch(() => ({}));
