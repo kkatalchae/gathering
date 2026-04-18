@@ -4,11 +4,14 @@ import java.util.List;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.gathering.auth.application.RefreshTokenService;
 import com.gathering.auth.domain.OAuthUserInfo;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
+import com.gathering.file.application.FileUploadService;
+import com.gathering.file.domain.model.FileType;
 import com.gathering.user.domain.model.OAuthProvider;
 import com.gathering.user.domain.model.UserOAuthConnectionEntity;
 import com.gathering.user.domain.model.UserSecurityEntity;
@@ -22,7 +25,7 @@ import com.gathering.user.presentation.dto.UpdateMyInfoRequest;
 import com.gathering.user.presentation.dto.UserJoinRequest;
 import com.gathering.user.presentation.dto.WithdrawRequest;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -35,6 +38,7 @@ public class UserService {
 	private final PasswordEncoder passwordEncoder;
 	private final UserValidator userValidator;
 	private final RefreshTokenService refreshTokenService;
+	private final FileUploadService fileUploadService;
 
 	/**
 	 * 회원가입 처리
@@ -72,6 +76,45 @@ public class UserService {
 		userSecurityRepository.save(userSecurityEntity);
 
 		return usersEntity;
+	}
+
+	/**
+	 * 프로필 이미지 업로드
+	 * 기존 이미지가 있으면 커밋 후 삭제 (롤백 시 기존 이미지 보존)
+	 *
+	 * @param tsid 사용자 고유 ID
+	 * @param file 업로드할 이미지 파일
+	 * @return 업로드된 파일의 공개 URL
+	 */
+	@Transactional
+	public String uploadProfileImage(String tsid, MultipartFile file) {
+		UsersEntity user = getUsersEntityByTsid(tsid);
+
+		// 업로드 전에 기존 이미지 메타데이터 조회 (새 이미지와 구분하기 위해 먼저 조회)
+		var oldMetadata = fileUploadService.findFilesByUploaderAndType(tsid, FileType.PROFILE_IMAGE);
+
+		String url = fileUploadService.upload(file, FileType.PROFILE_IMAGE, tsid);
+		user.updateProfileImageUrl(url);
+
+		// 기존 이미지 메타데이터 DB 삭제 + 커밋 후 스토리지 파일 삭제
+		if (!oldMetadata.isEmpty()) {
+			fileUploadService.deleteFilesWithCleanup(oldMetadata);
+		}
+
+		return url;
+	}
+
+	@Transactional
+	public void deleteProfileImage(String tsid) {
+		UsersEntity user = getUsersEntityByTsid(tsid);
+
+		var metadataList = fileUploadService.findFilesByUploaderAndType(tsid, FileType.PROFILE_IMAGE);
+		if (metadataList.isEmpty()) {
+			return;
+		}
+
+		user.updateProfileImageUrl(null);
+		fileUploadService.deleteFilesWithCleanup(metadataList);
 	}
 
 	/**

@@ -30,7 +30,9 @@ public class SecurityConfig {
 		// 모임 화면 및 API (비로그인도 목록/상세 열람 허용, 생성/수정/삭제는 JS에서 401 처리)
 		"/gatherings", "/gatherings/**",
 		// 지역 API (모임 폼 드롭다운용)
-		"/regions"
+		"/regions",
+		// 업로드된 파일 (개발 환경 정적 리소스 서빙)
+		"/uploads/**"
 	};
 
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;

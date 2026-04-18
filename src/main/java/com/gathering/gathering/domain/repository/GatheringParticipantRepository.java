@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.gathering.gathering.domain.model.GatheringParticipantEntity;
+import com.gathering.gathering.domain.model.ParticipantRole;
 
 public interface GatheringParticipantRepository extends JpaRepository<GatheringParticipantEntity, String> {
 
@@ -26,4 +27,7 @@ public interface GatheringParticipantRepository extends JpaRepository<GatheringP
 	long countByGatheringTsid(String gatheringTsid);
 
 	boolean existsByGatheringTsidAndUserTsid(String gatheringTsid, String userTsid);
+
+	Optional<GatheringParticipantEntity> findByGatheringTsidAndUserTsidAndRole(
+		String gatheringTsid, String userTsid, ParticipantRole role);
 }

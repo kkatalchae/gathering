@@ -68,6 +68,11 @@ public class UsersEntity {
 	@CreatedDate
 	private Instant createdAt;
 
+
+	public void updateProfileImageUrl(String profileImageUrl) {
+		this.profileImageUrl = profileImageUrl;
+	}
+
 	/**
 	 * 프로필 정보 업데이트
 	 * JPA 엔티티이므로 필드를 직접 변경하면 dirty checking으로 자동 UPDATE
