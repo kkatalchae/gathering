@@ -26,7 +26,11 @@ public class SecurityConfig {
 		// OAuth 엔드포인트 (인증 불필요)
 		"/oauth/**", "/login/oauth2/**",
 		// API 문서
-		"/docs/**", "/redoc.html", "/my-info"
+		"/docs/**", "/redoc.html", "/my-info",
+		// 모임 화면 및 API (비로그인도 목록/상세 열람 허용, 생성/수정/삭제는 JS에서 401 처리)
+		"/gatherings", "/gatherings/**",
+		// 지역 API (모임 폼 드롭다운용)
+		"/regions"
 	};
 
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;

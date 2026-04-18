@@ -12,6 +12,9 @@ import lombok.Getter;
 public class ParticipantSummary {
 
 	@NotNull
+	private String userTsid;
+
+	@NotNull
 	private String nickname;
 
 	private String profileImageUrl;
@@ -21,6 +24,7 @@ public class ParticipantSummary {
 
 	public static ParticipantSummary from(GatheringParticipantEntity participant) {
 		return ParticipantSummary.builder()
+			.userTsid(participant.getUserTsid())
 			.nickname(participant.getUser().getNickname())
 			.profileImageUrl(participant.getUser().getProfileImageUrl())
 			.role(participant.getRole())

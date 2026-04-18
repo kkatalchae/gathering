@@ -3,6 +3,7 @@ package com.gathering.gathering.presentation.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -70,7 +71,7 @@ public class GatheringsController {
 	 * @param size 페이지 크기 (기본: 20, 최대: 100)
 	 * @return 모임 목록 및 페이지네이션 정보
 	 */
-	@GetMapping
+	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<GatheringListResponse> getGatherings(
 		@RequestParam(required = false) List<GatheringCategory> categories,
 		@RequestParam(required = false) List<String> regionTsids,
@@ -97,7 +98,7 @@ public class GatheringsController {
 	 * @param tsid 모임 TSID
 	 * @return 모임 상세 정보
 	 */
-	@GetMapping("/{tsid}")
+	@GetMapping(value = "/{tsid}", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<GatheringDetailResponse> getGatheringDetail(@PathVariable String tsid) {
 		GatheringDetailResponse response = gatheringService.getGatheringDetail(tsid);
 
