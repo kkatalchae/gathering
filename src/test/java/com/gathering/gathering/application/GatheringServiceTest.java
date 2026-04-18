@@ -25,6 +25,7 @@ import com.gathering.gathering.domain.model.ParticipantRole;
 import com.gathering.gathering.domain.policy.GatheringPolicy;
 import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.gathering.domain.repository.GatheringRepository;
+
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
 import com.gathering.gathering.presentation.dto.GatheringListRequest;
 import com.gathering.gathering.presentation.dto.GatheringListResponse;
@@ -47,9 +48,6 @@ class GatheringServiceTest {
 
 	@Mock
 	private GatheringPolicy gatheringPolicy;
-
-	@Mock
-	private GatheringParticipantService gatheringParticipantService;
 
 	@InjectMocks
 	private GatheringService gatheringService;
@@ -607,7 +605,8 @@ class GatheringServiceTest {
 			.build();
 
 		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
-		given(gatheringParticipantService.findParticipants(gatheringTsid, userTsid)).willReturn(participant);
+		given(participantRepository.findByGatheringTsidAndUserTsid(gatheringTsid, userTsid))
+			.willReturn(Optional.of(participant));
 
 		// when
 		gatheringService.leaveGathering(gatheringTsid, userTsid);
@@ -632,7 +631,8 @@ class GatheringServiceTest {
 			.build();
 
 		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
-		given(gatheringParticipantService.findParticipants(gatheringTsid, adminTsid)).willReturn(participant);
+		given(participantRepository.findByGatheringTsidAndUserTsid(gatheringTsid, adminTsid))
+			.willReturn(Optional.of(participant));
 
 		// when
 		gatheringService.leaveGathering(gatheringTsid, adminTsid);
@@ -664,8 +664,8 @@ class GatheringServiceTest {
 		String userTsid = "01HQUSER123456";
 
 		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
-		given(gatheringParticipantService.findParticipants(gatheringTsid, userTsid))
-			.willThrow(new BusinessException(ErrorCode.PARTICIPANT_NOT_FOUND));
+		given(participantRepository.findByGatheringTsidAndUserTsid(gatheringTsid, userTsid))
+			.willReturn(Optional.empty());
 
 		// when & then
 		assertThatThrownBy(() -> gatheringService.leaveGathering(gatheringTsid, userTsid))
@@ -689,7 +689,8 @@ class GatheringServiceTest {
 			.build();
 
 		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
-		given(gatheringParticipantService.findParticipants(gatheringTsid, ownerTsid)).willReturn(ownerParticipant);
+		given(participantRepository.findByGatheringTsidAndUserTsid(gatheringTsid, ownerTsid))
+			.willReturn(Optional.of(ownerParticipant));
 
 		// when & then
 		assertThatThrownBy(() -> gatheringService.leaveGathering(gatheringTsid, ownerTsid))

@@ -3,6 +3,8 @@ package com.gathering.gathering.domain.policy;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,9 +15,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
-import com.gathering.gathering.application.GatheringParticipantService;
 import com.gathering.gathering.domain.model.GatheringParticipantEntity;
 import com.gathering.gathering.domain.model.ParticipantRole;
+import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.region.domain.repository.RegionRepository;
 
 /**
@@ -27,11 +29,11 @@ class GatheringPolicyTest {
 	@Mock
 	private RegionRepository regionRepository;
 
+	@Mock
+	private GatheringParticipantRepository participantRepository;
+
 	@InjectMocks
 	private GatheringPolicy gatheringPolicy;
-
-	@Mock
-	private GatheringParticipantService gatheringParticipantService;
 
 	@Test
 	@DisplayName("존재하는 지역 TSID는 검증을 통과한다")
@@ -74,8 +76,8 @@ class GatheringPolicyTest {
 				.role(ParticipantRole.OWNER)
 				.build();
 
-			given(gatheringParticipantService.findParticipants(gatheringTsid, ownerTsid))
-				.willReturn(owner);
+			given(participantRepository.findByGatheringTsidAndUserTsid(gatheringTsid, ownerTsid))
+				.willReturn(Optional.of(owner));
 
 			// when & then
 			assertThatCode(() -> gatheringPolicy.validateOwnerPermission(gatheringTsid, ownerTsid))
@@ -94,8 +96,8 @@ class GatheringPolicyTest {
 				.role(ParticipantRole.ADMIN)
 				.build();
 
-			given(gatheringParticipantService.findParticipants(gatheringTsid, adminTsid))
-				.willReturn(admin);
+			given(participantRepository.findByGatheringTsidAndUserTsid(gatheringTsid, adminTsid))
+				.willReturn(Optional.of(admin));
 
 			// when & then
 			assertThatThrownBy(() -> gatheringPolicy.validateOwnerPermission(gatheringTsid, adminTsid))
@@ -115,8 +117,8 @@ class GatheringPolicyTest {
 				.role(ParticipantRole.MEMBER)
 				.build();
 
-			given(gatheringParticipantService.findParticipants(gatheringTsid, memberTsid))
-				.willReturn(member);
+			given(participantRepository.findByGatheringTsidAndUserTsid(gatheringTsid, memberTsid))
+				.willReturn(Optional.of(member));
 
 			// when & then
 			assertThatThrownBy(() -> gatheringPolicy.validateOwnerPermission(gatheringTsid, memberTsid))
@@ -131,13 +133,13 @@ class GatheringPolicyTest {
 			String gatheringTsid = "01HQGATHERING1";
 			String nonParticipantTsid = "01HQNONPARTICIP";
 
-			given(gatheringParticipantService.findParticipants(gatheringTsid, nonParticipantTsid)).willThrow(
-				new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED));
+			given(participantRepository.findByGatheringTsidAndUserTsid(gatheringTsid, nonParticipantTsid))
+				.willReturn(Optional.empty());
 
-			// when & then
+			// when & then: 참여자가 아니면 PARTICIPANT_NOT_FOUND 예외 발생
 			assertThatThrownBy(() -> gatheringPolicy.validateOwnerPermission(gatheringTsid, nonParticipantTsid))
 				.isInstanceOf(BusinessException.class)
-				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED);
+				.hasFieldOrPropertyWithValue("errorCode", ErrorCode.PARTICIPANT_NOT_FOUND);
 		}
 	}
 }

@@ -21,6 +21,7 @@ import com.gathering.gathering.domain.policy.GatheringPolicy;
 import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.gathering.domain.repository.GatheringRepository;
 import com.gathering.gathering.presentation.dto.ChangeParticipantRoleRequest;
+
 import com.gathering.gathering.presentation.dto.ChangeParticipantRoleResponse;
 import com.gathering.gathering.presentation.dto.CreateGatheringRequest;
 import com.gathering.gathering.presentation.dto.GatheringDetailResponse;
@@ -45,7 +46,6 @@ public class GatheringService {
 	private final GatheringParticipantRepository participantRepository;
 	private final FileUploadService fileUploadService;
 	private final GatheringPolicy gatheringPolicy;
-	private final GatheringParticipantService gatheringParticipantService;
 
 	/**
 	 * 모임 생성
@@ -232,7 +232,9 @@ public class GatheringService {
 		GatheringParticipantEntity requester = gatheringPolicy.validateOwnerPermission(gatheringTsid, requesterTsid);
 
 		// 대상 참여자 검증
-		GatheringParticipantEntity target = gatheringParticipantService.findParticipants(gatheringTsid, targetUserTsid);
+		GatheringParticipantEntity target = participantRepository
+			.findByGatheringTsidAndUserTsid(gatheringTsid, targetUserTsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.PARTICIPANT_NOT_FOUND));
 
 		ParticipantRole previousRole = target.getRole();
 		ParticipantRole newRole = request.getNewRole();
@@ -304,7 +306,9 @@ public class GatheringService {
 		}
 
 		// 참여 중인지 확인
-		GatheringParticipantEntity participant = gatheringParticipantService.findParticipants(gatheringTsid, userTsid);
+		GatheringParticipantEntity participant = participantRepository
+			.findByGatheringTsidAndUserTsid(gatheringTsid, userTsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.PARTICIPANT_NOT_FOUND));
 
 		// 오너 퇴장 불가
 		if (participant.getRole() == ParticipantRole.OWNER) {
