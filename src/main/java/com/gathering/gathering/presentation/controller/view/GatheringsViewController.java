@@ -19,24 +19,24 @@ public class GatheringsViewController {
 	// 모임 목록 화면
 	@GetMapping(produces = MediaType.TEXT_HTML_VALUE)
 	public String list() {
-		return "/gathering/list";
+		return "gathering/list";
 	}
 
 	// 모임 생성 폼 — /{tsid} 패턴보다 먼저 매칭되도록 리터럴 경로로 선언
 	@GetMapping(value = "/new", produces = MediaType.TEXT_HTML_VALUE)
 	public String create() {
-		return "/gathering/create";
+		return "gathering/create";
 	}
 
 	// 모임 상세 화면
 	@GetMapping(value = "/{tsid}", produces = MediaType.TEXT_HTML_VALUE)
 	public String detail(@PathVariable String tsid) {
-		return "/gathering/detail";
+		return "gathering/detail";
 	}
 
 	// 모임 수정 폼
 	@GetMapping(value = "/{tsid}/edit", produces = MediaType.TEXT_HTML_VALUE)
 	public String edit(@PathVariable String tsid) {
-		return "/gathering/edit";
+		return "gathering/edit";
 	}
 }
