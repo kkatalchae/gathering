@@ -41,8 +41,8 @@ import lombok.NoArgsConstructor;
 		@UniqueConstraint(name = "uk_schedule_user", columnNames = {"schedule_tsid", "user_tsid"})
 	},
 	indexes = {
-		@Index(name = "idx_schedule_participant_user", columnList = "user_tsid"),
-		@Index(name = "idx_schedule_participant_schedule", columnList = "schedule_tsid")
+		// schedule_tsid 단일 인덱스는 uk_schedule_user의 좌측 프리픽스와 중복되므로 두지 않는다
+		@Index(name = "idx_schedule_participant_user", columnList = "user_tsid")
 	}
 )
 public class ScheduleParticipantEntity {
