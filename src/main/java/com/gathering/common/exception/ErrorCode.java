@@ -83,6 +83,20 @@ public enum ErrorCode {
 	GATHERING_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "모임 정원이 초과되었습니다"),
 	OWNER_CANNOT_LEAVE_GATHERING(HttpStatus.BAD_REQUEST, "오너는 모임을 나갈 수 없습니다. 오너를 양도하거나 모임을 삭제해주세요"),
 
+	// Schedule 유효성 검증 에러 (400 Bad Request)
+	SCHEDULE_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "일정 제목은 필수입니다"),
+	SCHEDULE_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "일정 제목은 50자를 초과할 수 없습니다"),
+	SCHEDULE_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "일정 설명은 1000자를 초과할 수 없습니다"),
+	SCHEDULE_START_AT_REQUIRED(HttpStatus.BAD_REQUEST, "일정 시작 시각은 필수입니다"),
+	SCHEDULE_END_AT_BEFORE_START_AT(HttpStatus.BAD_REQUEST, "일정 종료 시각은 시작 시각보다 이후여야 합니다"),
+	INVALID_SCHEDULE_CAPACITY(HttpStatus.BAD_REQUEST, "일정 정원은 1명 이상이어야 합니다"),
+	SCHEDULE_LOCATION_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "일정 장소는 필수입니다"),
+	SCHEDULE_LOCATION_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "장소명은 100자를 초과할 수 없습니다"),
+	SCHEDULE_LOCATION_ADDRESS_TOO_LONG(HttpStatus.BAD_REQUEST, "장소 주소는 255자를 초과할 수 없습니다"),
+
+	// Schedule 조회 관련 에러 (404 Not Found)
+	SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다"),
+
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다"),
 
