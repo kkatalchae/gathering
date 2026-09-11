@@ -116,6 +116,16 @@ public class ScheduleEntity {
 	}
 
 	/**
+	 * 해당 사용자가 일정을 개설한 호스트인지 여부
+	 *
+	 * @param userTsid 확인할 사용자 TSID
+	 * @return 호스트이면 true
+	 */
+	public boolean isHostedBy(String userTsid) {
+		return createdBy.equals(userTsid);
+	}
+
+	/**
 	 * 일정 정보 수정
 	 *
 	 * @param title 일정 제목

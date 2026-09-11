@@ -70,12 +70,13 @@ public class SecurityConfig {
 
 	/**
 	 * 인증/인가 설정
-	 * 모임 목록/상세 조회(GET)는 비로그인 허용, 생성/수정/삭제 등 쓰기는 인증 필요
+	 * 모임/일정 목록·상세 조회(GET)는 비로그인 허용, 생성/수정/삭제 등 쓰기는 인증 필요
 	 */
 	private void configureAuthorization(HttpSecurity http) throws Exception {
 		http.authorizeHttpRequests(authorize -> authorize
 			.requestMatchers(PERMIT_ALL_URLS).permitAll()
 			.requestMatchers(HttpMethod.GET, "/gatherings", "/gatherings/**").permitAll()
+			.requestMatchers(HttpMethod.GET, "/schedules", "/schedules/**").permitAll()
 			.anyRequest().authenticated()
 		);
 	}

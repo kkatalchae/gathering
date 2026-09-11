@@ -93,9 +93,14 @@ public enum ErrorCode {
 	SCHEDULE_LOCATION_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "일정 장소는 필수입니다"),
 	SCHEDULE_LOCATION_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "장소명은 100자를 초과할 수 없습니다"),
 	SCHEDULE_LOCATION_ADDRESS_TOO_LONG(HttpStatus.BAD_REQUEST, "장소 주소는 255자를 초과할 수 없습니다"),
+	SCHEDULE_CAPACITY_BELOW_PARTICIPANT_COUNT(HttpStatus.BAD_REQUEST, "정원을 현재 참여 인원보다 적게 변경할 수 없습니다"),
 
 	// Schedule 조회 관련 에러 (404 Not Found)
 	SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다"),
+
+	// Schedule 권한 관련 에러 (403 Forbidden)
+	SCHEDULE_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "일정의 호스트만 수정하거나 삭제할 수 있습니다"),
+	NOT_GATHERING_PARTICIPANT(HttpStatus.FORBIDDEN, "모임에 참여한 사용자만 해당 모임의 일정을 열 수 있습니다"),
 
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다"),
