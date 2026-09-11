@@ -8,7 +8,8 @@ spring:
 
   # 테스트용 H2 인메모리 데이터베이스
   datasource:
-    url: jdbc:h2:mem:testdb
+    # LOCK_TIMEOUT: 동시성 테스트에서 FOR UPDATE 대기가 H2 기본값(1초)을 넘어 락 타임아웃으로 오탐하지 않도록 여유를 둔다
+    url: jdbc:h2:mem:testdb;LOCK_TIMEOUT=10000
     username: sa
     password:
     driver-class-name: org.h2.Driver

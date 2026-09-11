@@ -268,6 +268,21 @@ class ScheduleRepositoryTest {
 		assertThat(scheduleRepository.findByTsidForUpdate("UNKNOWN_TSID00")).isEmpty();
 	}
 
+	@Test
+	@DisplayName("모임에 귀속된 일정들을 쓰기 락과 함께 조회한다")
+	void findAllByGatheringTsidForUpdate() {
+		// given
+		ScheduleEntity attached = saveSchedule("모임 일정", BASE_TIME.plus(Duration.ofDays(1)), gathering.getTsid());
+		saveSchedule("독립 일정", BASE_TIME.plus(Duration.ofDays(1)), null);
+		flushAndClear();
+
+		// when
+		List<ScheduleEntity> locked = scheduleRepository.findAllByGatheringTsidForUpdate(gathering.getTsid());
+
+		// then
+		assertThat(locked).extracting(ScheduleEntity::getTsid).containsExactly(attached.getTsid());
+	}
+
 	/**
 	 * 저장한 엔티티가 1차 캐시에 남아 있으면 쿼리가 fetch join 결과 대신 캐시 인스턴스를 돌려주므로,
 	 * 실제 요청처럼 DB에서 새로 읽도록 조회 전에 컨텍스트를 비운다

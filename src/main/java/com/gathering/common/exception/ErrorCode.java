@@ -109,6 +109,9 @@ public enum ErrorCode {
 	SCHEDULE_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 일정에 참여하고 있지 않습니다"),
 	HOST_CANNOT_LEAVE_SCHEDULE(HttpStatus.BAD_REQUEST, "호스트는 일정에서 빠질 수 없습니다. 일정을 삭제해주세요"),
 
+	// 동시성 관련 에러 (409 Conflict) — 데드락 패자 / 락 대기 타임아웃, 재시도하면 성공한다
+	CONCURRENT_REQUEST_CONFLICT(HttpStatus.CONFLICT, "동시에 처리 중인 요청이 있습니다. 잠시 후 다시 시도해주세요"),
+
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다"),
 	INVALID_CURSOR(HttpStatus.BAD_REQUEST, "커서 형식이 올바르지 않습니다"),

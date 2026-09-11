@@ -182,14 +182,15 @@ public class GatheringService {
 	/**
 	 * 모임 삭제
 	 * OWNER만 삭제 가능하며 모임에 귀속된 일정과 참여자 데이터가 함께 삭제됨
+	 * 모임 row 락을 먼저 잡아 진행 중인 모임 참여와 락 순서가 엇갈리지 않게 한다 (락 순서: 모임 → 일정 → 참여자)
 	 *
 	 * @param gatheringTsid 삭제할 모임 TSID
 	 * @param userTsid 요청 사용자 TSID
 	 */
 	@Transactional
 	public void deleteGathering(String gatheringTsid, String userTsid) {
-		// 모임 존재 여부 확인
-		if (!gatheringRepository.existsById(gatheringTsid)) {
+		// 모임 존재 여부 확인 + 쓰기 락
+		if (gatheringRepository.findByTsidForUpdate(gatheringTsid).isEmpty()) {
 			throw new BusinessException(ErrorCode.GATHERING_NOT_FOUND);
 		}
 
@@ -263,6 +264,8 @@ public class GatheringService {
 	/**
 	 * 모임 참여
 	 * 로그인한 사용자가 모임에 MEMBER로 참여
+	 * 정원 확인과 참여자 저장이 원자적으로 이루어지도록 모임 row 에 쓰기 락을 건다
+	 * 락 안에서는 DB 작업만 하고 외부 I/O 는 하지 않는다 — docs/adr/0001 참고
 	 *
 	 * @param gatheringTsid 참여할 모임 TSID
 	 * @param userTsid 참여할 사용자 TSID
@@ -270,8 +273,8 @@ public class GatheringService {
 	 */
 	@Transactional
 	public JoinGatheringResponse joinGathering(String gatheringTsid, String userTsid) {
-		// 모임 존재 여부 확인
-		GatheringEntity gathering = gatheringRepository.findById(gatheringTsid)
+		// 모임 존재 여부 확인 + 쓰기 락 (동시 참여로 인한 정원 초과 방지)
+		GatheringEntity gathering = gatheringRepository.findByTsidForUpdate(gatheringTsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
 
 		// 이미 참여 중인지 확인
@@ -299,6 +302,7 @@ public class GatheringService {
 	/**
 	 * 모임 퇴장
 	 * 로그인한 사용자가 모임에서 퇴장
+	 * 인원이 줄어드는 방향이라 정원 불변식을 깨지 못하고 PK 삭제라 갭 락도 잡지 않으므로 모임 row 락은 잡지 않는다
 	 *
 	 * @param gatheringTsid 퇴장할 모임 TSID
 	 * @param userTsid 퇴장할 사용자 TSID
