@@ -116,13 +116,23 @@ public class ScheduleEntity {
 	}
 
 	/**
+	 * 해당 사용자가 일정을 개설한 호스트인지 여부
+	 *
+	 * @param userTsid 확인할 사용자 TSID
+	 * @return 호스트이면 true
+	 */
+	public boolean isHostedBy(String userTsid) {
+		return createdBy.equals(userTsid);
+	}
+
+	/**
 	 * 일정 정보 수정
 	 *
 	 * @param title 일정 제목
 	 * @param description 일정 설명
 	 * @param startAt 시작 시각
 	 * @param endAt 종료 시각 (null 허용)
-	 * @param locationName 장소명 (null 허용)
+	 * @param locationName 장소명 (필수)
 	 * @param locationAddress 장소 주소 (null 허용)
 	 * @param maxParticipants 정원 (null이면 제한 없음)
 	 */

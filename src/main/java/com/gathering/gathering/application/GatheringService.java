@@ -31,6 +31,7 @@ import com.gathering.gathering.presentation.dto.GatheringListResponse;
 import com.gathering.gathering.presentation.dto.GatheringResponse;
 import com.gathering.gathering.presentation.dto.JoinGatheringResponse;
 import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
+import com.gathering.schedule.application.ScheduleService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,6 +47,7 @@ public class GatheringService {
 	private final GatheringParticipantRepository participantRepository;
 	private final FileUploadService fileUploadService;
 	private final GatheringPolicy gatheringPolicy;
+	private final ScheduleService scheduleService;
 
 	/**
 	 * 모임 생성
@@ -179,7 +181,7 @@ public class GatheringService {
 
 	/**
 	 * 모임 삭제
-	 * OWNER만 삭제 가능하며 모임과 관련 참여자 데이터가 함께 삭제됨
+	 * OWNER만 삭제 가능하며 모임에 귀속된 일정과 참여자 데이터가 함께 삭제됨
 	 *
 	 * @param gatheringTsid 삭제할 모임 TSID
 	 * @param userTsid 요청 사용자 TSID
@@ -193,6 +195,9 @@ public class GatheringService {
 
 		// 권한 검증 (OWNER만 가능)
 		gatheringPolicy.validateOwnerPermission(gatheringTsid, userTsid);
+
+		// 귀속 일정과 일정 참여자 삭제 (FK 제약 조건으로 인해 먼저 삭제)
+		scheduleService.deleteSchedulesByGatheringTsid(gatheringTsid);
 
 		// 참여자 데이터 삭제 (FK 제약 조건으로 인해 먼저 삭제)
 		participantRepository.deleteAllByGatheringTsid(gatheringTsid);

@@ -3,6 +3,7 @@ package com.gathering.gathering.application;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.*;
 
 import java.time.Instant;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,6 +35,7 @@ import com.gathering.gathering.presentation.dto.GatheringResponse;
 import com.gathering.gathering.presentation.dto.JoinGatheringResponse;
 import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 import com.gathering.region.domain.model.RegionEntity;
+import com.gathering.schedule.application.ScheduleService;
 
 /**
  * GatheringService 테스트
@@ -48,6 +51,9 @@ class GatheringServiceTest {
 
 	@Mock
 	private GatheringPolicy gatheringPolicy;
+
+	@Mock
+	private ScheduleService scheduleService;
 
 	@InjectMocks
 	private GatheringService gatheringService;
@@ -438,8 +444,15 @@ class GatheringServiceTest {
 
 		// then: Policy, Repository 호출 확인
 		then(gatheringPolicy).should().validateOwnerPermission(gatheringTsid, ownerTsid);
+		then(scheduleService).should().deleteSchedulesByGatheringTsid(gatheringTsid);
 		then(participantRepository).should().deleteAllByGatheringTsid(gatheringTsid);
 		then(gatheringRepository).should().deleteById(gatheringTsid);
+
+		// FK 제약 조건 때문에 귀속 일정 -> 모임 참여자 -> 모임 순서가 지켜져야 한다
+		InOrder deletionOrder = inOrder(scheduleService, participantRepository, gatheringRepository);
+		deletionOrder.verify(scheduleService).deleteSchedulesByGatheringTsid(gatheringTsid);
+		deletionOrder.verify(participantRepository).deleteAllByGatheringTsid(gatheringTsid);
+		deletionOrder.verify(gatheringRepository).deleteById(gatheringTsid);
 	}
 
 	@Test
