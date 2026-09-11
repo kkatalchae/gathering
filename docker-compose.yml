@@ -23,7 +23,43 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
 
+  # 채팅 메시지/읽음 위치 저장소 (docs/adr/0002-chat-message-storage.md)
+  # 값은 .env 로 덮어쓸 수 있다 (.env.example 참고)
+  cassandra:
+    image: cassandra:${CASSANDRA_IMAGE_TAG:-5.0}
+    container_name: gathering-cassandra
+    ports:
+      - "${CASSANDRA_PORT:-9042}:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: gathering
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      # JVM 힙 — 기본값은 호스트 메모리의 1/4 이라 로컬에서는 줄여 띄운다. 느리면 .env 에서 올린다
+      MAX_HEAP_SIZE: ${CASSANDRA_MAX_HEAP_SIZE:-512M}
+      HEAP_NEWSIZE: ${CASSANDRA_HEAP_NEWSIZE:-128M}
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 40s
+
+  # 키스페이스 생성 (Cassandra 이미지는 초기화 스크립트를 지원하지 않아 1회성 컨테이너로 실행)
+  cassandra-init:
+    image: cassandra:${CASSANDRA_IMAGE_TAG:-5.0}
+    container_name: gathering-cassandra-init
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    volumes:
+      - ./docker/cassandra/init.cql:/init.cql:ro
+    command: cqlsh cassandra -f /init.cql
+    restart: "no"
+
 volumes:
   mysql_data:
   redis_data:
+  cassandra_data:
 
