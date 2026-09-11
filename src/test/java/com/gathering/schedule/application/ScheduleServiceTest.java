@@ -345,7 +345,7 @@ class ScheduleServiceTest {
 	void updateScheduleSuccess() {
 		// given
 		ScheduleEntity schedule = standaloneSchedule();
-		given(scheduleRepository.findById(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
 		given(scheduleParticipantRepository.countByScheduleTsid(SCHEDULE_TSID)).willReturn(2L);
 
 		UpdateScheduleRequest request = UpdateScheduleRequest.builder()
@@ -373,7 +373,7 @@ class ScheduleServiceTest {
 	void updateScheduleWithCapacityBelowParticipantCount() {
 		// given
 		ScheduleEntity schedule = standaloneSchedule();
-		given(scheduleRepository.findById(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
 		given(scheduleParticipantRepository.countByScheduleTsid(SCHEDULE_TSID)).willReturn(5L);
 
 		UpdateScheduleRequest request = UpdateScheduleRequest.builder()
@@ -396,7 +396,7 @@ class ScheduleServiceTest {
 	void updateScheduleWithoutPermission() {
 		// given
 		ScheduleEntity schedule = standaloneSchedule();
-		given(scheduleRepository.findById(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
 		willThrow(new BusinessException(ErrorCode.SCHEDULE_PERMISSION_DENIED))
 			.given(schedulePolicy).validateHostPermission(schedule, "01HQUSEROTHER1");
 
@@ -418,7 +418,7 @@ class ScheduleServiceTest {
 	void deleteScheduleSuccess() {
 		// given
 		ScheduleEntity schedule = standaloneSchedule();
-		given(scheduleRepository.findById(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
 
 		// when
 		scheduleService.deleteSchedule(SCHEDULE_TSID, HOST_TSID);
@@ -433,7 +433,7 @@ class ScheduleServiceTest {
 	@DisplayName("존재하지 않는 일정을 삭제하면 예외가 발생한다")
 	void deleteScheduleNotFound() {
 		// given
-		given(scheduleRepository.findById(SCHEDULE_TSID)).willReturn(Optional.empty());
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.empty());
 
 		// when & then
 		assertThatThrownBy(() -> scheduleService.deleteSchedule(SCHEDULE_TSID, HOST_TSID))
@@ -599,7 +599,8 @@ class ScheduleServiceTest {
 	void deleteSchedulesByGatheringTsid() {
 		// given
 		List<String> scheduleTsids = List.of(SCHEDULE_TSID, "01HQSCHEDULE02");
-		given(scheduleRepository.findTsidsByGatheringTsid(GATHERING_TSID)).willReturn(scheduleTsids);
+		given(scheduleRepository.findAllByGatheringTsidForUpdate(GATHERING_TSID)).willReturn(List.of(
+			listSchedule(SCHEDULE_TSID, START_AT), listSchedule("01HQSCHEDULE02", START_AT)));
 
 		// when
 		scheduleService.deleteSchedulesByGatheringTsid(GATHERING_TSID);
@@ -613,7 +614,7 @@ class ScheduleServiceTest {
 	@DisplayName("모임에 귀속된 일정이 없으면 삭제 쿼리를 실행하지 않는다")
 	void deleteSchedulesByGatheringTsidWithoutSchedules() {
 		// given
-		given(scheduleRepository.findTsidsByGatheringTsid(GATHERING_TSID)).willReturn(List.of());
+		given(scheduleRepository.findAllByGatheringTsidForUpdate(GATHERING_TSID)).willReturn(List.of());
 
 		// when
 		scheduleService.deleteSchedulesByGatheringTsid(GATHERING_TSID);

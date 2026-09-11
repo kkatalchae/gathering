@@ -437,7 +437,7 @@ class GatheringServiceTest {
 		String gatheringTsid = "01HQGATHERING1";
 		String ownerTsid = "01HQOWNER12345";
 
-		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
+		given(gatheringRepository.findByTsidForUpdate(gatheringTsid)).willReturn(Optional.of(GatheringEntity.builder().tsid(gatheringTsid).build()));
 
 		// when
 		gatheringService.deleteGathering(gatheringTsid, ownerTsid);
@@ -462,7 +462,7 @@ class GatheringServiceTest {
 		String invalidTsid = "INVALID_TSID";
 		String userTsid = "01HQUSER123456";
 
-		given(gatheringRepository.existsById(invalidTsid)).willReturn(false);
+		given(gatheringRepository.findByTsidForUpdate(invalidTsid)).willReturn(Optional.empty());
 
 		// when & then
 		assertThatThrownBy(() -> gatheringService.deleteGathering(invalidTsid, userTsid))
@@ -477,7 +477,7 @@ class GatheringServiceTest {
 		String gatheringTsid = "01HQGATHERING1";
 		String adminTsid = "01HQADMIN12345";
 
-		given(gatheringRepository.existsById(gatheringTsid)).willReturn(true);
+		given(gatheringRepository.findByTsidForUpdate(gatheringTsid)).willReturn(Optional.of(GatheringEntity.builder().tsid(gatheringTsid).build()));
 		willThrow(new BusinessException(ErrorCode.GATHERING_OWNER_PERMISSION_NEEDED))
 			.given(gatheringPolicy).validateOwnerPermission(gatheringTsid, adminTsid);
 
@@ -513,7 +513,7 @@ class GatheringServiceTest {
 			.joinedAt(Instant.now())
 			.build();
 
-		given(gatheringRepository.findById(gatheringTsid)).willReturn(Optional.of(gathering));
+		given(gatheringRepository.findByTsidForUpdate(gatheringTsid)).willReturn(Optional.of(gathering));
 		given(participantRepository.existsByGatheringTsidAndUserTsid(gatheringTsid, userTsid)).willReturn(false);
 		given(participantRepository.countByGatheringTsid(gatheringTsid)).willReturn(10L);
 		given(participantRepository.save(any(GatheringParticipantEntity.class))).willReturn(savedParticipant);
@@ -541,7 +541,7 @@ class GatheringServiceTest {
 		String invalidGatheringTsid = "INVALID_TSID";
 		String userTsid = "01HQUSER123456";
 
-		given(gatheringRepository.findById(invalidGatheringTsid)).willReturn(Optional.empty());
+		given(gatheringRepository.findByTsidForUpdate(invalidGatheringTsid)).willReturn(Optional.empty());
 
 		// when & then
 		assertThatThrownBy(() -> gatheringService.joinGathering(invalidGatheringTsid, userTsid))
@@ -565,7 +565,7 @@ class GatheringServiceTest {
 			.createdAt(Instant.now())
 			.build();
 
-		given(gatheringRepository.findById(gatheringTsid)).willReturn(Optional.of(gathering));
+		given(gatheringRepository.findByTsidForUpdate(gatheringTsid)).willReturn(Optional.of(gathering));
 		given(participantRepository.existsByGatheringTsidAndUserTsid(gatheringTsid, userTsid)).willReturn(true);
 
 		// when & then
@@ -590,7 +590,7 @@ class GatheringServiceTest {
 			.createdAt(Instant.now())
 			.build();
 
-		given(gatheringRepository.findById(gatheringTsid)).willReturn(Optional.of(gathering));
+		given(gatheringRepository.findByTsidForUpdate(gatheringTsid)).willReturn(Optional.of(gathering));
 		given(participantRepository.existsByGatheringTsidAndUserTsid(gatheringTsid, userTsid)).willReturn(false);
 		given(participantRepository.countByGatheringTsid(gatheringTsid)).willReturn(100L);
 

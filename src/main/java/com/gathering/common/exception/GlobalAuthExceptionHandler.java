@@ -1,5 +1,6 @@
 package com.gathering.common.exception;
 
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -40,6 +41,17 @@ public class GlobalAuthExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
 		log.warn("비즈니스 예외 발생: {} - {}", e.getErrorCode().name(), e.getMessage());
 		return e.getErrorCode().toResponseEntity();
+	}
+
+	/**
+	 * 비관적 락 실패 예외 처리
+	 * 데드락 패자(DeadlockLoserDataAccessException), 락 대기 타임아웃(CannotAcquireLockException) 모두 여기로 온다
+	 * 요청 자체는 유효하고 재시도하면 성공하므로 500 이 아니라 409 로 응답한다 — docs/adr/0001 참고
+	 */
+	@ExceptionHandler(PessimisticLockingFailureException.class)
+	public ResponseEntity<ErrorResponse> handlePessimisticLockingFailure(PessimisticLockingFailureException e) {
+		log.warn("비관적 락 획득 실패: {}", e.getMessage());
+		return ErrorCode.CONCURRENT_REQUEST_CONFLICT.toResponseEntity();
 	}
 
 	/**

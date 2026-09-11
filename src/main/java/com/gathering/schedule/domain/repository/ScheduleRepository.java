@@ -86,15 +86,21 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, String
 	);
 
 	/**
-	 * 참여 처리를 위해 일정 row 에 쓰기 락을 걸고 조회
-	 * 정원 확인과 참여자 저장 사이에 다른 참여 요청이 끼어들어 정원을 초과하는 것을 막는다
+	 * 일정 row 에 쓰기 락을 걸고 조회
+	 * 참여(정원 확인 → 저장), 정원 변경, 삭제처럼 일정 참여자를 바꾸는 쓰기 경로는 반드시 이 메서드로 시작한다
+	 * 근거와 락 순서 규칙은 docs/adr/0001-capacity-concurrency-control.md 참고
 	 */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("SELECT s FROM ScheduleEntity s WHERE s.tsid = :tsid")
 	Optional<ScheduleEntity> findByTsidForUpdate(@Param("tsid") String tsid);
 
-	@Query("SELECT s.tsid FROM ScheduleEntity s WHERE s.gatheringTsid = :gatheringTsid")
-	List<String> findTsidsByGatheringTsid(@Param("gatheringTsid") String gatheringTsid);
+	/**
+	 * 모임에 귀속된 일정들에 쓰기 락을 걸고 조회 (모임 삭제 시 사용)
+	 * 진행 중인 일정 참여가 있으면 그 참여가 끝날 때까지 기다린 뒤 삭제를 시작하므로 락 순서가 뒤집히지 않는다
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT s FROM ScheduleEntity s WHERE s.gatheringTsid = :gatheringTsid")
+	List<ScheduleEntity> findAllByGatheringTsidForUpdate(@Param("gatheringTsid") String gatheringTsid);
 
 	/**
 	 * 모임에 귀속된 일정 일괄 삭제

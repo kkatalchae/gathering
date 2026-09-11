@@ -162,6 +162,7 @@ public class ScheduleService {
 	/**
 	 * 일정 참여
 	 * 정원 확인과 참여자 저장이 원자적으로 이루어지도록 일정 row 에 쓰기 락을 건다
+	 * 락 안에서는 DB 작업만 하고 외부 I/O(알림 전송 등)는 하지 않는다 — docs/adr/0001 참고
 	 *
 	 * @param scheduleTsid 참여할 일정 TSID
 	 * @param userTsid 참여할 사용자 TSID
@@ -201,6 +202,7 @@ public class ScheduleService {
 	/**
 	 * 일정 참여 취소
 	 * 이미 시작된 일정도 취소할 수 있지만 호스트는 빠질 수 없다 (일정 삭제로 대신)
+	 * 인원이 줄어드는 방향이라 정원 불변식을 깨지 못하고 PK 삭제라 갭 락도 잡지 않으므로 일정 row 락은 잡지 않는다
 	 *
 	 * @param scheduleTsid 취소할 일정 TSID
 	 * @param userTsid 취소할 사용자 TSID
@@ -224,6 +226,7 @@ public class ScheduleService {
 	/**
 	 * 일정 수정
 	 * 호스트만 수정 가능하며 귀속 모임은 변경할 수 없다
+	 * 정원 축소 검증이 진행 중인 참여와 직렬화되도록 일정 row 에 쓰기 락을 건다
 	 *
 	 * @param scheduleTsid 수정할 일정 TSID
 	 * @param userTsid 요청자 TSID
@@ -232,7 +235,7 @@ public class ScheduleService {
 	 */
 	@Transactional
 	public ScheduleResponse updateSchedule(String scheduleTsid, String userTsid, UpdateScheduleRequest request) {
-		ScheduleEntity schedule = scheduleRepository.findById(scheduleTsid)
+		ScheduleEntity schedule = scheduleRepository.findByTsidForUpdate(scheduleTsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
 
 		schedulePolicy.validateHostPermission(schedule, userTsid);
@@ -257,13 +260,14 @@ public class ScheduleService {
 	/**
 	 * 일정 삭제
 	 * 호스트만 삭제 가능하며 참여자 데이터가 함께 삭제된다
+	 * 참여자 범위 삭제(갭 락) 전에 일정 row 락을 먼저 잡아, 동시에 들어온 참여와 락 순서가 엇갈려 데드락이 나지 않게 한다
 	 *
 	 * @param scheduleTsid 삭제할 일정 TSID
 	 * @param userTsid 요청자 TSID
 	 */
 	@Transactional
 	public void deleteSchedule(String scheduleTsid, String userTsid) {
-		ScheduleEntity schedule = scheduleRepository.findById(scheduleTsid)
+		ScheduleEntity schedule = scheduleRepository.findByTsidForUpdate(scheduleTsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
 
 		schedulePolicy.validateHostPermission(schedule, userTsid);
@@ -277,12 +281,15 @@ public class ScheduleService {
 	/**
 	 * 모임에 귀속된 일정 전체 삭제
 	 * 모임 삭제 시 FK 제약 조건을 만족시키기 위해 호출된다
+	 * 일정 row 들의 락을 먼저 잡아 진행 중인 일정 참여가 끝난 뒤에 참여자를 범위 삭제한다 (락 순서: 모임 → 일정 → 참여자)
 	 *
 	 * @param gatheringTsid 삭제할 모임 TSID
 	 */
 	@Transactional
 	public void deleteSchedulesByGatheringTsid(String gatheringTsid) {
-		List<String> scheduleTsids = scheduleRepository.findTsidsByGatheringTsid(gatheringTsid);
+		List<String> scheduleTsids = scheduleRepository.findAllByGatheringTsidForUpdate(gatheringTsid).stream()
+			.map(ScheduleEntity::getTsid)
+			.toList();
 		if (scheduleTsids.isEmpty()) {
 			return;
 		}
