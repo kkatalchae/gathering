@@ -1,8 +1,10 @@
 package com.gathering.schedule.domain.repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -23,6 +25,62 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, String
 		WHERE s.tsid = :tsid
 		""")
 	Optional<ScheduleEntity> findByTsidWithCreatorAndGathering(@Param("tsid") String tsid);
+
+	/**
+	 * 기준 시각 이후에 시작하는 일정을 가까운 순으로 조회 (커서 기반 페이지네이션)
+	 * 같은 시각의 일정은 tsid 순으로 정렬해 커서가 항상 유일한 위치를 가리키게 한다
+	 *
+	 * @param gatheringTsid 모임 TSID (null이면 모임 귀속 여부와 무관하게 전체 조회)
+	 * @param baseTime 기준 시각 (이 시각 이후에 시작하는 일정만)
+	 * @param cursorStartAt 커서의 시작 시각 (null이면 첫 페이지)
+	 * @param cursorTsid 커서의 일정 TSID (null이면 첫 페이지)
+	 */
+	@Query("""
+		SELECT s FROM ScheduleEntity s
+		JOIN FETCH s.creator
+		LEFT JOIN FETCH s.gathering
+		WHERE (:gatheringTsid IS NULL OR s.gatheringTsid = :gatheringTsid)
+		AND s.startAt >= :baseTime
+		AND (:cursorStartAt IS NULL
+		OR s.startAt > :cursorStartAt
+		OR (s.startAt = :cursorStartAt AND s.tsid > :cursorTsid))
+		ORDER BY s.startAt ASC, s.tsid ASC
+		""")
+	List<ScheduleEntity> findUpcomingSchedules(
+		@Param("gatheringTsid") String gatheringTsid,
+		@Param("baseTime") Instant baseTime,
+		@Param("cursorStartAt") Instant cursorStartAt,
+		@Param("cursorTsid") String cursorTsid,
+		Pageable pageable
+	);
+
+	/**
+	 * 기준 시각 이전에 시작한 일정을 최근 순으로 조회 (커서 기반 페이지네이션)
+	 * 정렬이 내림차순이므로 커서 비교 방향도 반대다
+	 *
+	 * @param gatheringTsid 모임 TSID (null이면 모임 귀속 여부와 무관하게 전체 조회)
+	 * @param baseTime 기준 시각 (이 시각 이전에 시작한 일정만)
+	 * @param cursorStartAt 커서의 시작 시각 (null이면 첫 페이지)
+	 * @param cursorTsid 커서의 일정 TSID (null이면 첫 페이지)
+	 */
+	@Query("""
+		SELECT s FROM ScheduleEntity s
+		JOIN FETCH s.creator
+		LEFT JOIN FETCH s.gathering
+		WHERE (:gatheringTsid IS NULL OR s.gatheringTsid = :gatheringTsid)
+		AND s.startAt < :baseTime
+		AND (:cursorStartAt IS NULL
+		OR s.startAt < :cursorStartAt
+		OR (s.startAt = :cursorStartAt AND s.tsid < :cursorTsid))
+		ORDER BY s.startAt DESC, s.tsid DESC
+		""")
+	List<ScheduleEntity> findPastSchedules(
+		@Param("gatheringTsid") String gatheringTsid,
+		@Param("baseTime") Instant baseTime,
+		@Param("cursorStartAt") Instant cursorStartAt,
+		@Param("cursorTsid") String cursorTsid,
+		Pageable pageable
+	);
 
 	@Query("SELECT s.tsid FROM ScheduleEntity s WHERE s.gatheringTsid = :gatheringTsid")
 	List<String> findTsidsByGatheringTsid(@Param("gatheringTsid") String gatheringTsid);

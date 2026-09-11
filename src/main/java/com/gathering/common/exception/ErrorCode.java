@@ -104,6 +104,7 @@ public enum ErrorCode {
 
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다"),
+	INVALID_CURSOR(HttpStatus.BAD_REQUEST, "커서 형식이 올바르지 않습니다"),
 
 	GATHERING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 모임에 대한 권한이 없습니다."),
 

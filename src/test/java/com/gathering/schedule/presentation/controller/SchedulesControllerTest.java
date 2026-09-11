@@ -9,6 +9,7 @@ import static org.springframework.restdocs.request.RequestDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,9 @@ import com.gathering.common.exception.ErrorCode;
 import com.gathering.schedule.application.ScheduleService;
 import com.gathering.schedule.presentation.dto.CreateScheduleRequest;
 import com.gathering.schedule.presentation.dto.ScheduleDetailResponse;
+import com.gathering.schedule.presentation.dto.ScheduleListItemResponse;
+import com.gathering.schedule.presentation.dto.ScheduleListRequest;
+import com.gathering.schedule.presentation.dto.ScheduleListResponse;
 import com.gathering.schedule.presentation.dto.ScheduleResponse;
 import com.gathering.schedule.presentation.dto.UpdateScheduleRequest;
 
@@ -217,6 +221,75 @@ class SchedulesControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@DisplayName("일정 목록 조회 시 200 상태코드와 일정 목록, 페이지네이션 정보를 반환한다")
+	void getSchedulesSuccess() throws Exception {
+		// given: 일정 목록 응답을 준비
+		ScheduleListItemResponse item = ScheduleListItemResponse.builder()
+			.tsid(SCHEDULE_TSID)
+			.gatheringTsid(GATHERING_TSID)
+			.gatheringName("한강 러닝크루")
+			.title("9월 정기 모임")
+			.startAt(START_AT)
+			.endAt(START_AT.plusSeconds(7200))
+			.locationName("한강공원 2주차장")
+			.maxParticipants(4)
+			.participantCount(2L)
+			.hostTsid(USER_TSID)
+			.hostNickname("러닝맨")
+			.build();
+		ScheduleListResponse response = ScheduleListResponse.of(
+			List.of(item), START_AT + "_" + SCHEDULE_TSID, true);
+
+		when(scheduleService.getSchedules(any(ScheduleListRequest.class))).thenReturn(response);
+
+		// when: GET /schedules 요청을 전송
+		// then: 200 상태코드와 목록 정보를 검증
+		mockMvc.perform(get("/schedules")
+				.param("gatheringTsid", GATHERING_TSID)
+				.param("timeFilter", "UPCOMING")
+				.param("size", "20"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.schedules[0].tsid").value(SCHEDULE_TSID))
+			.andExpect(jsonPath("$.schedules[0].participantCount").value(2))
+			.andExpect(jsonPath("$.hasNext").value(true))
+			.andDo(document("schedules-list",
+				ApiDocSpec.SCHEDULE_LIST.getDescription(),
+				ApiDocSpec.SCHEDULE_LIST.getSummary(),
+				queryParameters(
+					parameterWithName("gatheringTsid").description("모임 TSID 필터 (선택, 없으면 전체 일정)").optional(),
+					parameterWithName("timeFilter").description("UPCOMING(기본) 또는 PAST").optional(),
+					parameterWithName("cursor").description("페이지 커서 (선택, 첫 페이지는 생략)").optional(),
+					parameterWithName("size").description("페이지 크기 (기본: 20, 최대: 100)").optional()
+				),
+				responseFields(
+					fieldWithPath("schedules").description("일정 목록"),
+					fieldWithPath("schedules[].tsid").description("일정 고유 ID"),
+					fieldWithPath("schedules[].gatheringTsid").description("귀속 모임 TSID (독립 일정이면 null)").optional(),
+					fieldWithPath("schedules[].gatheringName").description("귀속 모임 이름 (독립 일정이면 null)").optional(),
+					fieldWithPath("schedules[].title").description("일정 제목"),
+					fieldWithPath("schedules[].startAt").description("시작 시각"),
+					fieldWithPath("schedules[].endAt").description("종료 시각").optional(),
+					fieldWithPath("schedules[].locationName").description("장소명"),
+					fieldWithPath("schedules[].maxParticipants").description("정원 (null이면 인원 제한 없음)").optional(),
+					fieldWithPath("schedules[].participantCount").description("현재 참여 인원"),
+					fieldWithPath("schedules[].hostTsid").description("호스트 TSID"),
+					fieldWithPath("schedules[].hostNickname").description("호스트 닉네임").optional(),
+					fieldWithPath("nextCursor").description("다음 페이지 커서 (마지막 페이지면 null)").optional(),
+					fieldWithPath("hasNext").description("다음 페이지 존재 여부")
+				)
+			));
+	}
+
+	@Test
+	@DisplayName("페이지 크기가 범위를 벗어나면 400 에러를 반환한다")
+	void getSchedulesWithInvalidSize() throws Exception {
+		// when: size=0 으로 GET /schedules 요청을 전송
+		// then: 400 Bad Request 응답을 확인
+		mockMvc.perform(get("/schedules").param("size", "0"))
+			.andExpect(status().isBadRequest());
 	}
 
 	@Test

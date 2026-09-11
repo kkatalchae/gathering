@@ -1,16 +1,23 @@
 package com.gathering.schedule.application;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.schedule.domain.model.ScheduleCapacity;
+import com.gathering.schedule.domain.model.ScheduleCursor;
 import com.gathering.schedule.domain.model.ScheduleDescription;
 import com.gathering.schedule.domain.model.ScheduleEntity;
 import com.gathering.schedule.domain.model.ScheduleLocation;
+import com.gathering.schedule.domain.model.ScheduleParticipantCount;
 import com.gathering.schedule.domain.model.SchedulePeriod;
 import com.gathering.schedule.domain.model.ScheduleTitle;
 import com.gathering.schedule.domain.policy.SchedulePolicy;
@@ -18,6 +25,9 @@ import com.gathering.schedule.domain.repository.ScheduleParticipantRepository;
 import com.gathering.schedule.domain.repository.ScheduleRepository;
 import com.gathering.schedule.presentation.dto.CreateScheduleRequest;
 import com.gathering.schedule.presentation.dto.ScheduleDetailResponse;
+import com.gathering.schedule.presentation.dto.ScheduleListItemResponse;
+import com.gathering.schedule.presentation.dto.ScheduleListRequest;
+import com.gathering.schedule.presentation.dto.ScheduleListResponse;
 import com.gathering.schedule.presentation.dto.ScheduleResponse;
 import com.gathering.schedule.presentation.dto.ScheduleValuesRequest;
 import com.gathering.schedule.presentation.dto.UpdateScheduleRequest;
@@ -66,6 +76,46 @@ public class ScheduleService {
 			.build();
 
 		return ScheduleResponse.from(scheduleRepository.save(schedule));
+	}
+
+	/**
+	 * 일정 목록 조회
+	 * 모임으로 필터링할 수 있으며 커서 기반 페이지네이션을 지원한다
+	 * UPCOMING은 아직 시작하지 않은 일정을 가까운 순, PAST는 이미 시작한 일정을 최근 순으로 반환한다
+	 *
+	 * @param request 필터링 및 페이지네이션 요청
+	 * @return 일정 목록 및 다음 커서 정보
+	 */
+	@Transactional(readOnly = true)
+	public ScheduleListResponse getSchedules(ScheduleListRequest request) {
+		Instant now = Instant.now();
+		ScheduleCursor cursor = ScheduleCursor.decode(request.getCursor());
+		Instant cursorStartAt = cursor == null ? null : cursor.getStartAt();
+		String cursorTsid = cursor == null ? null : cursor.getTsid();
+
+		// size+1로 조회하여 hasNext 판단
+		Pageable pageable = PageRequest.of(0, request.getSize() + 1);
+		List<ScheduleEntity> schedules = switch (request.getTimeFilter()) {
+			case UPCOMING -> scheduleRepository.findUpcomingSchedules(
+				request.getGatheringTsid(), now, cursorStartAt, cursorTsid, pageable);
+			case PAST -> scheduleRepository.findPastSchedules(
+				request.getGatheringTsid(), now, cursorStartAt, cursorTsid, pageable);
+		};
+
+		boolean hasNext = schedules.size() > request.getSize();
+		if (hasNext) {
+			schedules = schedules.subList(0, request.getSize());
+		}
+
+		Map<String, Long> participantCounts = countParticipants(schedules);
+		List<ScheduleListItemResponse> items = schedules.stream()
+			.map(schedule -> ScheduleListItemResponse.from(
+				schedule, participantCounts.getOrDefault(schedule.getTsid(), 0L)))
+			.toList();
+
+		String nextCursor = hasNext ? ScheduleCursor.from(schedules.getLast()).encode() : null;
+
+		return ScheduleListResponse.of(items, nextCursor, hasNext);
 	}
 
 	/**
@@ -153,6 +203,23 @@ public class ScheduleService {
 		// 일정별로 반복하지 않고 IN 조건 한 번으로 참여자를 모두 삭제
 		scheduleParticipantRepository.deleteAllByScheduleTsidIn(scheduleTsids);
 		scheduleRepository.deleteAllByGatheringTsid(gatheringTsid);
+	}
+
+	/**
+	 * 일정별 참여 인원을 한 번의 쿼리로 집계해 Map으로 반환
+	 * 참여자가 없는 일정은 Map에 없으므로 호출 측에서 0으로 취급한다
+	 */
+	private Map<String, Long> countParticipants(List<ScheduleEntity> schedules) {
+		if (schedules.isEmpty()) {
+			return Map.of();
+		}
+
+		List<String> scheduleTsids = schedules.stream().map(ScheduleEntity::getTsid).toList();
+		// GROUP BY 결과라 일정 TSID는 유일하므로 키 충돌은 발생하지 않는다
+		return scheduleParticipantRepository.countByScheduleTsidIn(scheduleTsids).stream()
+			.collect(Collectors.toMap(
+				ScheduleParticipantCount::scheduleTsid,
+				ScheduleParticipantCount::participantCount));
 	}
 
 	private void validateScheduleValues(ScheduleValuesRequest request) {

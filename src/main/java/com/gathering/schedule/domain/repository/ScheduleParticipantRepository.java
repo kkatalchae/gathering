@@ -7,11 +7,24 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.gathering.schedule.domain.model.ScheduleParticipantCount;
 import com.gathering.schedule.domain.model.ScheduleParticipantEntity;
 
 public interface ScheduleParticipantRepository extends JpaRepository<ScheduleParticipantEntity, String> {
 
 	long countByScheduleTsid(String scheduleTsid);
+
+	/**
+	 * 여러 일정의 참여 인원을 한 번의 쿼리로 집계 (목록 조회 시 일정별 반복 조회 방지)
+	 * 참여자가 없는 일정은 결과에 포함되지 않는다
+	 */
+	@Query("""
+		SELECT new com.gathering.schedule.domain.model.ScheduleParticipantCount(sp.scheduleTsid, COUNT(sp))
+		FROM ScheduleParticipantEntity sp
+		WHERE sp.scheduleTsid IN :scheduleTsids
+		GROUP BY sp.scheduleTsid
+		""")
+	List<ScheduleParticipantCount> countByScheduleTsidIn(@Param("scheduleTsids") List<String> scheduleTsids);
 
 	/**
 	 * 일정 참여자 일괄 삭제

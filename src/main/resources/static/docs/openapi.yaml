@@ -99,7 +99,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
                     :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
                     :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-11T01:22:47.650976Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-11T01:29:19.276295Z\"\
                     }"
   /gatherings/{tsid}:
     get:
@@ -137,7 +137,7 @@ paths:
                     ,\"nickname\":\"철수\",\"name\":\"김철수\",\"profileImageUrl\":\"https://example.com/profile1.jpg\"\
                     ,\"role\":\"OWNER\"},{\"userTsid\":\"01HQUSER000002\",\"nickname\"\
                     :\"영희\",\"name\":\"이영희\",\"profileImageUrl\":\"https://example.com/profile2.jpg\"\
-                    ,\"role\":\"MEMBER\"}],\"createdAt\":\"2026-09-11T01:22:47.781399Z\"\
+                    ,\"role\":\"MEMBER\"}],\"createdAt\":\"2026-09-11T01:29:19.421705Z\"\
                     }"
     put:
       tags:
@@ -192,7 +192,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"수정된 모임\",\"description\"\
                     :\"수정된 설명입니다\",\"regionTsid\":\"01HQREGION5678\",\"category\"\
                     :\"STUDY\",\"mainImageUrl\":\"https://example.com/new-image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-11T01:22:47.713482Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-11T01:29:19.344286Z\"\
                     }"
     delete:
       tags:
@@ -261,7 +261,7 @@ paths:
                 gatherings-join:
                   value: "{\"participantTsid\":\"01HQPARTIC1234\",\"gatheringTsid\"\
                     :\"01HQGATHERING1\",\"userTsid\":\"01HQUSER123456\",\"role\":\"\
-                    MEMBER\",\"joinedAt\":\"2026-09-11T01:22:47.753567Z\"}"
+                    MEMBER\",\"joinedAt\":\"2026-09-11T01:29:19.392997Z\"}"
   /gatherings/{tsid}/main-image:
     patch:
       tags:
@@ -439,8 +439,8 @@ paths:
                 $ref: "#/components/schemas/users-tsid-1331249008"
               examples:
                 login-with-invalid-email-format:
-                  value: "{\"code\":\"INVALID_EMAIL_FORMAT\",\"message\":\"올바른 형식의\
-                    \ 이메일이 아닙니다.\"}"
+                  value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
+                    는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
                 login-with-empty-password:
                   value: "{\"code\":\"INVALID_PASSWORD_FORMAT\",\"message\":\"비밀번호\
                     는 최소 8자 이상이며, 숫자와 특수문자(!@#$%^&*)를 포함해야 합니다.\"}"
@@ -537,6 +537,69 @@ paths:
                     tsid\":\"0R1G1N0000020\",\"code\":\"41131\",\"name\":\"수원시\",\"\
                     depth\":2,\"children\":[]}]}]"
   /schedules:
+    get:
+      tags:
+      - schedules
+      summary: 일정 목록 조회(/schedules)
+      description: |
+        일정 목록을 조회한다. 비로그인 상태에서도 조회할 수 있다.
+        모임에 귀속된 일정과 독립 일정이 함께 나오며, gatheringTsid로 특정 모임의 일정만 볼 수 있다.
+        각 항목에는 현재 참여 인원과 호스트 닉네임이 포함된다.
+
+        **필터링**
+        - gatheringTsid: 특정 모임의 일정만 조회 (선택)
+        - timeFilter: UPCOMING(기본) - 아직 시작하지 않은 일정을 가까운 순 / PAST - 이미 시작한 일정을 최근 순
+
+        **페이지네이션**
+        - cursor가 없으면 첫 페이지 조회
+        - hasNext=true일 때 nextCursor로 다음 페이지 조회
+        - 커서는 시작 시각과 TSID를 함께 담아 같은 시각의 일정이 여러 개여도 누락/중복이 없다
+
+        **실패 케이스**
+        - size가 1~100 범위를 벗어나면 400 에러가 발생한다.
+        - 형식이 잘못된 cursor를 보내면 400 에러가 발생한다.
+      operationId: schedules-list
+      parameters:
+      - name: gatheringTsid
+        in: query
+        description: "모임 TSID 필터 (선택, 없으면 전체 일정)"
+        required: false
+        schema:
+          type: string
+      - name: timeFilter
+        in: query
+        description: UPCOMING(기본) 또는 PAST
+        required: false
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        description: "페이지 커서 (선택, 첫 페이지는 생략)"
+        required: false
+        schema:
+          type: string
+      - name: size
+        in: query
+        description: "페이지 크기 (기본: 20, 최대: 100)"
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: "200"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/schedules-1045884567"
+              examples:
+                schedules-list:
+                  value: "{\"schedules\":[{\"tsid\":\"01HQSCHEDULE01\",\"gatheringTsid\"\
+                    :\"01HQGATHERING1\",\"gatheringName\":\"한강 러닝크루\",\"title\":\"\
+                    9월 정기 모임\",\"startAt\":\"2026-09-20T10:00:00Z\",\"endAt\":\"2026-09-20T12:00:00Z\"\
+                    ,\"locationName\":\"한강공원 2주차장\",\"maxParticipants\":4,\"participantCount\"\
+                    :2,\"hostTsid\":\"01HQUSERHOST01\",\"hostNickname\":\"러닝맨\"}],\"\
+                    nextCursor\":\"2026-09-20T10:00:00Z_01HQSCHEDULE01\",\"hasNext\"\
+                    :true}"
     post:
       tags:
       - schedules
@@ -585,8 +648,8 @@ paths:
                     startAt\":\"2026-09-20T10:00:00Z\",\"endAt\":\"2026-09-20T12:00:00Z\"\
                     ,\"locationName\":\"한강공원 2주차장\",\"locationAddress\":\"서울특별시 영등\
                     포구 여의동로 330\",\"maxParticipants\":4,\"hostTsid\":\"01HQUSERHOST01\"\
-                    ,\"createdAt\":\"2026-09-11T01:22:48.481925Z\",\"updatedAt\":\"\
-                    2026-09-11T01:22:48.481925Z\"}"
+                    ,\"createdAt\":\"2026-09-11T01:29:21.085143Z\",\"updatedAt\":\"\
+                    2026-09-11T01:29:21.085143Z\"}"
   /schedules/{scheduleTsid}:
     get:
       tags:
@@ -623,8 +686,8 @@ paths:
                     :\"서울특별시 영등포구 여의동로 330\",\"maxParticipants\":4,\"participantCount\"\
                     :2,\"hostTsid\":\"01HQUSERHOST01\",\"hostNickname\":\"러닝맨\",\"\
                     hostName\":\"김병채\",\"hostProfileImageUrl\":\"https://example.com/host.jpg\"\
-                    ,\"createdAt\":\"2026-09-11T01:22:48.503115Z\",\"updatedAt\":\"\
-                    2026-09-11T01:22:48.503116Z\"}"
+                    ,\"createdAt\":\"2026-09-11T01:29:21.126368Z\",\"updatedAt\":\"\
+                    2026-09-11T01:29:21.126369Z\"}"
     put:
       tags:
       - schedules
@@ -672,8 +735,8 @@ paths:
                     합니다\",\"startAt\":\"2026-09-20T10:00:00Z\",\"endAt\":\"2026-09-20T12:00:00Z\"\
                     ,\"locationName\":\"합정역 3번 출구\",\"locationAddress\":\"서울특별시 마포\
                     구 양화로 45\",\"maxParticipants\":6,\"hostTsid\":\"01HQUSERHOST01\"\
-                    ,\"createdAt\":\"2026-09-11T01:22:48.520311Z\",\"updatedAt\":\"\
-                    2026-09-11T01:22:48.520312Z\"}"
+                    ,\"createdAt\":\"2026-09-11T01:29:21.147776Z\",\"updatedAt\":\"\
+                    2026-09-11T01:29:21.147777Z\"}"
     delete:
       tags:
       - schedules
@@ -937,6 +1000,70 @@ paths:
                     :\"마지막 로그인 수단입니다. 비밀번호를 설정하거나 다른 소셜 계정을 연동한 후 해제할 수 있습니다.\"}"
 components:
   schemas:
+    schedules-1045884567:
+      required:
+      - hasNext
+      - schedules
+      type: object
+      properties:
+        nextCursor:
+          type: string
+          description: 다음 페이지 커서 (마지막 페이지면 null)
+          nullable: true
+        schedules:
+          type: array
+          description: 일정 목록
+          items:
+            required:
+            - hostTsid
+            - locationName
+            - participantCount
+            - startAt
+            - title
+            - tsid
+            type: object
+            properties:
+              hostNickname:
+                type: string
+                description: 호스트 닉네임
+                nullable: true
+              locationName:
+                type: string
+                description: 장소명
+              gatheringName:
+                type: string
+                description: 귀속 모임 이름 (독립 일정이면 null)
+                nullable: true
+              participantCount:
+                type: number
+                description: 현재 참여 인원
+              hostTsid:
+                type: string
+                description: 호스트 TSID
+              gatheringTsid:
+                type: string
+                description: 귀속 모임 TSID (독립 일정이면 null)
+                nullable: true
+              endAt:
+                type: string
+                description: 종료 시각
+                nullable: true
+              title:
+                type: string
+                description: 일정 제목
+              tsid:
+                type: string
+                description: 일정 고유 ID
+              startAt:
+                type: string
+                description: 시작 시각
+              maxParticipants:
+                type: number
+                description: 정원 (null이면 인원 제한 없음)
+                nullable: true
+        hasNext:
+          type: boolean
+          description: 다음 페이지 존재 여부
     schedules-scheduleTsid1756090153:
       required:
       - createdAt
@@ -1447,6 +1574,42 @@ components:
           type: number
           description: 정원 (null이면 인원 제한 없음)
           nullable: true
+    schedules661789918:
+      required:
+      - locationName
+      - startAt
+      - title
+      type: object
+      properties:
+        locationName:
+          type: string
+          description: "장소명 (필수, 100자 이하)"
+        description:
+          type: string
+          description: "일정 설명 (선택, 1000자 이하)"
+          nullable: true
+        locationAddress:
+          type: string
+          description: "장소 주소 (선택, 255자 이하)"
+          nullable: true
+        gatheringTsid:
+          type: string
+          description: "귀속할 모임 TSID (선택, 없으면 독립 일정)"
+          nullable: true
+        endAt:
+          type: string
+          description: "종료 시각 (선택, 시작 시각 이후)"
+          nullable: true
+        title:
+          type: string
+          description: "일정 제목 (필수, 50자 이하)"
+        startAt:
+          type: string
+          description: "시작 시각 (필수, ISO-8601)"
+        maxParticipants:
+          type: number
+          description: "정원 (선택, 없으면 인원 제한 없음)"
+          nullable: true
     regions1337480724:
       type: array
       items:
@@ -1503,42 +1666,6 @@ components:
           tsid:
             type: string
             description: 지역 고유 ID (모임 필터링에 사용)
-    schedules661789918:
-      required:
-      - locationName
-      - startAt
-      - title
-      type: object
-      properties:
-        locationName:
-          type: string
-          description: "장소명 (필수, 100자 이하)"
-        description:
-          type: string
-          description: "일정 설명 (선택, 1000자 이하)"
-          nullable: true
-        locationAddress:
-          type: string
-          description: "장소 주소 (선택, 255자 이하)"
-          nullable: true
-        gatheringTsid:
-          type: string
-          description: "귀속할 모임 TSID (선택, 없으면 독립 일정)"
-          nullable: true
-        endAt:
-          type: string
-          description: "종료 시각 (선택, 시작 시각 이후)"
-          nullable: true
-        title:
-          type: string
-          description: "일정 제목 (필수, 50자 이하)"
-        startAt:
-          type: string
-          description: "시작 시각 (필수, ISO-8601)"
-        maxParticipants:
-          type: number
-          description: "정원 (선택, 없으면 인원 제한 없음)"
-          nullable: true
     users-me-profile-image724629277:
       required:
       - url
@@ -1598,46 +1725,6 @@ components:
           type: string
           description: 현재 비밀번호 (AES 암호화) 소셜 가입자의 경우 null 을 보낼 수 있다.
           nullable: true
-    gatherings251537030:
-      required:
-      - gatherings
-      - hasNext
-      type: object
-      properties:
-        nextCursor:
-          type: string
-          description: 다음 페이지 커서 (null이면 마지막 페이지)
-          nullable: true
-        gatherings:
-          type: array
-          description: 모임 목록
-          items:
-            required:
-            - category
-            - name
-            - regionName
-            - tsid
-            type: object
-            properties:
-              regionName:
-                type: string
-                description: 지역명
-              name:
-                type: string
-                description: 모임 이름
-              category:
-                type: string
-                description: 모임 카테고리
-              tsid:
-                type: string
-                description: 모임 고유 ID
-              mainImageUrl:
-                type: string
-                description: 대표 이미지 URL
-                nullable: true
-        hasNext:
-          type: boolean
-          description: 다음 페이지 존재 여부
     schedules-scheduleTsid-513139950:
       required:
       - createdAt
@@ -1690,6 +1777,46 @@ components:
           type: number
           description: 정원 (null이면 인원 제한 없음)
           nullable: true
+    gatherings251537030:
+      required:
+      - gatherings
+      - hasNext
+      type: object
+      properties:
+        nextCursor:
+          type: string
+          description: 다음 페이지 커서 (null이면 마지막 페이지)
+          nullable: true
+        gatherings:
+          type: array
+          description: 모임 목록
+          items:
+            required:
+            - category
+            - name
+            - regionName
+            - tsid
+            type: object
+            properties:
+              regionName:
+                type: string
+                description: 지역명
+              name:
+                type: string
+                description: 모임 이름
+              category:
+                type: string
+                description: 모임 카테고리
+              tsid:
+                type: string
+                description: 모임 고유 ID
+              mainImageUrl:
+                type: string
+                description: 대표 이미지 URL
+                nullable: true
+        hasNext:
+          type: boolean
+          description: 다음 페이지 존재 여부
     users-me1442001226:
       required:
       - connectedProviders
