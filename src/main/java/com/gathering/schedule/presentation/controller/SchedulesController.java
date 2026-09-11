@@ -17,6 +17,7 @@ import com.gathering.auth.application.AuthService;
 import com.gathering.schedule.application.ScheduleService;
 import com.gathering.schedule.domain.model.ScheduleTimeFilter;
 import com.gathering.schedule.presentation.dto.CreateScheduleRequest;
+import com.gathering.schedule.presentation.dto.JoinScheduleResponse;
 import com.gathering.schedule.presentation.dto.ScheduleDetailResponse;
 import com.gathering.schedule.presentation.dto.ScheduleListRequest;
 import com.gathering.schedule.presentation.dto.ScheduleListResponse;
@@ -133,6 +134,42 @@ public class SchedulesController {
 
 		String userTsid = authService.getCurrentUserTsid(request);
 		scheduleService.deleteSchedule(scheduleTsid, userTsid);
+
+		return ResponseEntity.noContent().build();
+	}
+
+	/**
+	 * 일정 참여
+	 *
+	 * @param request HTTP 요청 (인증 정보 추출용)
+	 * @param scheduleTsid 참여할 일정 TSID
+	 * @return 생성된 참여자 정보 (201 Created)
+	 */
+	@PostMapping("/{scheduleTsid}/participants")
+	public ResponseEntity<JoinScheduleResponse> joinSchedule(
+		HttpServletRequest request,
+		@PathVariable String scheduleTsid) {
+
+		String userTsid = authService.getCurrentUserTsid(request);
+		JoinScheduleResponse response = scheduleService.joinSchedule(scheduleTsid, userTsid);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+	}
+
+	/**
+	 * 일정 참여 취소
+	 *
+	 * @param request HTTP 요청 (인증 정보 추출용)
+	 * @param scheduleTsid 취소할 일정 TSID
+	 * @return 204 No Content
+	 */
+	@DeleteMapping("/{scheduleTsid}/participants/me")
+	public ResponseEntity<Void> leaveSchedule(
+		HttpServletRequest request,
+		@PathVariable String scheduleTsid) {
+
+		String userTsid = authService.getCurrentUserTsid(request);
+		scheduleService.leaveSchedule(scheduleTsid, userTsid);
 
 		return ResponseEntity.noContent().build();
 	}

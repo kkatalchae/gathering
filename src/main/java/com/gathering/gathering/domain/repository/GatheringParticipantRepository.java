@@ -32,6 +32,19 @@ public interface GatheringParticipantRepository extends JpaRepository<GatheringP
 
 	boolean existsByGatheringTsidAndUserTsid(String gatheringTsid, String userTsid);
 
+	/**
+	 * 주어진 사용자들 중 해당 모임에 참여중인 사용자의 TSID 만 반환
+	 * 일정 참여자 목록에서 모임 멤버/게스트를 구분할 때 한 번의 쿼리로 판정하기 위해 사용
+	 */
+	@Query("""
+		SELECT gp.userTsid FROM GatheringParticipantEntity gp
+		WHERE gp.gatheringTsid = :gatheringTsid
+		AND gp.userTsid IN :userTsids
+		""")
+	List<String> findUserTsidsByGatheringTsidAndUserTsidIn(
+		@Param("gatheringTsid") String gatheringTsid,
+		@Param("userTsids") List<String> userTsids);
+
 	Optional<GatheringParticipantEntity> findByGatheringTsidAndUserTsidAndRole(
 		String gatheringTsid, String userTsid, ParticipantRole role);
 }

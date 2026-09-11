@@ -102,6 +102,13 @@ public enum ErrorCode {
 	SCHEDULE_PERMISSION_DENIED(HttpStatus.FORBIDDEN, "일정의 호스트만 수정하거나 삭제할 수 있습니다"),
 	NOT_GATHERING_PARTICIPANT(HttpStatus.FORBIDDEN, "모임에 참여한 사용자만 해당 모임의 일정을 열 수 있습니다"),
 
+	// Schedule 참여/취소 관련 에러
+	ALREADY_JOINED_SCHEDULE(HttpStatus.CONFLICT, "이미 참여중인 일정입니다"),
+	SCHEDULE_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "일정 정원이 가득 찼습니다"),
+	SCHEDULE_ALREADY_STARTED(HttpStatus.CONFLICT, "이미 시작된 일정에는 참여할 수 없습니다"),
+	SCHEDULE_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 일정에 참여하고 있지 않습니다"),
+	HOST_CANNOT_LEAVE_SCHEDULE(HttpStatus.BAD_REQUEST, "호스트는 일정에서 빠질 수 없습니다. 일정을 삭제해주세요"),
+
 	// Pagination 관련 에러 (400 Bad Request)
 	INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기는 1~100 사이여야 합니다"),
 	INVALID_CURSOR(HttpStatus.BAD_REQUEST, "커서 형식이 올바르지 않습니다"),

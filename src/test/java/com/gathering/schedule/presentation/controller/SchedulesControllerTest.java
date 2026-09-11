@@ -33,10 +33,12 @@ import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.schedule.application.ScheduleService;
 import com.gathering.schedule.presentation.dto.CreateScheduleRequest;
+import com.gathering.schedule.presentation.dto.JoinScheduleResponse;
 import com.gathering.schedule.presentation.dto.ScheduleDetailResponse;
 import com.gathering.schedule.presentation.dto.ScheduleListItemResponse;
 import com.gathering.schedule.presentation.dto.ScheduleListRequest;
 import com.gathering.schedule.presentation.dto.ScheduleListResponse;
+import com.gathering.schedule.presentation.dto.ScheduleParticipantSummary;
 import com.gathering.schedule.presentation.dto.ScheduleResponse;
 import com.gathering.schedule.presentation.dto.UpdateScheduleRequest;
 
@@ -307,7 +309,14 @@ class SchedulesControllerTest {
 			.locationName("한강공원 2주차장")
 			.locationAddress("서울특별시 영등포구 여의동로 330")
 			.maxParticipants(4)
-			.participantCount(2L)
+			.participants(List.of(
+				ScheduleParticipantSummary.builder()
+					.userTsid(USER_TSID).nickname("러닝맨").name("김병채")
+					.profileImageUrl("https://example.com/host.jpg")
+					.joinedAt(START_AT).host(true).gatheringMember(true).build(),
+				ScheduleParticipantSummary.builder()
+					.userTsid("01HQUSERGUEST1").nickname("게스트").name("박게스트")
+					.joinedAt(START_AT).host(false).gatheringMember(false).build()))
 			.hostTsid(USER_TSID)
 			.hostNickname("러닝맨")
 			.hostName("김병채")
@@ -324,7 +333,9 @@ class SchedulesControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.tsid").value(SCHEDULE_TSID))
 			.andExpect(jsonPath("$.gatheringName").value("한강 러닝크루"))
-			.andExpect(jsonPath("$.participantCount").value(2))
+			.andExpect(jsonPath("$.participants.length()").value(2))
+			.andExpect(jsonPath("$.participants[0].host").value(true))
+			.andExpect(jsonPath("$.participants[1].gatheringMember").value(false))
 			.andExpect(jsonPath("$.hostNickname").value("러닝맨"))
 			.andDo(document("schedules-detail",
 				ApiDocSpec.SCHEDULE_DETAIL.getDescription(),
@@ -343,7 +354,15 @@ class SchedulesControllerTest {
 					fieldWithPath("locationName").description("장소명"),
 					fieldWithPath("locationAddress").description("장소 주소").optional(),
 					fieldWithPath("maxParticipants").description("정원 (null이면 인원 제한 없음)").optional(),
-					fieldWithPath("participantCount").description("현재 참여 인원"),
+					fieldWithPath("participants").description("참여자 목록 (참여 순, 호스트 포함)"),
+					fieldWithPath("participants[].userTsid").description("참여자 사용자 TSID"),
+					fieldWithPath("participants[].nickname").description("참여자 닉네임").optional(),
+					fieldWithPath("participants[].name").description("참여자 이름"),
+					fieldWithPath("participants[].profileImageUrl").description("참여자 프로필 이미지 URL").optional(),
+					fieldWithPath("participants[].joinedAt").description("참여 일시"),
+					fieldWithPath("participants[].host").description("일정을 개설한 호스트 여부"),
+					fieldWithPath("participants[].gatheringMember")
+						.description("귀속 모임의 참여자 여부 (조회 시점 기준, 독립 일정이면 항상 false)"),
 					fieldWithPath("hostTsid").description("호스트 TSID"),
 					fieldWithPath("hostNickname").description("호스트 닉네임").optional(),
 					fieldWithPath("hostName").description("호스트 이름"),
@@ -481,6 +500,100 @@ class SchedulesControllerTest {
 			));
 
 		verify(scheduleService).deleteSchedule(SCHEDULE_TSID, USER_TSID);
+	}
+
+	@Test
+	@DisplayName("일정에 참여하면 201 상태코드와 참여자 정보를 반환한다")
+	void joinScheduleSuccess() throws Exception {
+		// given: 참여 응답을 준비
+		JoinScheduleResponse response = JoinScheduleResponse.builder()
+			.participantTsid("01HQSCHEDPART1")
+			.scheduleTsid(SCHEDULE_TSID)
+			.userTsid(USER_TSID)
+			.joinedAt(Instant.now())
+			.build();
+		when(authService.getCurrentUserTsid(any())).thenReturn(USER_TSID);
+		when(scheduleService.joinSchedule(SCHEDULE_TSID, USER_TSID)).thenReturn(response);
+
+		// when: POST /schedules/{scheduleTsid}/participants 요청을 전송
+		// then: 201 상태코드와 참여자 정보를 검증
+		mockMvc.perform(post("/schedules/{scheduleTsid}/participants", SCHEDULE_TSID))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.scheduleTsid").value(SCHEDULE_TSID))
+			.andExpect(jsonPath("$.userTsid").value(USER_TSID))
+			.andDo(document("schedules-join",
+				ApiDocSpec.SCHEDULE_JOIN.getDescription(),
+				ApiDocSpec.SCHEDULE_JOIN.getSummary(),
+				pathParameters(
+					parameterWithName("scheduleTsid").description("참여할 일정 TSID")
+				),
+				responseFields(
+					fieldWithPath("participantTsid").description("참여자 고유 ID"),
+					fieldWithPath("scheduleTsid").description("일정 TSID"),
+					fieldWithPath("userTsid").description("참여한 사용자 TSID"),
+					fieldWithPath("joinedAt").description("참여 일시")
+				)
+			));
+	}
+
+	@Test
+	@DisplayName("정원이 가득 찬 일정에 참여하면 409 에러를 반환한다")
+	void joinScheduleWhenFull() throws Exception {
+		// given
+		when(authService.getCurrentUserTsid(any())).thenReturn(USER_TSID);
+		when(scheduleService.joinSchedule(SCHEDULE_TSID, USER_TSID))
+			.thenThrow(new BusinessException(ErrorCode.SCHEDULE_CAPACITY_EXCEEDED));
+
+		// when & then
+		mockMvc.perform(post("/schedules/{scheduleTsid}/participants", SCHEDULE_TSID))
+			.andExpect(status().isConflict());
+	}
+
+	@Test
+	@DisplayName("이미 시작된 일정에 참여하면 409 에러를 반환한다")
+	void joinScheduleAlreadyStarted() throws Exception {
+		// given
+		when(authService.getCurrentUserTsid(any())).thenReturn(USER_TSID);
+		when(scheduleService.joinSchedule(SCHEDULE_TSID, USER_TSID))
+			.thenThrow(new BusinessException(ErrorCode.SCHEDULE_ALREADY_STARTED));
+
+		// when & then
+		mockMvc.perform(post("/schedules/{scheduleTsid}/participants", SCHEDULE_TSID))
+			.andExpect(status().isConflict());
+	}
+
+	@Test
+	@DisplayName("일정 참여를 취소하면 204 상태코드를 반환한다")
+	void leaveScheduleSuccess() throws Exception {
+		// given
+		when(authService.getCurrentUserTsid(any())).thenReturn(USER_TSID);
+
+		// when: DELETE /schedules/{scheduleTsid}/participants/me 요청을 전송
+		// then: 204 No Content 응답을 검증
+		mockMvc.perform(delete("/schedules/{scheduleTsid}/participants/me", SCHEDULE_TSID))
+			.andExpect(status().isNoContent())
+			.andDo(document("schedules-leave",
+				ApiDocSpec.SCHEDULE_LEAVE.getDescription(),
+				ApiDocSpec.SCHEDULE_LEAVE.getSummary(),
+				pathParameters(
+					parameterWithName("scheduleTsid").description("취소할 일정 TSID")
+				)
+			));
+
+		verify(scheduleService).leaveSchedule(SCHEDULE_TSID, USER_TSID);
+	}
+
+	@Test
+	@DisplayName("호스트가 일정 참여를 취소하면 400 에러를 반환한다")
+	void leaveScheduleAsHost() throws Exception {
+		// given
+		when(authService.getCurrentUserTsid(any())).thenReturn(USER_TSID);
+		doThrow(new BusinessException(ErrorCode.HOST_CANNOT_LEAVE_SCHEDULE))
+			.when(scheduleService).leaveSchedule(SCHEDULE_TSID, USER_TSID);
+
+		// when & then
+		mockMvc.perform(delete("/schedules/{scheduleTsid}/participants/me", SCHEDULE_TSID))
+			.andExpect(status().isBadRequest());
 	}
 
 	@Test
