@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
@@ -56,7 +57,7 @@ public class ScheduleService {
 	 */
 	@Transactional
 	public ScheduleResponse createSchedule(String hostTsid, CreateScheduleRequest request) {
-		String gatheringTsid = request.getGatheringTsid();
+		String gatheringTsid = normalizeGatheringTsid(request.getGatheringTsid());
 		if (gatheringTsid != null) {
 			schedulePolicy.validateGatheringParticipant(gatheringTsid, hostTsid);
 		}
@@ -203,6 +204,14 @@ public class ScheduleService {
 		// 일정별로 반복하지 않고 IN 조건 한 번으로 참여자를 모두 삭제
 		scheduleParticipantRepository.deleteAllByScheduleTsidIn(scheduleTsids);
 		scheduleRepository.deleteAllByGatheringTsid(gatheringTsid);
+	}
+
+	/**
+	 * 모임 TSID 정규화
+	 * 폼에서 모임을 선택하지 않으면 빈 문자열이 올 수 있으므로, 공백뿐인 값은 "귀속 모임 없음"(null)으로 다룬다
+	 */
+	private String normalizeGatheringTsid(String gatheringTsid) {
+		return StringUtils.hasText(gatheringTsid) ? gatheringTsid : null;
 	}
 
 	/**

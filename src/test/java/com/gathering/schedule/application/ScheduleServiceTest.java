@@ -96,6 +96,24 @@ class ScheduleServiceTest {
 	}
 
 	@Test
+	@DisplayName("모임 TSID가 빈 문자열이면 모임을 선택하지 않은 것으로 보고 독립 일정을 생성한다")
+	void createStandaloneScheduleWithBlankGatheringTsid() {
+		// given: 폼에서 모임을 선택하지 않으면 빈 문자열이 전달된다
+		CreateScheduleRequest request = createRequest("   ", null);
+		given(scheduleRepository.save(any(ScheduleEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		// when
+		ScheduleResponse response = scheduleService.createSchedule(HOST_TSID, request);
+
+		// then
+		then(schedulePolicy).should(never()).validateGatheringParticipant(any(), any());
+		ArgumentCaptor<ScheduleEntity> captor = ArgumentCaptor.forClass(ScheduleEntity.class);
+		then(scheduleRepository).should().save(captor.capture());
+		assertThat(captor.getValue().getGatheringTsid()).isNull();
+		assertThat(response.getGatheringTsid()).isNull();
+	}
+
+	@Test
 	@DisplayName("모임 참여자가 아니면 일정이 저장되지 않는다")
 	void createGatheringScheduleWithoutParticipation() {
 		// given

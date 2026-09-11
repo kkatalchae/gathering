@@ -132,7 +132,7 @@ public class ScheduleEntity {
 	 * @param description 일정 설명
 	 * @param startAt 시작 시각
 	 * @param endAt 종료 시각 (null 허용)
-	 * @param locationName 장소명 (null 허용)
+	 * @param locationName 장소명 (필수)
 	 * @param locationAddress 장소 주소 (null 허용)
 	 * @param maxParticipants 정원 (null이면 제한 없음)
 	 */
