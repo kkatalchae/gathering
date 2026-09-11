@@ -45,6 +45,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     // redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // cassandra - 채팅 메시지/읽음 위치 저장소 (docs/adr/0002)
+    implementation 'org.springframework.boot:spring-boot-starter-data-cassandra'
     // thymeleaf
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     // mysql
@@ -53,7 +55,8 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     // test
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // LauncherSessionListener 로 테스트 JVM 당 Cassandra 컨테이너를 한 번만 띄우기 위해 컴파일 의존
+    testImplementation 'org.junit.platform:junit-platform-launcher'
     // 개발 도구 (자동 리로드)
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     // pk - tsid
@@ -62,6 +65,9 @@ dependencies {
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'com.h2database:h2'
+    // testcontainers - 통합 테스트용 Cassandra (Docker 필요)
+    testImplementation 'org.testcontainers:cassandra'
+    testImplementation 'org.testcontainers:junit-jupiter'
 
     // Apache Tika - MIME 타입 검사
     implementation 'org.apache.tika:tika-core:2.9.2'

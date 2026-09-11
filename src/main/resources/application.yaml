@@ -58,8 +58,29 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
-  # Redis 설정
+  # Cassandra 설정 - 채팅 메시지/읽음 위치 (docs/adr/0002)
+  cassandra:
+    contact-points: ${CASSANDRA_CONTACT_POINTS:localhost:9042}
+    local-datacenter: ${CASSANDRA_LOCAL_DATACENTER:datacenter1}
+    keyspace-name: gathering
+    schema-action: create_if_not_exists # 개발할 때만, 운영시에는 none + 스키마 관리 별도
+    # 타임아웃 — 드라이버 기본값(request 2s, connect/init 5s)은 운영 클러스터 기준이다.
+    # 로컬 Docker 는 힙을 줄여 띄우고 첫 요청에 스키마 생성·JIT 워밍업이 겹쳐 그보다 오래 걸릴 수 있어 넉넉히 둔다.
+    # 운영에서는 장애 감지가 늦어지지 않도록 환경변수로 SLA 에 맞게 낮춘다.
+    connection:
+      connect-timeout: ${CASSANDRA_CONNECT_TIMEOUT:10s}
+      init-query-timeout: ${CASSANDRA_INIT_QUERY_TIMEOUT:10s}
+    request:
+      timeout: ${CASSANDRA_REQUEST_TIMEOUT:10s}
+    controlconnection:
+      timeout: ${CASSANDRA_CONTROL_CONNECTION_TIMEOUT:10s}
+
   data:
+    # 리액티브 Cassandra 리포지토리는 쓰지 않는다 — 스캔을 끄면 기동 로그의 모듈 배정 소음이 줄어든다
+    cassandra:
+      repositories:
+        type: imperative
+    # Redis 설정
     redis:
       host: localhost
       port: 6379

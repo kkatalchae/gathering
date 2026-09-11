@@ -24,6 +24,26 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
 
+  # Cassandra - 접속 정보(contact-points, local-datacenter)는 CassandraTestContainerLauncher 가
+  # 테스트 JVM 시작 시 시스템 프로퍼티로 주입한다 (Testcontainers, Docker 필요)
+  cassandra:
+    keyspace-name: gathering
+    schema-action: create_if_not_exists
+    # Testcontainers 로 갓 뜬 Cassandra 는 첫 스키마 생성·첫 쿼리가 수 초씩 걸리고 CI 머신은 더 느리다.
+    # 테스트에서 타임아웃은 장애 감지가 아니라 오탐 방지가 목적이므로 넉넉히 둔다.
+    connection:
+      connect-timeout: 30s
+      init-query-timeout: 30s
+    request:
+      timeout: 30s
+    controlconnection:
+      timeout: 30s
+
+  data:
+    cassandra:
+      repositories:
+        type: imperative
+
   # 테스트에서는 MySQL 전용 SQL 초기화 비활성화
   sql:
     init:

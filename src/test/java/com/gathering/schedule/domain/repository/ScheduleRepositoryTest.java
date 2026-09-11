@@ -13,9 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import com.gathering.common.config.JpaAuditingConfig;
 import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.domain.model.GatheringEntity;
 import com.gathering.gathering.domain.model.GatheringParticipantEntity;
@@ -35,6 +37,7 @@ import com.gathering.user.domain.repository.UsersRepository;
  * 같은 시작 시각을 가진 일정이 페이지 경계에 걸쳐도 누락/중복 없이 이어지는지 실제 DB로 검증한다
  */
 @DataJpaTest
+@Import(JpaAuditingConfig.class)
 class ScheduleRepositoryTest {
 
 	private static final Instant BASE_TIME = Instant.parse("2026-09-15T00:00:00Z");
