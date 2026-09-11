@@ -1,6 +1,7 @@
 package com.gathering.schedule.presentation.dto;
 
 import java.time.Instant;
+import java.util.List;
 
 import com.gathering.schedule.domain.model.ScheduleEntity;
 
@@ -37,7 +38,8 @@ public class ScheduleDetailResponse {
 	/** null이면 인원 제한 없음 */
 	private Integer maxParticipants;
 
-	private long participantCount;
+	/** 참여 순으로 정렬된 전체 참여자 (호스트 포함) */
+	private List<ScheduleParticipantSummary> participants;
 
 	private String hostTsid;
 
@@ -51,7 +53,7 @@ public class ScheduleDetailResponse {
 
 	private Instant updatedAt;
 
-	public static ScheduleDetailResponse from(ScheduleEntity schedule, long participantCount) {
+	public static ScheduleDetailResponse from(ScheduleEntity schedule, List<ScheduleParticipantSummary> participants) {
 		return ScheduleDetailResponse.builder()
 			.tsid(schedule.getTsid())
 			.gatheringTsid(schedule.getGatheringTsid())
@@ -63,7 +65,7 @@ public class ScheduleDetailResponse {
 			.locationName(schedule.getLocationName())
 			.locationAddress(schedule.getLocationAddress())
 			.maxParticipants(schedule.getMaxParticipants())
-			.participantCount(participantCount)
+			.participants(participants)
 			.hostTsid(schedule.getCreatedBy())
 			.hostNickname(schedule.getCreator().getNickname())
 			.hostName(schedule.getCreator().getName())

@@ -19,13 +19,17 @@ import org.springframework.data.domain.Pageable;
 
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
+import com.gathering.gathering.domain.model.GatheringEntity;
+import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.schedule.domain.model.ScheduleEntity;
 import com.gathering.schedule.domain.model.ScheduleParticipantCount;
+import com.gathering.schedule.domain.model.ScheduleParticipantEntity;
 import com.gathering.schedule.domain.model.ScheduleTimeFilter;
 import com.gathering.schedule.domain.policy.SchedulePolicy;
 import com.gathering.schedule.domain.repository.ScheduleParticipantRepository;
 import com.gathering.schedule.domain.repository.ScheduleRepository;
 import com.gathering.schedule.presentation.dto.CreateScheduleRequest;
+import com.gathering.schedule.presentation.dto.JoinScheduleResponse;
 import com.gathering.schedule.presentation.dto.ScheduleDetailResponse;
 import com.gathering.schedule.presentation.dto.ScheduleListRequest;
 import com.gathering.schedule.presentation.dto.ScheduleListResponse;
@@ -49,6 +53,9 @@ class ScheduleServiceTest {
 
 	@Mock
 	private ScheduleParticipantRepository scheduleParticipantRepository;
+
+	@Mock
+	private GatheringParticipantRepository gatheringParticipantRepository;
 
 	@Mock
 	private SchedulePolicy schedulePolicy;
@@ -77,6 +84,12 @@ class ScheduleServiceTest {
 		assertThat(saved.getLocationName()).isEqualTo("한강공원 2주차장");
 		assertThat(response.getHostTsid()).isEqualTo(HOST_TSID);
 		assertThat(response.getMaxParticipants()).isEqualTo(4);
+
+		// 호스트가 첫 참여자로 등록된다
+		ArgumentCaptor<ScheduleParticipantEntity> participantCaptor =
+			ArgumentCaptor.forClass(ScheduleParticipantEntity.class);
+		then(scheduleParticipantRepository).should().save(participantCaptor.capture());
+		assertThat(participantCaptor.getValue().getUserTsid()).isEqualTo(HOST_TSID);
 	}
 
 	@Test
@@ -249,34 +262,70 @@ class ScheduleServiceTest {
 	}
 
 	@Test
-	@DisplayName("일정 상세 조회 시 호스트 정보와 현재 참여 인원이 함께 반환된다")
-	void getScheduleDetailSuccess() {
-		// given
-		UsersEntity host = UsersEntity.builder()
-			.tsid(HOST_TSID)
-			.nickname("호스트")
-			.name("김병채")
-			.profileImageUrl("https://example.com/host.jpg")
-			.build();
+	@DisplayName("귀속 일정 상세 조회 시 참여자마다 호스트 여부와 모임 소속 여부가 함께 반환된다")
+	void getScheduleDetailWithGatheringMemberFlags() {
+		// given: 호스트(모임 멤버) + 모임 멤버 1명 + 게스트 1명
+		String memberTsid = "01HQUSERMEMBER";
+		String guestTsid = "01HQUSERGUEST1";
 		ScheduleEntity schedule = ScheduleEntity.builder()
 			.tsid(SCHEDULE_TSID)
+			.gatheringTsid(GATHERING_TSID)
+			.gathering(GatheringEntity.builder()
+				.tsid(GATHERING_TSID).name("한강 러닝크루").build())
 			.title("9월 정기 모임")
 			.startAt(START_AT)
 			.locationName("한강공원 2주차장")
 			.maxParticipants(4)
 			.createdBy(HOST_TSID)
-			.creator(host)
+			.creator(user(HOST_TSID, "호스트"))
 			.build();
 		given(scheduleRepository.findByTsidWithCreatorAndGathering(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
-		given(scheduleParticipantRepository.countByScheduleTsid(SCHEDULE_TSID)).willReturn(3L);
+		given(scheduleParticipantRepository.findAllByScheduleTsidWithUser(SCHEDULE_TSID)).willReturn(List.of(
+			participant(HOST_TSID, "호스트"),
+			participant(memberTsid, "멤버"),
+			participant(guestTsid, "게스트")));
+		given(gatheringParticipantRepository.findUserTsidsByGatheringTsidAndUserTsidIn(
+			GATHERING_TSID, List.of(HOST_TSID, memberTsid, guestTsid)))
+			.willReturn(List.of(HOST_TSID, memberTsid));
 
 		// when
 		ScheduleDetailResponse response = scheduleService.getScheduleDetail(SCHEDULE_TSID);
 
 		// then
-		assertThat(response.getHostNickname()).isEqualTo("호스트");
-		assertThat(response.getParticipantCount()).isEqualTo(3L);
+		assertThat(response.getGatheringName()).isEqualTo("한강 러닝크루");
+		assertThat(response.getParticipants()).extracting("userTsid", "host", "gatheringMember")
+			.containsExactly(
+				tuple(HOST_TSID, true, true),
+				tuple(memberTsid, false, true),
+				tuple(guestTsid, false, false));
+		// 소속 판정은 참여자 수와 무관하게 한 번만 조회한다
+		then(gatheringParticipantRepository).should(times(1)).findUserTsidsByGatheringTsidAndUserTsidIn(any(), any());
+	}
+
+	@Test
+	@DisplayName("독립 일정 상세 조회 시 모임 소속 조회 없이 전원 게스트로 반환된다")
+	void getScheduleDetailForStandaloneSchedule() {
+		// given
+		ScheduleEntity schedule = ScheduleEntity.builder()
+			.tsid(SCHEDULE_TSID)
+			.title("9월 정기 모임")
+			.startAt(START_AT)
+			.locationName("한강공원 2주차장")
+			.createdBy(HOST_TSID)
+			.creator(user(HOST_TSID, "호스트"))
+			.build();
+		given(scheduleRepository.findByTsidWithCreatorAndGathering(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleParticipantRepository.findAllByScheduleTsidWithUser(SCHEDULE_TSID))
+			.willReturn(List.of(participant(HOST_TSID, "호스트"), participant("01HQUSERGUEST1", "게스트")));
+
+		// when
+		ScheduleDetailResponse response = scheduleService.getScheduleDetail(SCHEDULE_TSID);
+
+		// then
 		assertThat(response.getGatheringName()).isNull();
+		assertThat(response.getHostNickname()).isEqualTo("호스트");
+		assertThat(response.getParticipants()).extracting("gatheringMember").containsOnly(false);
+		then(gatheringParticipantRepository).shouldHaveNoInteractions();
 	}
 
 	@Test
@@ -393,6 +442,158 @@ class ScheduleServiceTest {
 		then(scheduleRepository).should(never()).deleteById(any());
 	}
 
+	// ==================== 일정 참여/취소 테스트 ====================
+
+	@Test
+	@DisplayName("정원이 남은 일정에 참여하면 참여자가 생성된다")
+	void joinScheduleSuccess() {
+		// given: 정원 4명 중 3명 참여 중
+		String userTsid = "01HQUSERGUEST1";
+		ScheduleEntity schedule = upcomingSchedule(4);
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleParticipantRepository.existsByScheduleTsidAndUserTsid(SCHEDULE_TSID, userTsid)).willReturn(false);
+		given(scheduleParticipantRepository.countByScheduleTsid(SCHEDULE_TSID)).willReturn(3L);
+		given(scheduleParticipantRepository.save(any(ScheduleParticipantEntity.class)))
+			.willAnswer(invocation -> invocation.getArgument(0));
+
+		// when
+		JoinScheduleResponse response = scheduleService.joinSchedule(SCHEDULE_TSID, userTsid);
+
+		// then
+		assertThat(response.getScheduleTsid()).isEqualTo(SCHEDULE_TSID);
+		assertThat(response.getUserTsid()).isEqualTo(userTsid);
+	}
+
+	@Test
+	@DisplayName("정원이 없는 일정에는 인원과 무관하게 참여할 수 있다")
+	void joinScheduleWithoutCapacity() {
+		// given
+		String userTsid = "01HQUSERGUEST1";
+		ScheduleEntity schedule = upcomingSchedule(null);
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleParticipantRepository.existsByScheduleTsidAndUserTsid(SCHEDULE_TSID, userTsid)).willReturn(false);
+		given(scheduleParticipantRepository.countByScheduleTsid(SCHEDULE_TSID)).willReturn(999L);
+		given(scheduleParticipantRepository.save(any(ScheduleParticipantEntity.class)))
+			.willAnswer(invocation -> invocation.getArgument(0));
+
+		// when & then
+		assertThatCode(() -> scheduleService.joinSchedule(SCHEDULE_TSID, userTsid)).doesNotThrowAnyException();
+	}
+
+	@Test
+	@DisplayName("정원이 가득 찬 일정에 참여하면 예외가 발생한다")
+	void joinScheduleWhenFull() {
+		// given: 정원 4명 중 4명 참여 중
+		String userTsid = "01HQUSERGUEST1";
+		ScheduleEntity schedule = upcomingSchedule(4);
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleParticipantRepository.existsByScheduleTsidAndUserTsid(SCHEDULE_TSID, userTsid)).willReturn(false);
+		given(scheduleParticipantRepository.countByScheduleTsid(SCHEDULE_TSID)).willReturn(4L);
+
+		// when & then
+		assertThatThrownBy(() -> scheduleService.joinSchedule(SCHEDULE_TSID, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.SCHEDULE_CAPACITY_EXCEEDED);
+		then(scheduleParticipantRepository).should(never()).save(any());
+	}
+
+	@Test
+	@DisplayName("이미 참여중인 일정에 다시 참여하면 예외가 발생한다")
+	void joinScheduleAlreadyJoined() {
+		// given
+		String userTsid = "01HQUSERGUEST1";
+		ScheduleEntity schedule = upcomingSchedule(4);
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleParticipantRepository.existsByScheduleTsidAndUserTsid(SCHEDULE_TSID, userTsid)).willReturn(true);
+
+		// when & then
+		assertThatThrownBy(() -> scheduleService.joinSchedule(SCHEDULE_TSID, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.ALREADY_JOINED_SCHEDULE);
+		then(scheduleParticipantRepository).should(never()).save(any());
+	}
+
+	@Test
+	@DisplayName("이미 시작된 일정에 참여하면 예외가 발생한다")
+	void joinScheduleAlreadyStarted() {
+		// given
+		String userTsid = "01HQUSERGUEST1";
+		ScheduleEntity schedule = ScheduleEntity.builder()
+			.tsid(SCHEDULE_TSID)
+			.title("지난 일정")
+			.startAt(Instant.now().minusSeconds(60))
+			.locationName("한강공원 2주차장")
+			.createdBy(HOST_TSID)
+			.build();
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+
+		// when & then
+		assertThatThrownBy(() -> scheduleService.joinSchedule(SCHEDULE_TSID, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.SCHEDULE_ALREADY_STARTED);
+		then(scheduleParticipantRepository).shouldHaveNoInteractions();
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 일정에 참여하면 예외가 발생한다")
+	void joinScheduleNotFound() {
+		// given
+		given(scheduleRepository.findByTsidForUpdate(SCHEDULE_TSID)).willReturn(Optional.empty());
+
+		// when & then
+		assertThatThrownBy(() -> scheduleService.joinSchedule(SCHEDULE_TSID, "01HQUSERGUEST1"))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.SCHEDULE_NOT_FOUND);
+	}
+
+	@Test
+	@DisplayName("참여중인 일정에서 빠지면 참여자가 삭제된다")
+	void leaveScheduleSuccess() {
+		// given
+		String userTsid = "01HQUSERGUEST1";
+		ScheduleEntity schedule = upcomingSchedule(4);
+		ScheduleParticipantEntity participant = participant(userTsid, "게스트");
+		given(scheduleRepository.findById(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleParticipantRepository.findByScheduleTsidAndUserTsid(SCHEDULE_TSID, userTsid))
+			.willReturn(Optional.of(participant));
+
+		// when
+		scheduleService.leaveSchedule(SCHEDULE_TSID, userTsid);
+
+		// then
+		then(scheduleParticipantRepository).should().delete(participant);
+	}
+
+	@Test
+	@DisplayName("호스트는 일정에서 빠질 수 없다")
+	void leaveScheduleAsHost() {
+		// given
+		ScheduleEntity schedule = upcomingSchedule(4);
+		given(scheduleRepository.findById(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+
+		// when & then
+		assertThatThrownBy(() -> scheduleService.leaveSchedule(SCHEDULE_TSID, HOST_TSID))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.HOST_CANNOT_LEAVE_SCHEDULE);
+		then(scheduleParticipantRepository).should(never()).delete(any());
+	}
+
+	@Test
+	@DisplayName("참여하지 않은 일정에서 빠지려 하면 예외가 발생한다")
+	void leaveScheduleNotParticipant() {
+		// given
+		String userTsid = "01HQUSERGUEST1";
+		ScheduleEntity schedule = upcomingSchedule(4);
+		given(scheduleRepository.findById(SCHEDULE_TSID)).willReturn(Optional.of(schedule));
+		given(scheduleParticipantRepository.findByScheduleTsidAndUserTsid(SCHEDULE_TSID, userTsid))
+			.willReturn(Optional.empty());
+
+		// when & then
+		assertThatThrownBy(() -> scheduleService.leaveSchedule(SCHEDULE_TSID, userTsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.SCHEDULE_PARTICIPANT_NOT_FOUND);
+	}
+
 	@Test
 	@DisplayName("모임 삭제 시 귀속 일정의 참여자를 한 번의 쿼리로 삭제한 뒤 일정을 삭제한다")
 	void deleteSchedulesByGatheringTsid() {
@@ -443,6 +644,31 @@ class ScheduleServiceTest {
 			.locationName("한강공원 2주차장")
 			.createdBy(HOST_TSID)
 			.creator(UsersEntity.builder().tsid(HOST_TSID).nickname("호스트").name("김병채").build())
+			.build();
+	}
+
+	private UsersEntity user(String tsid, String nickname) {
+		return UsersEntity.builder().tsid(tsid).nickname(nickname).name("이름").build();
+	}
+
+	private ScheduleParticipantEntity participant(String userTsid, String nickname) {
+		return ScheduleParticipantEntity.builder()
+			.tsid("01HQSP" + userTsid.substring(6))
+			.scheduleTsid(SCHEDULE_TSID)
+			.userTsid(userTsid)
+			.joinedAt(START_AT)
+			.user(user(userTsid, nickname))
+			.build();
+	}
+
+	private ScheduleEntity upcomingSchedule(Integer maxParticipants) {
+		return ScheduleEntity.builder()
+			.tsid(SCHEDULE_TSID)
+			.title("9월 정기 모임")
+			.startAt(Instant.now().plusSeconds(86400))
+			.locationName("한강공원 2주차장")
+			.maxParticipants(maxParticipants)
+			.createdBy(HOST_TSID)
 			.build();
 	}
 

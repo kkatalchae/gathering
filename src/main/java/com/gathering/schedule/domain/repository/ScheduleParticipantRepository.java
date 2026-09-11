@@ -1,6 +1,7 @@
 package com.gathering.schedule.domain.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,6 +14,21 @@ import com.gathering.schedule.domain.model.ScheduleParticipantEntity;
 public interface ScheduleParticipantRepository extends JpaRepository<ScheduleParticipantEntity, String> {
 
 	long countByScheduleTsid(String scheduleTsid);
+
+	boolean existsByScheduleTsidAndUserTsid(String scheduleTsid, String userTsid);
+
+	Optional<ScheduleParticipantEntity> findByScheduleTsidAndUserTsid(String scheduleTsid, String userTsid);
+
+	/**
+	 * 일정 참여자를 사용자 정보와 함께 참여 순으로 조회
+	 */
+	@Query("""
+		SELECT sp FROM ScheduleParticipantEntity sp
+		JOIN FETCH sp.user
+		WHERE sp.scheduleTsid = :scheduleTsid
+		ORDER BY sp.joinedAt ASC, sp.tsid ASC
+		""")
+	List<ScheduleParticipantEntity> findAllByScheduleTsidWithUser(@Param("scheduleTsid") String scheduleTsid);
 
 	/**
 	 * 여러 일정의 참여 인원을 한 번의 쿼리로 집계 (목록 조회 시 일정별 반복 조회 방지)

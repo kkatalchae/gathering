@@ -3,6 +3,7 @@ package com.gathering.schedule.application;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -13,22 +14,26 @@ import org.springframework.util.StringUtils;
 
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
+import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.schedule.domain.model.ScheduleCapacity;
 import com.gathering.schedule.domain.model.ScheduleCursor;
 import com.gathering.schedule.domain.model.ScheduleDescription;
 import com.gathering.schedule.domain.model.ScheduleEntity;
 import com.gathering.schedule.domain.model.ScheduleLocation;
 import com.gathering.schedule.domain.model.ScheduleParticipantCount;
+import com.gathering.schedule.domain.model.ScheduleParticipantEntity;
 import com.gathering.schedule.domain.model.SchedulePeriod;
 import com.gathering.schedule.domain.model.ScheduleTitle;
 import com.gathering.schedule.domain.policy.SchedulePolicy;
 import com.gathering.schedule.domain.repository.ScheduleParticipantRepository;
 import com.gathering.schedule.domain.repository.ScheduleRepository;
 import com.gathering.schedule.presentation.dto.CreateScheduleRequest;
+import com.gathering.schedule.presentation.dto.JoinScheduleResponse;
 import com.gathering.schedule.presentation.dto.ScheduleDetailResponse;
 import com.gathering.schedule.presentation.dto.ScheduleListItemResponse;
 import com.gathering.schedule.presentation.dto.ScheduleListRequest;
 import com.gathering.schedule.presentation.dto.ScheduleListResponse;
+import com.gathering.schedule.presentation.dto.ScheduleParticipantSummary;
 import com.gathering.schedule.presentation.dto.ScheduleResponse;
 import com.gathering.schedule.presentation.dto.ScheduleValuesRequest;
 import com.gathering.schedule.presentation.dto.UpdateScheduleRequest;
@@ -45,11 +50,13 @@ public class ScheduleService {
 
 	private final ScheduleRepository scheduleRepository;
 	private final ScheduleParticipantRepository scheduleParticipantRepository;
+	private final GatheringParticipantRepository gatheringParticipantRepository;
 	private final SchedulePolicy schedulePolicy;
 
 	/**
 	 * 일정 생성
 	 * gatheringTsid가 있으면 모임 귀속 일정(모임 참여자만 개설 가능), 없으면 일회성 독립 일정
+	 * 개설한 호스트는 자동으로 첫 참여자가 된다
 	 *
 	 * @param hostTsid 일정을 개설하는 사용자 TSID
 	 * @param request 일정 생성 요청 DTO
@@ -75,8 +82,15 @@ public class ScheduleService {
 			.maxParticipants(request.getMaxParticipants())
 			.createdBy(hostTsid)
 			.build();
+		ScheduleEntity savedSchedule = scheduleRepository.save(schedule);
 
-		return ScheduleResponse.from(scheduleRepository.save(schedule));
+		// 호스트를 첫 참여자로 등록
+		scheduleParticipantRepository.save(ScheduleParticipantEntity.builder()
+			.scheduleTsid(savedSchedule.getTsid())
+			.userTsid(hostTsid)
+			.build());
+
+		return ScheduleResponse.from(savedSchedule);
 	}
 
 	/**
@@ -121,18 +135,90 @@ public class ScheduleService {
 
 	/**
 	 * 일정 상세 조회
+	 * 참여자 목록에는 호스트 여부와 귀속 모임 소속 여부가 함께 담긴다
 	 *
 	 * @param scheduleTsid 일정 TSID
-	 * @return 일정 상세 정보 (호스트 정보와 현재 참여 인원 포함)
+	 * @return 일정 상세 정보 (호스트 정보와 전체 참여자 목록 포함)
 	 */
 	@Transactional(readOnly = true)
 	public ScheduleDetailResponse getScheduleDetail(String scheduleTsid) {
 		ScheduleEntity schedule = scheduleRepository.findByTsidWithCreatorAndGathering(scheduleTsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
 
-		long participantCount = scheduleParticipantRepository.countByScheduleTsid(scheduleTsid);
+		List<ScheduleParticipantEntity> participants =
+			scheduleParticipantRepository.findAllByScheduleTsidWithUser(scheduleTsid);
+		Set<String> gatheringMemberTsids = findGatheringMemberTsids(schedule, participants);
 
-		return ScheduleDetailResponse.from(schedule, participantCount);
+		List<ScheduleParticipantSummary> summaries = participants.stream()
+			.map(participant -> ScheduleParticipantSummary.from(
+				participant,
+				schedule.isHostedBy(participant.getUserTsid()),
+				gatheringMemberTsids.contains(participant.getUserTsid())))
+			.toList();
+
+		return ScheduleDetailResponse.from(schedule, summaries);
+	}
+
+	/**
+	 * 일정 참여
+	 * 정원 확인과 참여자 저장이 원자적으로 이루어지도록 일정 row 에 쓰기 락을 건다
+	 *
+	 * @param scheduleTsid 참여할 일정 TSID
+	 * @param userTsid 참여할 사용자 TSID
+	 * @return 생성된 참여자 정보
+	 */
+	@Transactional
+	public JoinScheduleResponse joinSchedule(String scheduleTsid, String userTsid) {
+		ScheduleEntity schedule = scheduleRepository.findByTsidForUpdate(scheduleTsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+		// 이미 시작된 일정에는 참여 불가
+		SchedulePeriod period = new SchedulePeriod(schedule.getStartAt(), schedule.getEndAt());
+		if (period.isStartedBefore(Instant.now())) {
+			throw new BusinessException(ErrorCode.SCHEDULE_ALREADY_STARTED);
+		}
+
+		// 이미 참여 중인지 확인
+		if (scheduleParticipantRepository.existsByScheduleTsidAndUserTsid(scheduleTsid, userTsid)) {
+			throw new BusinessException(ErrorCode.ALREADY_JOINED_SCHEDULE);
+		}
+
+		// 정원 확인 (null 이면 제한 없음)
+		ScheduleCapacity capacity = new ScheduleCapacity(schedule.getMaxParticipants());
+		long currentCount = scheduleParticipantRepository.countByScheduleTsid(scheduleTsid);
+		if (capacity.isFull(currentCount)) {
+			throw new BusinessException(ErrorCode.SCHEDULE_CAPACITY_EXCEEDED);
+		}
+
+		ScheduleParticipantEntity saved = scheduleParticipantRepository.save(ScheduleParticipantEntity.builder()
+			.scheduleTsid(scheduleTsid)
+			.userTsid(userTsid)
+			.build());
+
+		return JoinScheduleResponse.from(saved);
+	}
+
+	/**
+	 * 일정 참여 취소
+	 * 이미 시작된 일정도 취소할 수 있지만 호스트는 빠질 수 없다 (일정 삭제로 대신)
+	 *
+	 * @param scheduleTsid 취소할 일정 TSID
+	 * @param userTsid 취소할 사용자 TSID
+	 */
+	@Transactional
+	public void leaveSchedule(String scheduleTsid, String userTsid) {
+		ScheduleEntity schedule = scheduleRepository.findById(scheduleTsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+		if (schedule.isHostedBy(userTsid)) {
+			throw new BusinessException(ErrorCode.HOST_CANNOT_LEAVE_SCHEDULE);
+		}
+
+		ScheduleParticipantEntity participant = scheduleParticipantRepository
+			.findByScheduleTsidAndUserTsid(scheduleTsid, userTsid)
+			.orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_PARTICIPANT_NOT_FOUND));
+
+		scheduleParticipantRepository.delete(participant);
 	}
 
 	/**
@@ -204,6 +290,20 @@ public class ScheduleService {
 		// 일정별로 반복하지 않고 IN 조건 한 번으로 참여자를 모두 삭제
 		scheduleParticipantRepository.deleteAllByScheduleTsidIn(scheduleTsids);
 		scheduleRepository.deleteAllByGatheringTsid(gatheringTsid);
+	}
+
+	/**
+	 * 참여자 중 귀속 모임의 참여자인 사용자 TSID 집합을 한 번의 쿼리로 구한다
+	 * 독립 일정은 귀속 모임이 없으므로 조회 없이 빈 집합 (전원 게스트)
+	 */
+	private Set<String> findGatheringMemberTsids(ScheduleEntity schedule, List<ScheduleParticipantEntity> participants) {
+		if (!schedule.isAttachedToGathering() || participants.isEmpty()) {
+			return Set.of();
+		}
+
+		List<String> userTsids = participants.stream().map(ScheduleParticipantEntity::getUserTsid).toList();
+		return Set.copyOf(gatheringParticipantRepository.findUserTsidsByGatheringTsidAndUserTsidIn(
+			schedule.getGatheringTsid(), userTsids));
 	}
 
 	/**

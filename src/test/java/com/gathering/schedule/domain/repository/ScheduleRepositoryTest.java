@@ -18,6 +18,9 @@ import org.springframework.data.domain.Pageable;
 
 import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.domain.model.GatheringEntity;
+import com.gathering.gathering.domain.model.GatheringParticipantEntity;
+import com.gathering.gathering.domain.model.ParticipantRole;
+import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.gathering.domain.repository.GatheringRepository;
 import com.gathering.region.domain.model.RegionEntity;
 import com.gathering.region.domain.repository.RegionRepository;
@@ -54,6 +57,9 @@ class ScheduleRepositoryTest {
 
 	@Autowired
 	private GatheringRepository gatheringRepository;
+
+	@Autowired
+	private GatheringParticipantRepository gatheringParticipantRepository;
 
 	private UsersEntity host;
 	private GatheringEntity gathering;
@@ -198,6 +204,68 @@ class ScheduleRepositoryTest {
 		assertThat(counts).hasSize(1);
 		assertThat(counts.getFirst().scheduleTsid()).isEqualTo(withTwo.getTsid());
 		assertThat(counts.getFirst().participantCount()).isEqualTo(2L);
+	}
+
+	@Test
+	@DisplayName("일정 참여자를 사용자 정보와 함께 참여 순으로 조회한다")
+	void findAllByScheduleTsidWithUser() {
+		// given
+		ScheduleEntity schedule = saveSchedule("참여자 조회", BASE_TIME.plus(Duration.ofDays(1)), null);
+		UsersEntity guest = usersRepository.save(UsersEntity.builder()
+			.email("guest@example.com")
+			.name("게스트")
+			.nickname("게스트닉")
+			.build());
+		saveParticipant(schedule, host);
+		saveParticipant(schedule, guest);
+		flushAndClear();
+
+		// when
+		List<ScheduleParticipantEntity> participants =
+			scheduleParticipantRepository.findAllByScheduleTsidWithUser(schedule.getTsid());
+
+		// then
+		assertThat(participants).extracting(participant -> participant.getUser().getName())
+			.containsExactly("호스트", "게스트");
+	}
+
+	@Test
+	@DisplayName("일정 참여자 중 귀속 모임에 참여중인 사용자의 TSID 만 반환한다")
+	void findUserTsidsByGatheringTsidAndUserTsidIn() {
+		// given: 호스트는 모임 멤버, 게스트는 비멤버
+		UsersEntity guest = usersRepository.save(UsersEntity.builder()
+			.email("guest@example.com")
+			.name("게스트")
+			.build());
+		gatheringParticipantRepository.save(GatheringParticipantEntity.builder()
+			.gatheringTsid(gathering.getTsid())
+			.userTsid(host.getTsid())
+			.role(ParticipantRole.OWNER)
+			.build());
+		flushAndClear();
+
+		// when
+		List<String> memberTsids = gatheringParticipantRepository.findUserTsidsByGatheringTsidAndUserTsidIn(
+			gathering.getTsid(), List.of(host.getTsid(), guest.getTsid()));
+
+		// then
+		assertThat(memberTsids).containsExactly(host.getTsid());
+	}
+
+	@Test
+	@DisplayName("참여 처리를 위한 쓰기 락 조회가 일정을 반환한다")
+	void findByTsidForUpdate() {
+		// given
+		ScheduleEntity schedule = saveSchedule("락 조회", BASE_TIME.plus(Duration.ofDays(1)), null);
+		flushAndClear();
+
+		// when & then
+		assertThat(scheduleRepository.findByTsidForUpdate(schedule.getTsid()))
+			.isPresent()
+			.get()
+			.extracting(ScheduleEntity::getTitle)
+			.isEqualTo("락 조회");
+		assertThat(scheduleRepository.findByTsidForUpdate("UNKNOWN_TSID00")).isEmpty();
 	}
 
 	/**

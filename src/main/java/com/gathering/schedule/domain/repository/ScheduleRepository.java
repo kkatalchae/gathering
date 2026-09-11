@@ -6,11 +6,14 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.gathering.schedule.domain.model.ScheduleEntity;
+
+import jakarta.persistence.LockModeType;
 
 public interface ScheduleRepository extends JpaRepository<ScheduleEntity, String> {
 
@@ -81,6 +84,14 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, String
 		@Param("cursorTsid") String cursorTsid,
 		Pageable pageable
 	);
+
+	/**
+	 * 참여 처리를 위해 일정 row 에 쓰기 락을 걸고 조회
+	 * 정원 확인과 참여자 저장 사이에 다른 참여 요청이 끼어들어 정원을 초과하는 것을 막는다
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT s FROM ScheduleEntity s WHERE s.tsid = :tsid")
+	Optional<ScheduleEntity> findByTsidForUpdate(@Param("tsid") String tsid);
 
 	@Query("SELECT s.tsid FROM ScheduleEntity s WHERE s.gatheringTsid = :gatheringTsid")
 	List<String> findTsidsByGatheringTsid(@Param("gatheringTsid") String gatheringTsid);
