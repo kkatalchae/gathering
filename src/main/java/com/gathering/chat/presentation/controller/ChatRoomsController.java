@@ -14,9 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gathering.auth.application.AuthService;
 import com.gathering.chat.application.ChatMessageService;
+import com.gathering.chat.application.ChatRoomListService;
 import com.gathering.chat.presentation.dto.ChatMessageListResponse;
 import com.gathering.chat.presentation.dto.ChatMessageResponse;
 import com.gathering.chat.presentation.dto.ChatReadPositionResponse;
+import com.gathering.chat.presentation.dto.ChatRoomListResponse;
 import com.gathering.chat.presentation.dto.MarkChatReadRequest;
 import com.gathering.chat.presentation.dto.SendChatMessageRequest;
 import com.gathering.common.exception.BusinessException;
@@ -39,7 +41,17 @@ public class ChatRoomsController {
 	private static final int MAX_PAGE_SIZE = 100;
 
 	private final ChatMessageService chatMessageService;
+	private final ChatRoomListService chatRoomListService;
 	private final AuthService authService;
+
+	/**
+	 * 내 채팅방 목록 — 참여한 모임/일정의 방 전부, 마지막 메시지와 안 읽은 수 포함
+	 */
+	@GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<ChatRoomListResponse> getMyRooms(HttpServletRequest request) {
+		String userTsid = authService.getCurrentUserTsid(request);
+		return ResponseEntity.ok(chatRoomListService.getMyRooms(userTsid));
+	}
 
 	/**
 	 * 메시지 전송

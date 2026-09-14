@@ -57,4 +57,14 @@ class ChatMessageBucketTest {
 		assertThat(ChatMessageBucket.parse("2026-09"))
 			.isEqualTo(ChatMessageBucket.of(Instant.parse("2026-09-15T00:00:00Z")));
 	}
+
+	@Test
+	@DisplayName("둘 중 더 늦은 버킷을 고른다")
+	void max() {
+		ChatMessageBucket august = ChatMessageBucket.parse("2026-08");
+		ChatMessageBucket september = ChatMessageBucket.parse("2026-09");
+
+		assertThat(ChatMessageBucket.max(august, september)).isEqualTo(september);
+		assertThat(ChatMessageBucket.max(september, august)).isEqualTo(september);
+	}
 }

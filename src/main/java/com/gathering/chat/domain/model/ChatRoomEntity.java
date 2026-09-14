@@ -31,7 +31,7 @@ import lombok.NoArgsConstructor;
  * 채팅방 엔티티
  * 모임 또는 일정에 하나씩 자동 생성되며, 어느 쪽인지는 roomType 으로 명시한다 (null 여부로 추론하지 않는다)
  * 채팅방 멤버 테이블은 두지 않는다 — 멤버십은 주체(모임/일정)의 참여자 테이블에서 파생된다
- * 근거: docs/adr/0002-chat-room-membership.md
+ * 근거: docs/adr/0004-chat-room-membership.md
  */
 @Entity
 @Getter

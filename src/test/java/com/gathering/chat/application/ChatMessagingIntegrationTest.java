@@ -22,6 +22,7 @@ import com.gathering.chat.domain.repository.ChatRoomReadPositionRepository;
 import com.gathering.chat.domain.repository.ChatRoomRepository;
 import com.gathering.chat.presentation.dto.ChatMessageListResponse;
 import com.gathering.chat.presentation.dto.ChatMessageResponse;
+import com.gathering.chat.presentation.dto.ChatRoomSummaryResponse;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.gathering.domain.model.GatheringCategory;
@@ -46,6 +47,9 @@ class ChatMessagingIntegrationTest {
 
 	@Autowired
 	private ChatRoomService chatRoomService;
+
+	@Autowired
+	private ChatRoomListService chatRoomListService;
 
 	@Autowired
 	private TransactionTemplate transactionTemplate;
@@ -163,6 +167,40 @@ class ChatMessagingIntegrationTest {
 		// then
 		assertThat(readPositionRepository.findByKeyUserTsidAndKeyRoomTsid(member.getTsid(), room.getTsid()))
 			.get().extracting(p -> p.getLastReadMessageTsid()).isEqualTo(second.getMessageTsid());
+	}
+
+	@Test
+	@DisplayName("내 채팅방 목록은 참여한 방만 보여주고, 읽음 위치(없으면 참여 시각) 이후를 안 읽은 수로 센다")
+	void myRoomsWithUnreadCount() {
+		// given
+		ChatMessageResponse first = chatMessageService.sendMessage(room.getTsid(), member.getTsid(), "첫 번째");
+		chatMessageService.sendMessage(room.getTsid(), member.getTsid(), "두 번째");
+		chatMessageService.sendMessage(room.getTsid(), member.getTsid(), "세 번째");
+
+		// when: 읽음 처리 전
+		List<ChatRoomSummaryResponse> beforeRead = chatRoomListService.getMyRooms(member.getTsid()).getRooms();
+
+		// then: 참여 이후 3건 모두 안 읽음
+		assertThat(beforeRead).hasSize(1);
+		ChatRoomSummaryResponse summary = beforeRead.getFirst();
+		assertThat(summary.getRoomTsid()).isEqualTo(room.getTsid());
+		assertThat(summary.getTitle()).isEqualTo("채팅 테스트 모임");
+		assertThat(summary.getLastMessage().getContent()).isEqualTo("세 번째");
+		assertThat(summary.getLastMessage().getSender().getName()).isEqualTo("member");
+		assertThat(summary.getLastReadMessageTsid()).isNull();
+		assertThat(summary.getUnreadCount()).isEqualTo(3);
+		assertThat(summary.isUnreadCountCapped()).isFalse();
+
+		// when: 첫 번째까지 읽음
+		chatMessageService.markAsRead(room.getTsid(), member.getTsid(), first.getMessageTsid());
+		ChatRoomSummaryResponse afterRead = chatRoomListService.getMyRooms(member.getTsid()).getRooms().getFirst();
+
+		// then
+		assertThat(afterRead.getLastReadMessageTsid()).isEqualTo(first.getMessageTsid());
+		assertThat(afterRead.getUnreadCount()).isEqualTo(2);
+
+		// 참여하지 않은 사용자의 목록에는 이 방이 없다
+		assertThat(chatRoomListService.getMyRooms(stranger.getTsid()).getRooms()).isEmpty();
 	}
 
 	@Test

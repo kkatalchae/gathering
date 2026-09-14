@@ -58,6 +58,11 @@ public class ChatMessageBucket {
 		return a.isBefore(b) ? a : b;
 	}
 
+	/** 둘 중 더 늦은 버킷 — 안 읽은 수를 셀 때 커서 버킷을 방 생성 월로 하한할 때 */
+	public static ChatMessageBucket max(ChatMessageBucket a, ChatMessageBucket b) {
+		return a.isBefore(b) ? b : a;
+	}
+
 	public boolean isBefore(ChatMessageBucket other) {
 		return yearMonth.isBefore(other.yearMonth);
 	}

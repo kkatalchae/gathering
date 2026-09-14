@@ -30,10 +30,14 @@ import com.gathering.ApiDocSpec;
 import com.gathering.auth.application.AuthService;
 import com.gathering.auth.infra.JwtTokenProvider;
 import com.gathering.chat.application.ChatMessageService;
+import com.gathering.chat.application.ChatRoomListService;
 import com.gathering.chat.domain.model.ChatMessageType;
+import com.gathering.chat.domain.model.ChatRoomType;
 import com.gathering.chat.presentation.dto.ChatMessageListResponse;
 import com.gathering.chat.presentation.dto.ChatMessageResponse;
 import com.gathering.chat.presentation.dto.ChatReadPositionResponse;
+import com.gathering.chat.presentation.dto.ChatRoomListResponse;
+import com.gathering.chat.presentation.dto.ChatRoomSummaryResponse;
 import com.gathering.chat.presentation.dto.ChatSenderSummary;
 import com.gathering.chat.presentation.dto.MarkChatReadRequest;
 import com.gathering.chat.presentation.dto.SendChatMessageRequest;
@@ -62,6 +66,12 @@ class ChatRoomsControllerTest {
 
 		@Bean
 		@Primary
+		public ChatRoomListService chatRoomListService() {
+			return Mockito.mock(ChatRoomListService.class);
+		}
+
+		@Bean
+		@Primary
 		public AuthService authService() {
 			return Mockito.mock(AuthService.class);
 		}
@@ -83,12 +93,59 @@ class ChatRoomsControllerTest {
 	private ChatMessageService chatMessageService;
 
 	@Autowired
+	private ChatRoomListService chatRoomListService;
+
+	@Autowired
 	private AuthService authService;
 
 	@BeforeEach
 	void setUp() {
-		Mockito.reset(chatMessageService, authService);
+		Mockito.reset(chatMessageService, chatRoomListService, authService);
 		when(authService.getCurrentUserTsid(any())).thenReturn(USER_TSID);
+	}
+
+	@Test
+	@DisplayName("내 채팅방 목록을 조회하면 200 상태코드와 방마다 마지막 메시지, 안 읽은 수를 반환한다")
+	void getMyRoomsSuccess() throws Exception {
+		// given
+		ChatRoomSummaryResponse gatheringRoom = ChatRoomSummaryResponse.builder()
+			.roomTsid(ROOM_TSID).roomType(ChatRoomType.GATHERING).gatheringTsid("01HQGATH000001")
+			.title("한강 러닝크루").createdAt(Instant.now())
+			.lastMessage(message("이번 주 토요일 어때요?")).lastReadMessageTsid(MESSAGE_TSID)
+			.unreadCount(3).unreadCountCapped(false).build();
+		ChatRoomSummaryResponse scheduleRoom = ChatRoomSummaryResponse.builder()
+			.roomTsid("01HQROOM000002").roomType(ChatRoomType.SCHEDULE).scheduleTsid("01HQSCHD000001")
+			.title("9월 정기 모임").createdAt(Instant.now())
+			.unreadCount(0).unreadCountCapped(false).build();
+		when(chatRoomListService.getMyRooms(USER_TSID))
+			.thenReturn(ChatRoomListResponse.of(List.of(gatheringRoom, scheduleRoom)));
+
+		// when & then
+		mockMvc.perform(get("/chat-rooms/me"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.rooms.length()").value(2))
+			.andExpect(jsonPath("$.rooms[0].unreadCount").value(3))
+			.andExpect(jsonPath("$.rooms[1].lastMessage").doesNotExist())
+			.andDo(document("chat-rooms-me",
+				ApiDocSpec.CHAT_MY_ROOMS.getDescription(),
+				ApiDocSpec.CHAT_MY_ROOMS.getSummary(),
+				responseFields(
+					List.of(
+						fieldWithPath("rooms").description("채팅방 목록 (마지막 메시지 최근순, 없으면 생성 역순)"),
+						fieldWithPath("rooms[].roomTsid").description("채팅방 TSID"),
+						fieldWithPath("rooms[].roomType").description("GATHERING | SCHEDULE"),
+						fieldWithPath("rooms[].gatheringTsid").description("모임 TSID (모임 방일 때)").optional(),
+						fieldWithPath("rooms[].scheduleTsid").description("일정 TSID (일정 방일 때)").optional(),
+						fieldWithPath("rooms[].title").description("모임 이름 또는 일정 제목"),
+						fieldWithPath("rooms[].createdAt").description("채팅방 생성 일시"),
+						fieldWithPath("rooms[].lastMessage").description("마지막 메시지 (없으면 null)").optional(),
+						fieldWithPath("rooms[].lastReadMessageTsid")
+							.description("내 읽음 위치 (읽음 처리한 적 없으면 null)").optional(),
+						fieldWithPath("rooms[].unreadCount").description("안 읽은 메시지 수 (0~99)"),
+						fieldWithPath("rooms[].unreadCountCapped").description("true 면 실제로는 99 보다 많다 (99+)")
+					).toArray(new org.springframework.restdocs.payload.FieldDescriptor[0])
+				).and(messageFields("rooms[].lastMessage."))
+			));
 	}
 
 	@Test

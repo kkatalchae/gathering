@@ -5,19 +5,16 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.github.f4b6a3.tsid.Tsid;
-
 import com.gathering.chat.domain.model.ChatMessageBucket;
 import com.gathering.chat.domain.model.ChatMessageContent;
 import com.gathering.chat.domain.model.ChatMessageEntity;
+import com.gathering.chat.domain.model.ChatMessageTsid;
 import com.gathering.chat.domain.model.ChatRoomEntity;
 import com.gathering.chat.domain.model.ChatRoomReadPositionEntity;
 import com.gathering.chat.domain.policy.ChatRoomPolicy;
@@ -48,6 +45,7 @@ public class ChatMessageService {
 	private final ChatMessageRepository chatMessageRepository;
 	private final ChatRoomReadPositionRepository readPositionRepository;
 	private final UsersRepository usersRepository;
+	private final ChatSenderResolver senderResolver;
 	private final ChatRoomPolicy chatRoomPolicy;
 	private final ApplicationEventPublisher eventPublisher;
 
@@ -175,7 +173,7 @@ public class ChatMessageService {
 	}
 
 	private void validateMessageTsid(String messageTsid) {
-		if (messageTsid == null || !Tsid.isValid(messageTsid)) {
+		if (!ChatMessageTsid.isValid(messageTsid)) {
 			throw new BusinessException(ErrorCode.INVALID_CURSOR);
 		}
 	}
@@ -187,29 +185,13 @@ public class ChatMessageService {
 		boolean hasNext = collected.size() > size;
 		List<ChatMessageEntity> page = hasNext ? collected.subList(0, size) : collected;
 
-		Map<String, ChatSenderSummary> senders = findSenders(page);
+		Map<String, ChatSenderSummary> senders = senderResolver.resolve(
+			page.stream().map(ChatMessageEntity::getSenderTsid).toList());
 		List<ChatMessageResponse> messages = page.stream()
 			.map(message -> ChatMessageResponse.from(message, senders.get(message.getSenderTsid())))
 			.toList();
 		String nextCursor = hasNext ? page.getLast().getMessageTsid() : null;
 
 		return ChatMessageListResponse.of(messages, nextCursor, hasNext);
-	}
-
-	/**
-	 * 발신자 TSID 를 모아 users 를 한 번에 조회 (조인이 없는 Cassandra 의 대안, 메시지별 반복 조회 금지)
-	 * SYSTEM 메시지의 sender 는 null 이라 제외한다
-	 */
-	private Map<String, ChatSenderSummary> findSenders(List<ChatMessageEntity> messages) {
-		List<String> senderTsids = messages.stream()
-			.map(ChatMessageEntity::getSenderTsid)
-			.filter(Objects::nonNull)
-			.distinct()
-			.toList();
-		if (senderTsids.isEmpty()) {
-			return Map.of();
-		}
-		return usersRepository.findAllById(senderTsids).stream()
-			.collect(Collectors.toMap(UsersEntity::getTsid, ChatSenderSummary::from, (a, b) -> a));
 	}
 }
