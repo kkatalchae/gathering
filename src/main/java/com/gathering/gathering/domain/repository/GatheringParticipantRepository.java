@@ -51,6 +51,9 @@ public interface GatheringParticipantRepository extends JpaRepository<GatheringP
 
 	boolean existsByUserTsidAndRole(String userTsid, ParticipantRole role);
 
+	/** 사용자가 참여 중인 모든 모임 참여 row (내 채팅방 목록의 멤버십 파생) */
+	List<GatheringParticipantEntity> findAllByUserTsid(String userTsid);
+
 	/**
 	 * 사용자의 모든 모임 참여 row 에 쓰기 락을 걸고 조회 (회원 탈퇴)
 	 * 삭제 직전 OWNER 여부를 이 결과로 판단하면, 동시에 진행 중인 오너 양도(changeParticipantRole)는

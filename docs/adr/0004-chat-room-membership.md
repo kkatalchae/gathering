@@ -20,7 +20,7 @@
 
 - `chat_rooms` 는 `room_type` 과 `gathering_tsid` / `schedule_tsid` 로 주체를 가리킨다. **타입은 명시 컬럼**이다 — 어느 FK 가 null 이 아닌지로 추론하지 않는다 (분기 조건이 스키마에 의존하지 않도록).
 - 멤버십 판정: `GATHERING` 이면 `gathering_participants`, `SCHEDULE` 이면 `schedule_participants` 에 `(owner_tsid, user_tsid)` 가 있는가. 타입별로 명시 분기하며 `else` 로 뭉개지 않는다.
-- "내 채팅방 목록" 은 내가 참여한 모임의 방 ∪ 내가 참여한 일정의 방. 쿼리 두 번 또는 UNION 한 번.
+- "내 채팅방 목록" 은 내가 참여한 모임의 방 ∪ 내가 참여한 일정의 방. 참여 row → 방(주체 fetch join) 순으로 타입별 두 번씩 조회한다. 참여 시각(`joined_at`)은 읽음 위치가 없는 사용자의 "안 읽은" 하한이 된다 — 들어오기 전 메시지를 안 읽은 것으로 세지 않는다.
 - 읽음 위치는 멤버십과 별개로 필요하므로 Cassandra 의 `chat_room_read_positions_by_user (user_tsid, room_tsid, last_read_message_tsid)` 에 둔다 (ADR-0002). 이 row 는 "멤버" 가 아니라 "이 사용자가 이 방을 여기까지 읽었다" 는 **워터마크**다. 처음 읽을 때 생성되고, 뒤로 가지 않는다.
 - 워터마크는 메시지를 참조하지 않는다. TSID 가 시간순이므로 그 메시지가 없어져도 "이 시점 이후" 라는 의미는 유지된다.
 

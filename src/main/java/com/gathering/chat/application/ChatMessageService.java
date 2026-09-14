@@ -5,19 +5,16 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.github.f4b6a3.tsid.Tsid;
-
 import com.gathering.chat.domain.model.ChatMessageBucket;
 import com.gathering.chat.domain.model.ChatMessageContent;
 import com.gathering.chat.domain.model.ChatMessageEntity;
+import com.gathering.chat.domain.model.ChatMessageTsid;
 import com.gathering.chat.domain.model.ChatRoomEntity;
 import com.gathering.chat.domain.model.ChatRoomReadPositionEntity;
 import com.gathering.chat.domain.policy.ChatRoomPolicy;
@@ -48,12 +45,14 @@ public class ChatMessageService {
 	private final ChatMessageRepository chatMessageRepository;
 	private final ChatRoomReadPositionRepository readPositionRepository;
 	private final UsersRepository usersRepository;
+	private final ChatSenderResolver senderResolver;
 	private final ChatRoomPolicy chatRoomPolicy;
 	private final ApplicationEventPublisher eventPublisher;
 
 	/**
 	 * 메시지 전송
 	 * 저장 후 ChatMessageSentEvent 를 발행한다 — 실시간 전달은 이벤트 리스너(STOMP 브로드캐스터)의 몫
+	 * 내가 보낸 메시지는 읽은 것이다 — 발신자의 읽음 위치를 이 메시지로 옮겨 내 채팅방 목록에 유령 배지가 뜨지 않게 한다
 	 *
 	 * @return 저장된 메시지 (발신자 정보 포함)
 	 */
@@ -64,6 +63,7 @@ public class ChatMessageService {
 
 		ChatMessageEntity saved = chatMessageRepository.save(
 			ChatMessageEntity.text(room.getTsid(), senderTsid, validated.getValue()));
+		advanceReadPosition(senderTsid, room.getTsid(), saved.getMessageTsid());
 
 		UsersEntity sender = usersRepository.findById(senderTsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -145,18 +145,26 @@ public class ChatMessageService {
 		// 읽음 위치는 문자열 비교로 앞뒤를 판단하므로 TSID 형식이 아닌 값이 들어오면 이후 갱신이 영구히 막힌다
 		validateMessageTsid(lastReadMessageTsid);
 
+		return ChatReadPositionResponse.from(advanceReadPosition(userTsid, roomTsid, lastReadMessageTsid));
+	}
+
+	/**
+	 * 읽음 위치를 messageTsid 로 옮긴다 (앞으로만). 없으면 만든다
+	 *
+	 * @return 갱신 후(또는 뒤로 가는 요청이면 기존) 읽음 위치
+	 */
+	private ChatRoomReadPositionEntity advanceReadPosition(String userTsid, String roomTsid, String messageTsid) {
 		ChatRoomReadPositionEntity position = readPositionRepository
 			.findByKeyUserTsidAndKeyRoomTsid(userTsid, roomTsid)
 			.orElse(null);
 		if (position == null) {
-			position = readPositionRepository.save(
-				ChatRoomReadPositionEntity.of(userTsid, roomTsid, lastReadMessageTsid));
-		} else if (position.advanceTo(lastReadMessageTsid)) {
-			// Cassandra 엔티티는 변경 감지가 없다 — 옮겨졌을 때만 명시적으로 저장
-			position = readPositionRepository.save(position);
+			return readPositionRepository.save(ChatRoomReadPositionEntity.of(userTsid, roomTsid, messageTsid));
 		}
-
-		return ChatReadPositionResponse.from(position);
+		if (position.advanceTo(messageTsid)) {
+			// Cassandra 엔티티는 변경 감지가 없다 — 옮겨졌을 때만 명시적으로 저장
+			return readPositionRepository.save(position);
+		}
+		return position;
 	}
 
 	private ChatRoomEntity getMemberRoom(String roomTsid, String userTsid) {
@@ -175,7 +183,7 @@ public class ChatMessageService {
 	}
 
 	private void validateMessageTsid(String messageTsid) {
-		if (messageTsid == null || !Tsid.isValid(messageTsid)) {
+		if (!ChatMessageTsid.isValid(messageTsid)) {
 			throw new BusinessException(ErrorCode.INVALID_CURSOR);
 		}
 	}
@@ -187,29 +195,13 @@ public class ChatMessageService {
 		boolean hasNext = collected.size() > size;
 		List<ChatMessageEntity> page = hasNext ? collected.subList(0, size) : collected;
 
-		Map<String, ChatSenderSummary> senders = findSenders(page);
+		Map<String, ChatSenderSummary> senders = senderResolver.resolve(
+			page.stream().map(ChatMessageEntity::getSenderTsid).toList());
 		List<ChatMessageResponse> messages = page.stream()
 			.map(message -> ChatMessageResponse.from(message, senders.get(message.getSenderTsid())))
 			.toList();
 		String nextCursor = hasNext ? page.getLast().getMessageTsid() : null;
 
 		return ChatMessageListResponse.of(messages, nextCursor, hasNext);
-	}
-
-	/**
-	 * 발신자 TSID 를 모아 users 를 한 번에 조회 (조인이 없는 Cassandra 의 대안, 메시지별 반복 조회 금지)
-	 * SYSTEM 메시지의 sender 는 null 이라 제외한다
-	 */
-	private Map<String, ChatSenderSummary> findSenders(List<ChatMessageEntity> messages) {
-		List<String> senderTsids = messages.stream()
-			.map(ChatMessageEntity::getSenderTsid)
-			.filter(Objects::nonNull)
-			.distinct()
-			.toList();
-		if (senderTsids.isEmpty()) {
-			return Map.of();
-		}
-		return usersRepository.findAllById(senderTsids).stream()
-			.collect(Collectors.toMap(UsersEntity::getTsid, ChatSenderSummary::from, (a, b) -> a));
 	}
 }

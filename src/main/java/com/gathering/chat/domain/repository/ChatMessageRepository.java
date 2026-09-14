@@ -31,8 +31,12 @@ public interface ChatMessageRepository extends CassandraRepository<ChatMessageEn
 	List<ChatMessageEntity> findByKeyRoomTsidAndKeyBucketOrderByKeyMessageTsidAsc(
 		String roomTsid, String bucket, Limit limit);
 
-	/** 커서 이후 메시지 수 (안 읽은 개수, 호출 측이 Limit 로 상한을 둔다) */
-	long countByKeyRoomTsidAndKeyBucketAndKeyMessageTsidGreaterThan(String roomTsid, String bucket, String messageTsid);
+	/**
+	 * 커서 이후 메시지의 키만 N건 (안 읽은 개수 — 결과 크기가 곧 개수다)
+	 * COUNT 는 LIMIT 으로 상한을 둘 수 없어(Cassandra 5 에서 확인) 키를 상한만큼 읽는다. 호출 측이 Limit 로 상한을 정한다
+	 */
+	List<ChatMessageKeyOnly> findKeysByKeyRoomTsidAndKeyBucketAndKeyMessageTsidGreaterThan(
+		String roomTsid, String bucket, String messageTsid, Limit limit);
 
 	/** 파티션 통째로 삭제 (방 삭제 시 버킷마다 호출) */
 	void deleteByKeyRoomTsidAndKeyBucket(String roomTsid, String bucket);

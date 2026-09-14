@@ -22,6 +22,18 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoomEntity, String
 	List<ChatRoomEntity> findAllByScheduleTsidIn(List<String> scheduleTsids);
 
 	/**
+	 * 여러 모임의 채팅방을 모임과 함께 조회 (내 채팅방 목록 — 방 이름을 모임에서 가져오므로 fetch join)
+	 */
+	@Query("SELECT r FROM ChatRoomEntity r JOIN FETCH r.gathering WHERE r.gatheringTsid IN :gatheringTsids")
+	List<ChatRoomEntity> findAllByGatheringTsidInWithGathering(@Param("gatheringTsids") List<String> gatheringTsids);
+
+	/**
+	 * 여러 일정의 채팅방을 일정과 함께 조회 (내 채팅방 목록)
+	 */
+	@Query("SELECT r FROM ChatRoomEntity r JOIN FETCH r.schedule WHERE r.scheduleTsid IN :scheduleTsids")
+	List<ChatRoomEntity> findAllByScheduleTsidInWithSchedule(@Param("scheduleTsids") List<String> scheduleTsids);
+
+	/**
 	 * 채팅방 row 일괄 삭제 (모임/일정 삭제 시). Cassandra 메시지 파티션은 커밋 후 별도로 지운다
 	 */
 	@Modifying(flushAutomatically = true, clearAutomatically = true)

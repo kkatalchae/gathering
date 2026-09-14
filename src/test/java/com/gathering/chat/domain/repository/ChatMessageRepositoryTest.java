@@ -93,19 +93,25 @@ class ChatMessageRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("커서 이후 메시지 수를 센다 (안 읽은 개수)")
-	void countNewerThanCursor() {
+	@DisplayName("커서 이후 메시지의 키만 상한까지 읽어 안 읽은 개수를 센다 (COUNT 는 LIMIT 으로 잘리지 않는다)")
+	void findKeysNewerThanCursorUpToLimit() {
 		// given
 		ChatMessageEntity first = save("첫 번째");
-		save("두 번째");
-		save("세 번째");
+		ChatMessageEntity second = save("두 번째");
+		ChatMessageEntity third = save("세 번째");
 
 		// when
-		long unread = chatMessageRepository.countByKeyRoomTsidAndKeyBucketAndKeyMessageTsidGreaterThan(
-			ROOM_TSID, currentBucket(), first.getMessageTsid());
+		List<ChatMessageKeyOnly> unread = chatMessageRepository
+			.findKeysByKeyRoomTsidAndKeyBucketAndKeyMessageTsidGreaterThan(
+				ROOM_TSID, currentBucket(), first.getMessageTsid(), Limit.of(10));
+		List<ChatMessageKeyOnly> capped = chatMessageRepository
+			.findKeysByKeyRoomTsidAndKeyBucketAndKeyMessageTsidGreaterThan(
+				ROOM_TSID, currentBucket(), first.getMessageTsid(), Limit.of(1));
 
-		// then
-		assertThat(unread).isEqualTo(2L);
+		// then: 키가 채워져 있고 상한에서 끊긴다
+		assertThat(unread).extracting(keyOnly -> keyOnly.getKey().getMessageTsid())
+			.containsExactlyInAnyOrder(second.getMessageTsid(), third.getMessageTsid());
+		assertThat(capped).hasSize(1);
 	}
 
 	@Test

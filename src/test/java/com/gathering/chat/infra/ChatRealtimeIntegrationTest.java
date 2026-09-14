@@ -40,6 +40,7 @@ import com.gathering.chat.application.ChatRoomService;
 import com.gathering.chat.domain.model.ChatMessageBucket;
 import com.gathering.chat.domain.model.ChatRoomEntity;
 import com.gathering.chat.domain.repository.ChatMessageRepository;
+import com.gathering.chat.domain.repository.ChatRoomReadPositionRepository;
 import com.gathering.chat.domain.repository.ChatRoomRepository;
 import com.gathering.gathering.domain.model.GatheringCategory;
 import com.gathering.gathering.domain.model.GatheringEntity;
@@ -94,6 +95,9 @@ class ChatRealtimeIntegrationTest {
 	@Autowired
 	private ChatMessageRepository chatMessageRepository;
 
+	@Autowired
+	private ChatRoomReadPositionRepository readPositionRepository;
+
 	private UsersEntity member;
 	private UsersEntity stranger;
 	private RegionEntity region;
@@ -128,6 +132,8 @@ class ChatRealtimeIntegrationTest {
 			usersRepository.deleteAll(List.of(member, stranger));
 		});
 		chatMessageRepository.deleteByKeyRoomTsidAndKeyBucket(room.getTsid(), ChatMessageBucket.of(Instant.now()).getValue());
+		// 전송이 발신자의 읽음 위치를 만든다
+		readPositionRepository.deleteByKeyUserTsid(member.getTsid());
 	}
 
 	@Test

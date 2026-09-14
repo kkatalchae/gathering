@@ -3,6 +3,7 @@ package com.gathering.chat.domain.repository;
 import static org.assertj.core.api.Assertions.*;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -102,5 +103,28 @@ class ChatRoomRepositoryTest {
 		// when & then
 		assertThatThrownBy(() -> chatRoomRepository.saveAndFlush(ChatRoomEntity.forGathering("UNKNOWN_TSID00")))
 			.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	@Test
+	@DisplayName("여러 주체의 채팅방을 주체(모임/일정)와 함께 한 번에 조회한다 — 내 채팅방 목록")
+	void findAllWithOwners() {
+		// given
+		chatRoomRepository.save(ChatRoomEntity.forGathering(gathering.getTsid()));
+		chatRoomRepository.save(ChatRoomEntity.forSchedule(schedule.getTsid()));
+		entityManager.flush();
+		entityManager.clear();
+
+		// when
+		List<ChatRoomEntity> gatheringRooms = chatRoomRepository.findAllByGatheringTsidInWithGathering(
+			List.of(gathering.getTsid(), "UNKNOWN_TSID00"));
+		List<ChatRoomEntity> scheduleRooms = chatRoomRepository.findAllByScheduleTsidInWithSchedule(
+			List.of(schedule.getTsid()));
+		entityManager.clear();
+
+		// then: 영속성 컨텍스트를 비운 뒤에도 주체를 읽을 수 있다 = fetch join 됐다
+		assertThat(gatheringRooms).hasSize(1);
+		assertThat(gatheringRooms.getFirst().getGathering().getName()).isEqualTo("한강 러닝크루");
+		assertThat(scheduleRooms).hasSize(1);
+		assertThat(scheduleRooms.getFirst().getSchedule().getTitle()).isEqualTo("9월 정기 모임");
 	}
 }

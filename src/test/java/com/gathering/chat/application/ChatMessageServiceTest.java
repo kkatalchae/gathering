@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +31,7 @@ import com.gathering.chat.domain.repository.ChatRoomReadPositionRepository;
 import com.gathering.chat.domain.repository.ChatRoomRepository;
 import com.gathering.chat.presentation.dto.ChatMessageListResponse;
 import com.gathering.chat.presentation.dto.ChatMessageResponse;
+import com.gathering.chat.presentation.dto.ChatSenderSummary;
 import com.gathering.chat.presentation.dto.ChatReadPositionResponse;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
@@ -59,6 +61,9 @@ class ChatMessageServiceTest {
 	private UsersRepository usersRepository;
 
 	@Mock
+	private ChatSenderResolver senderResolver;
+
+	@Mock
 	private ChatRoomPolicy chatRoomPolicy;
 
 	@Mock
@@ -68,12 +73,13 @@ class ChatMessageServiceTest {
 	private ChatMessageService chatMessageService;
 
 	@Test
-	@DisplayName("메시지를 보내면 멤버십 검증 후 저장하고 발신자 정보를 실은 이벤트를 발행한다")
+	@DisplayName("메시지를 보내면 멤버십 검증 후 저장하고, 발신자의 읽음 위치를 그 메시지로 옮기고, 발신자 정보를 실은 이벤트를 발행한다")
 	void sendMessagePublishesEvent() {
 		// given
 		ChatRoomEntity room = roomCreatedAt(Instant.now());
 		given(chatRoomRepository.findById(ROOM_TSID)).willReturn(Optional.of(room));
 		given(chatMessageRepository.save(any(ChatMessageEntity.class))).willAnswer(inv -> inv.getArgument(0));
+		given(readPositionRepository.findByKeyUserTsidAndKeyRoomTsid(USER_TSID, ROOM_TSID)).willReturn(Optional.empty());
 		given(usersRepository.findById(USER_TSID)).willReturn(Optional.of(user(USER_TSID, "러닝맨")));
 
 		// when
@@ -83,6 +89,11 @@ class ChatMessageServiceTest {
 		then(chatRoomPolicy).should().validateMember(room, USER_TSID);
 		assertThat(response.getContent()).isEqualTo("안녕하세요");
 		assertThat(response.getSender().getNickname()).isEqualTo("러닝맨");
+
+		// 내가 보낸 메시지는 읽은 것 — 읽음 위치가 없었으므로 새로 만든다
+		ArgumentCaptor<ChatRoomReadPositionEntity> position = ArgumentCaptor.forClass(ChatRoomReadPositionEntity.class);
+		then(readPositionRepository).should().save(position.capture());
+		assertThat(position.getValue().getLastReadMessageTsid()).isEqualTo(response.getMessageTsid());
 
 		ArgumentCaptor<ChatMessageSentEvent> captor = ArgumentCaptor.forClass(ChatMessageSentEvent.class);
 		then(eventPublisher).should().publishEvent(captor.capture());
@@ -138,8 +149,8 @@ class ChatMessageServiceTest {
 			.willReturn(List.of(newest));
 		given(chatMessageRepository.findByKeyRoomTsidAndKeyBucket(eq(ROOM_TSID), eq(previousBucket), any(Limit.class)))
 			.willReturn(List.of(older, oldest));
-		given(usersRepository.findAllById(List.of(USER_TSID, "01HQUSER000002")))
-			.willReturn(List.of(user(USER_TSID, "나"), user("01HQUSER000002", "상대")));
+		given(senderResolver.resolve(List.of(USER_TSID, "01HQUSER000002")))
+			.willReturn(Map.of(USER_TSID, sender(USER_TSID, "나"), "01HQUSER000002", sender("01HQUSER000002", "상대")));
 
 		// when: size=2 → 3건 모이면 hasNext
 		ChatMessageListResponse response = chatMessageService.getMessagesBefore(ROOM_TSID, USER_TSID, null, 2);
@@ -150,7 +161,7 @@ class ChatMessageServiceTest {
 		assertThat(response.getHasNext()).isTrue();
 		assertThat(response.getNextCursor()).isEqualTo(older.getMessageTsid());
 		assertThat(response.getMessages().get(1).getSender().getNickname()).isEqualTo("상대");
-		then(usersRepository).should(times(1)).findAllById(any());
+		then(senderResolver).should(times(1)).resolve(any());
 	}
 
 	@Test
@@ -169,7 +180,7 @@ class ChatMessageServiceTest {
 		assertThat(response.getMessages()).isEmpty();
 		assertThat(response.getHasNext()).isFalse();
 		then(chatMessageRepository).should(times(1)).findByKeyRoomTsidAndKeyBucket(eq(ROOM_TSID), any(), any());
-		then(usersRepository).shouldHaveNoInteractions();
+		then(senderResolver).should().resolve(List.of());
 	}
 
 	@Test
@@ -183,7 +194,7 @@ class ChatMessageServiceTest {
 		given(chatMessageRepository.findByKeyRoomTsidAndKeyBucketAndKeyMessageTsidLessThan(
 			eq(ROOM_TSID), eq(ChatMessageBucket.of(Instant.now()).getValue()), eq(cursorMessage.getMessageTsid()),
 			any(Limit.class))).willReturn(List.of(olderMessage));
-		given(usersRepository.findAllById(any())).willReturn(List.of(user(USER_TSID, "나")));
+		given(senderResolver.resolve(any())).willReturn(Map.of(USER_TSID, sender(USER_TSID, "나")));
 
 		// when
 		ChatMessageListResponse response =
@@ -209,7 +220,7 @@ class ChatMessageServiceTest {
 		ChatMessageEntity thisMonth = ChatMessageEntity.text(ROOM_TSID, USER_TSID, "이번 달");
 		given(chatMessageRepository.findByKeyRoomTsidAndKeyBucketAndKeyMessageTsidGreaterThanOrderByKeyMessageTsidAsc(
 			eq(ROOM_TSID), eq(currentBucket), eq(cursor), any(Limit.class))).willReturn(List.of(lastMonth, thisMonth));
-		given(usersRepository.findAllById(any())).willReturn(List.of(user(USER_TSID, "나")));
+		given(senderResolver.resolve(any())).willReturn(Map.of(USER_TSID, sender(USER_TSID, "나")));
 
 		// when: 커서가 이번 달 TSID 이므로 이번 달 버킷만 읽는다
 		ChatMessageListResponse response = chatMessageService.getMessagesAfter(ROOM_TSID, USER_TSID, cursor, 50);
@@ -254,7 +265,7 @@ class ChatMessageServiceTest {
 		ChatMessageEntity message = ChatMessageEntity.text(ROOM_TSID, USER_TSID, "이번 달");
 		given(chatMessageRepository.findByKeyRoomTsidAndKeyBucketOrderByKeyMessageTsidAsc(
 			eq(ROOM_TSID), eq(currentBucket), any(Limit.class))).willReturn(List.of(message));
-		given(usersRepository.findAllById(any())).willReturn(List.of(user(USER_TSID, "나")));
+		given(senderResolver.resolve(any())).willReturn(Map.of(USER_TSID, sender(USER_TSID, "나")));
 
 		// when
 		ChatMessageListResponse response = chatMessageService.getMessagesAfter(ROOM_TSID, USER_TSID, ancientCursor, 50);
@@ -322,6 +333,10 @@ class ChatMessageServiceTest {
 		lenient().when(room.getTsid()).thenReturn(ROOM_TSID);
 		lenient().when(room.getCreatedAt()).thenReturn(createdAt);
 		return room;
+	}
+
+	private ChatSenderSummary sender(String tsid, String nickname) {
+		return ChatSenderSummary.from(user(tsid, nickname));
 	}
 
 	private UsersEntity user(String tsid, String nickname) {

@@ -20,6 +20,9 @@ public interface ScheduleParticipantRepository extends JpaRepository<SchedulePar
 
 	Optional<ScheduleParticipantEntity> findByScheduleTsidAndUserTsid(String scheduleTsid, String userTsid);
 
+	/** 사용자가 참여 중인 모든 일정 참여 row (내 채팅방 목록의 멤버십 파생, 지난 일정 포함) */
+	List<ScheduleParticipantEntity> findAllByUserTsid(String userTsid);
+
 	/**
 	 * 일정 참여자를 사용자 정보와 함께 참여 순으로 조회
 	 */

@@ -44,7 +44,7 @@
 | **FK** — `sender_tsid`, `room_tsid` 의 참조 무결성을 DB 가 지켜주지 않는다 | 애플리케이션이 지킨다: 저장 전 방 존재·멤버십을 MySQL 에서 검증한다. 회원 탈퇴(#48) 시 메시지의 `sender_tsid` 는 그대로 두고 응답 조립에서 "탈퇴한 사용자"로 표시한다 — 메시지 자체는 방의 기록이므로 지우지 않는다. |
 | **파티션 크기 상한** — 한 파티션이 100MB / 수백만 셀을 넘으면 압축·리페어·읽기 성능이 급격히 나빠진다 | **시간 버킷**: 파티션 키를 `(room_tsid, bucket)` 으로 하고 `bucket = 'yyyy-MM'`. 방 하나가 아무리 활발해도 파티션은 한 달치로 잘린다. 커서 페이징은 현재 버킷에서 부족하면 이전 달 버킷으로 넘어간다. |
 | **읽기 전 쓰기(read-before-write) 금지 관례** — `SELECT` 후 조건부 `UPDATE` 는 분산 환경에서 경쟁한다 | 읽음 위치는 "뒤로 가지 않는다" 규칙이 있지만, 단순 `INSERT`(upsert) 로 마지막 값을 덮어쓰고 클라이언트가 단조 증가 값을 보낸다고 가정한다. 엄격한 단조성이 필요해지면 LWT(`IF last_read < ?`)를 쓰되 비용(Paxos 왕복)을 인지한다. MVP 에서는 쓰지 않는다. |
-| **집계** — `COUNT` 는 파티션 전체 스캔이다 | "안 읽은 N개"는 `(room, bucket)` 파티션 안에서 `message_tsid > last_read` 범위 `COUNT` 로 계산한다. 한 달치 파티션 안의 범위라 감당 가능하고, 100 을 넘으면 `99+` 로 표시해 `LIMIT 101` 로 끊는다. |
+| **집계** — `COUNT` 는 파티션 전체 스캔이다 | "안 읽은 N개"는 `(room, bucket)` 파티션 안에서 `message_tsid > cursor` 범위를 읽어 센다. 99 를 넘으면 `99+` 로 표시하므로 **키 컬럼만 `LIMIT 100` 으로 읽어 결과 크기를 센다**. `SELECT COUNT(*) … LIMIT n` 은 쓰지 않는다 — Cassandra 5.0 에서 확인한 결과 LIMIT 은 집계 **뒤에** 적용되어 COUNT 를 자르지 못한다 (5건 파티션에 `LIMIT 2` → 5). |
 | **인프라·테스트** — 로컬 docker-compose 에 Cassandra 추가, 통합 테스트는 Testcontainers(Docker 필요) | 개발 환경은 이미 docker-compose(MySQL, Redis)에 기대고 있어 추가 부담이 작다. 테스트는 JVM 당 컨테이너 하나를 공유해 기동 비용(30초↑)을 한 번만 낸다. CI(#34) 설계 시 Docker-in-Docker 또는 서비스 컨테이너를 고려한다. |
 
 ### 데이터 모델 (query-first)
@@ -95,6 +95,12 @@ CREATE TABLE chat_room_read_positions_by_user (
 | **예외 번역** | Cassandra 드라이버 예외는 `CassandraExceptionTranslator` 가 `DataAccessException` 계열로 바꾼다. 타임아웃은 `QueryTimeoutException`, 연결 실패는 `CassandraConnectionFailureException`. ADR-0001 의 `PessimisticLockingFailureException` 핸들러는 해당 없다. | #18 에서 Cassandra 타임아웃/연결 실패를 503 으로 번역하는 핸들러를 추가한다. 쓰기 타임아웃은 **부분 적용됐을 수 있다**는 점을 응답 메시지에 반영하지 않는다(클라이언트는 재조회로 확인). |
 | **기동 의존** | MySQL 과 마찬가지로 Cassandra 에 연결되지 않으면 애플리케이션이 뜨지 않는다. | 로컬은 docker-compose, 테스트는 Testcontainers. 타임아웃은 환경변수로 조정 가능하다. |
 | **ID 발급** | JPA 는 Hibernate `@Tsid` 생성기, Cassandra 는 `TsidCreator` 를 직접 쓴다. 둘 다 같은 라이브러리의 기본 팩토리라 형식(13자 Crockford)과 단조성이 같다. | 커서 비교·정렬은 문자열 비교로 통일한다. |
+
+### 내 채팅방 목록의 비용 (2026-09-14 구현)
+
+목록 한 번에 방마다 Cassandra 를 최소 두 번 읽는다 — 마지막 메시지 1건, 안 읽은 키 최대 100건. 두 조회 모두 현재 달 버킷부터 시작해 비어 있으면 이전 달로 내려가며, 하한은 각각 방 생성 월과 커서(읽음 위치, 없으면 참여 시각) 버킷이다. 활발한 방은 현재 달에서 끝나고, 오래되고 조용한 방일수록 조회가 늘어난다. 방이 수십 개인 사용자에게는 수십~수백 번의 파티션 조회가 되지만 모두 파티션 키 지정 조회이므로 각각은 싸다.
+
+병목이 되면 순서대로: (1) 방별 조회를 비동기로 병렬화, (2) `chat_rooms_by_user (user_tsid, room_tsid, last_message_tsid, last_message_preview)` 를 두고 메시지 저장 시 멤버 수만큼 fan-out 쓰기 (Cassandra 의 관용적 방법 — 읽기 1회로 목록이 끝나지만 쓰기가 멤버 수에 비례한다).
 
 ## 전환 기준과 경로
 
