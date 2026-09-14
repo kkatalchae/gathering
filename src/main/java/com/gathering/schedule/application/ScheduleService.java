@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.gathering.chat.application.ChatRoomService;
+import com.gathering.chat.domain.model.ChatRoomEntity;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
@@ -52,6 +54,7 @@ public class ScheduleService {
 	private final ScheduleParticipantRepository scheduleParticipantRepository;
 	private final GatheringParticipantRepository gatheringParticipantRepository;
 	private final SchedulePolicy schedulePolicy;
+	private final ChatRoomService chatRoomService;
 
 	/**
 	 * 일정 생성
@@ -89,6 +92,9 @@ public class ScheduleService {
 			.scheduleTsid(savedSchedule.getTsid())
 			.userTsid(hostTsid)
 			.build());
+
+		// 일정 채팅방 자동 생성 (일정 참여 = 채팅방 참여)
+		chatRoomService.createForSchedule(savedSchedule.getTsid());
 
 		return ScheduleResponse.from(savedSchedule);
 	}
@@ -155,8 +161,9 @@ public class ScheduleService {
 				schedule.isHostedBy(participant.getUserTsid()),
 				gatheringMemberTsids.contains(participant.getUserTsid())))
 			.toList();
+		String chatRoomTsid = chatRoomService.findBySchedule(scheduleTsid).map(ChatRoomEntity::getTsid).orElse(null);
 
-		return ScheduleDetailResponse.from(schedule, summaries);
+		return ScheduleDetailResponse.from(schedule, summaries, chatRoomTsid);
 	}
 
 	/**
@@ -272,10 +279,7 @@ public class ScheduleService {
 
 		schedulePolicy.validateHostPermission(schedule, userTsid);
 
-		// 참여자 데이터 삭제 (FK 제약 조건으로 인해 먼저 삭제)
-		scheduleParticipantRepository.deleteAllByScheduleTsid(scheduleTsid);
-
-		scheduleRepository.deleteById(scheduleTsid);
+		deleteSchedulesByTsids(List.of(scheduleTsid));
 	}
 
 	/**
@@ -306,8 +310,9 @@ public class ScheduleService {
 			return;
 		}
 
-		// 일정별로 반복하지 않고 IN 조건 한 번으로 참여자를 모두 삭제
+		// 일정별로 반복하지 않고 IN 조건 한 번으로 참여자·채팅방을 모두 삭제 (FK 순서: 참여자, 채팅방 → 일정)
 		scheduleParticipantRepository.deleteAllByScheduleTsidIn(scheduleTsids);
+		chatRoomService.deleteForSchedules(scheduleTsids);
 		scheduleRepository.deleteAllByTsidIn(scheduleTsids);
 	}
 

@@ -119,6 +119,11 @@ public enum ErrorCode {
 	CHAT_MESSAGE_CONTENT_REQUIRED(HttpStatus.BAD_REQUEST, "메시지 내용은 필수입니다"),
 	CHAT_MESSAGE_CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "메시지는 1000자를 초과할 수 없습니다"),
 	CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다"),
+	CHAT_ROOM_ACCESS_DENIED(HttpStatus.FORBIDDEN, "채팅방에 참여한 사용자만 이용할 수 있습니다"),
+	CHAT_MESSAGE_CURSOR_AMBIGUOUS(HttpStatus.BAD_REQUEST, "before 와 after 는 함께 쓸 수 없습니다"),
+
+	// 저장소 장애 (503 Service Unavailable) — 재시도하면 성공할 수 있다
+	STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "저장소 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요"),
 
 	// 동시성 관련 에러 (409 Conflict) — 데드락 패자 / 락 대기 타임아웃, 재시도하면 성공한다
 	CONCURRENT_REQUEST_CONFLICT(HttpStatus.CONFLICT, "동시에 처리 중인 요청이 있습니다. 잠시 후 다시 시도해주세요"),

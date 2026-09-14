@@ -31,6 +31,8 @@ import com.gathering.gathering.presentation.dto.GatheringListResponse;
 import com.gathering.gathering.presentation.dto.GatheringResponse;
 import com.gathering.gathering.presentation.dto.JoinGatheringResponse;
 import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
+import com.gathering.chat.application.ChatRoomService;
+import com.gathering.chat.domain.model.ChatRoomEntity;
 import com.gathering.schedule.application.ScheduleService;
 
 import lombok.RequiredArgsConstructor;
@@ -48,6 +50,7 @@ public class GatheringService {
 	private final FileUploadService fileUploadService;
 	private final GatheringPolicy gatheringPolicy;
 	private final ScheduleService scheduleService;
+	private final ChatRoomService chatRoomService;
 
 	/**
 	 * 모임 생성
@@ -84,6 +87,9 @@ public class GatheringService {
 			.role(ParticipantRole.OWNER)
 			.build();
 		participantRepository.save(owner);
+
+		// 모임 채팅방 자동 생성 (모임 참여 = 채팅방 참여)
+		chatRoomService.createForGathering(savedGathering.getTsid());
 
 		return GatheringResponse.from(savedGathering);
 	}
@@ -137,8 +143,9 @@ public class GatheringService {
 			.orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
 
 		List<GatheringParticipantEntity> participants = participantRepository.findAllByGatheringTsidWithUser(tsid);
+		String chatRoomTsid = chatRoomService.findByGathering(tsid).map(ChatRoomEntity::getTsid).orElse(null);
 
-		return GatheringDetailResponse.from(gathering, participants);
+		return GatheringDetailResponse.from(gathering, participants, chatRoomTsid);
 	}
 
 	/**
@@ -202,6 +209,9 @@ public class GatheringService {
 
 		// 참여자 데이터 삭제 (FK 제약 조건으로 인해 먼저 삭제)
 		participantRepository.deleteAllByGatheringTsid(gatheringTsid);
+
+		// 모임 채팅방 삭제 (FK) — 메시지 파티션은 커밋 후 정리된다
+		chatRoomService.deleteForGathering(gatheringTsid);
 
 		// 모임 삭제
 		gatheringRepository.deleteById(gatheringTsid);

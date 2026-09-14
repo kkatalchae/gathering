@@ -30,11 +30,15 @@ public class GatheringDetailResponse {
 
 	private List<ParticipantSummary> participants;
 
+	/** 모임 채팅방 TSID. 채팅방이 없는 (도입 이전에 만들어진) 모임이면 null */
+	private String chatRoomTsid;
+
 	private Instant createdAt;
 
 	public static GatheringDetailResponse from(
 		GatheringEntity gathering,
-		List<GatheringParticipantEntity> participants
+		List<GatheringParticipantEntity> participants,
+		String chatRoomTsid
 	) {
 		return GatheringDetailResponse.builder()
 			.tsid(gathering.getTsid())
@@ -47,6 +51,7 @@ public class GatheringDetailResponse {
 			.participants(participants.stream()
 				.map(ParticipantSummary::from)
 				.toList())
+			.chatRoomTsid(chatRoomTsid)
 			.createdAt(gathering.getCreatedAt())
 			.build();
 	}

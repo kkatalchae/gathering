@@ -312,6 +312,7 @@ class GatheringsControllerTest {
 			.regionTsid("01HQREGION1234")
 			.regionName("강남구")
 			.participants(participants)
+			.chatRoomTsid("01HQCHATROOM01")
 			.createdAt(Instant.now())
 			.build();
 
@@ -350,6 +351,7 @@ class GatheringsControllerTest {
 					fieldWithPath("participants[].name").description("참여자 이름 (닉네임 없을 때 사용)"),
 					fieldWithPath("participants[].profileImageUrl").description("참여자 프로필 이미지 URL").optional(),
 					fieldWithPath("participants[].role").description("참여자 역할 (OWNER/ADMIN/MEMBER)"),
+					fieldWithPath("chatRoomTsid").description("모임 채팅방 TSID (채팅방이 없으면 null)").optional(),
 					fieldWithPath("createdAt").description("생성 일시")
 				)
 			));

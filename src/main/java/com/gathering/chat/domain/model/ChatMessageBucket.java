@@ -48,6 +48,16 @@ public class ChatMessageBucket {
 		return new ChatMessageBucket(yearMonth.minusMonths(1));
 	}
 
+	/** 한 달 뒤 버킷 — after 보충 조회에서 현재 달까지 올라갈 때 */
+	public ChatMessageBucket next() {
+		return new ChatMessageBucket(yearMonth.plusMonths(1));
+	}
+
+	/** 둘 중 더 이른 버킷 — 클라이언트 커서를 현재 월로 상한할 때 */
+	public static ChatMessageBucket min(ChatMessageBucket a, ChatMessageBucket b) {
+		return a.isBefore(b) ? a : b;
+	}
+
 	public boolean isBefore(ChatMessageBucket other) {
 		return yearMonth.isBefore(other.yearMonth);
 	}
