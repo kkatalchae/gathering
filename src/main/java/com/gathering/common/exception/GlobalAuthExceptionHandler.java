@@ -1,6 +1,8 @@
 package com.gathering.common.exception;
 
 import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.dao.QueryTimeoutException;
+import org.springframework.data.cassandra.CassandraConnectionFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -52,6 +54,17 @@ public class GlobalAuthExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleConcurrencyFailure(ConcurrencyFailureException e) {
 		log.warn("동시성 충돌: {}", e.getMessage());
 		return ErrorCode.CONCURRENT_REQUEST_CONFLICT.toResponseEntity();
+	}
+
+	/**
+	 * 저장소 장애 예외 처리
+	 * Cassandra 연결 실패·요청 타임아웃(그리고 JPA 쿼리 타임아웃)은 요청의 문제가 아니라 저장소 상태의 문제이므로 503 으로 응답한다
+	 * 쓰기 타임아웃은 부분 적용됐을 수 있다 — 클라이언트는 재조회로 확인한다 (docs/adr/0002)
+	 */
+	@ExceptionHandler({CassandraConnectionFailureException.class, QueryTimeoutException.class})
+	public ResponseEntity<ErrorResponse> handleStorageUnavailable(Exception e) {
+		log.error("저장소 장애: {}", e.getMessage());
+		return ErrorCode.STORAGE_UNAVAILABLE.toResponseEntity();
 	}
 
 	/**

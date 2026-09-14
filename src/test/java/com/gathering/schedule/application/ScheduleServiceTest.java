@@ -3,6 +3,7 @@ package com.gathering.schedule.application;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.*;
 
 import java.time.Instant;
 import java.util.List;
@@ -12,11 +13,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 
+import com.gathering.chat.application.ChatRoomService;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.gathering.domain.model.GatheringEntity;
@@ -60,6 +63,9 @@ class ScheduleServiceTest {
 	@Mock
 	private SchedulePolicy schedulePolicy;
 
+	@Mock
+	private ChatRoomService chatRoomService;
+
 	@InjectMocks
 	private ScheduleService scheduleService;
 
@@ -90,6 +96,9 @@ class ScheduleServiceTest {
 			ArgumentCaptor.forClass(ScheduleParticipantEntity.class);
 		then(scheduleParticipantRepository).should().save(participantCaptor.capture());
 		assertThat(participantCaptor.getValue().getUserTsid()).isEqualTo(HOST_TSID);
+
+		// 일정 채팅방이 함께 생성된다
+		then(chatRoomService).should().createForSchedule(saved.getTsid());
 	}
 
 	@Test
@@ -423,10 +432,12 @@ class ScheduleServiceTest {
 		// when
 		scheduleService.deleteSchedule(SCHEDULE_TSID, HOST_TSID);
 
-		// then
+		// then: FK 순서 — 참여자, 채팅방 → 일정
 		then(schedulePolicy).should().validateHostPermission(schedule, HOST_TSID);
-		then(scheduleParticipantRepository).should().deleteAllByScheduleTsid(SCHEDULE_TSID);
-		then(scheduleRepository).should().deleteById(SCHEDULE_TSID);
+		InOrder order = inOrder(scheduleParticipantRepository, chatRoomService, scheduleRepository);
+		order.verify(scheduleParticipantRepository).deleteAllByScheduleTsidIn(List.of(SCHEDULE_TSID));
+		order.verify(chatRoomService).deleteForSchedules(List.of(SCHEDULE_TSID));
+		order.verify(scheduleRepository).deleteAllByTsidIn(List.of(SCHEDULE_TSID));
 	}
 
 	@Test
@@ -439,7 +450,7 @@ class ScheduleServiceTest {
 		assertThatThrownBy(() -> scheduleService.deleteSchedule(SCHEDULE_TSID, HOST_TSID))
 			.isInstanceOf(BusinessException.class)
 			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.SCHEDULE_NOT_FOUND);
-		then(scheduleRepository).should(never()).deleteById(any());
+		then(scheduleRepository).should(never()).deleteAllByTsidIn(any());
 	}
 
 	// ==================== 일정 참여/취소 테스트 ====================
@@ -607,6 +618,7 @@ class ScheduleServiceTest {
 
 		// then
 		then(scheduleParticipantRepository).should().deleteAllByScheduleTsidIn(scheduleTsids);
+		then(chatRoomService).should().deleteForSchedules(scheduleTsids);
 		then(scheduleRepository).should().deleteAllByTsidIn(scheduleTsids);
 	}
 

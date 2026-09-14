@@ -49,11 +49,15 @@ public class ScheduleDetailResponse {
 
 	private String hostProfileImageUrl;
 
+	/** 일정 채팅방 TSID. 채팅방이 없는 (도입 이전에 만들어진) 일정이면 null */
+	private String chatRoomTsid;
+
 	private Instant createdAt;
 
 	private Instant updatedAt;
 
-	public static ScheduleDetailResponse from(ScheduleEntity schedule, List<ScheduleParticipantSummary> participants) {
+	public static ScheduleDetailResponse from(ScheduleEntity schedule, List<ScheduleParticipantSummary> participants,
+		String chatRoomTsid) {
 		return ScheduleDetailResponse.builder()
 			.tsid(schedule.getTsid())
 			.gatheringTsid(schedule.getGatheringTsid())
@@ -70,6 +74,7 @@ public class ScheduleDetailResponse {
 			.hostNickname(schedule.getCreator().getNickname())
 			.hostName(schedule.getCreator().getName())
 			.hostProfileImageUrl(schedule.getCreator().getProfileImageUrl())
+			.chatRoomTsid(chatRoomTsid)
 			.createdAt(schedule.getCreatedAt())
 			.updatedAt(schedule.getUpdatedAt())
 			.build();

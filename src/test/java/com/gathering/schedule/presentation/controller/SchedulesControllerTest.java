@@ -321,6 +321,7 @@ class SchedulesControllerTest {
 			.hostNickname("러닝맨")
 			.hostName("김병채")
 			.hostProfileImageUrl("https://example.com/host.jpg")
+			.chatRoomTsid("01HQCHATROOM01")
 			.createdAt(Instant.now())
 			.updatedAt(Instant.now())
 			.build();
@@ -367,6 +368,7 @@ class SchedulesControllerTest {
 					fieldWithPath("hostNickname").description("호스트 닉네임").optional(),
 					fieldWithPath("hostName").description("호스트 이름"),
 					fieldWithPath("hostProfileImageUrl").description("호스트 프로필 이미지 URL").optional(),
+					fieldWithPath("chatRoomTsid").description("일정 채팅방 TSID (채팅방이 없으면 null)").optional(),
 					fieldWithPath("createdAt").description("생성 일시"),
 					fieldWithPath("updatedAt").description("최종 수정 일시").optional()
 				)

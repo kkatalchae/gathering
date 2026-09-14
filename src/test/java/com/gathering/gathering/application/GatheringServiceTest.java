@@ -35,6 +35,7 @@ import com.gathering.gathering.presentation.dto.GatheringResponse;
 import com.gathering.gathering.presentation.dto.JoinGatheringResponse;
 import com.gathering.gathering.presentation.dto.UpdateGatheringRequest;
 import com.gathering.region.domain.model.RegionEntity;
+import com.gathering.chat.application.ChatRoomService;
 import com.gathering.schedule.application.ScheduleService;
 
 /**
@@ -54,6 +55,9 @@ class GatheringServiceTest {
 
 	@Mock
 	private ScheduleService scheduleService;
+
+	@Mock
+	private ChatRoomService chatRoomService;
 
 	@InjectMocks
 	private GatheringService gatheringService;
@@ -103,6 +107,8 @@ class GatheringServiceTest {
 				&& participant.getUserTsid().equals(ownerTsid)
 				&& participant.getRole() == ParticipantRole.OWNER
 		));
+		// 모임 채팅방이 함께 생성된다
+		then(chatRoomService).should().createForGathering(savedGathering.getTsid());
 	}
 
 	@Test
@@ -448,10 +454,11 @@ class GatheringServiceTest {
 		then(participantRepository).should().deleteAllByGatheringTsid(gatheringTsid);
 		then(gatheringRepository).should().deleteById(gatheringTsid);
 
-		// FK 제약 조건 때문에 귀속 일정 -> 모임 참여자 -> 모임 순서가 지켜져야 한다
-		InOrder deletionOrder = inOrder(scheduleService, participantRepository, gatheringRepository);
+		// FK 제약 조건 때문에 귀속 일정 -> 모임 참여자 -> 채팅방 -> 모임 순서가 지켜져야 한다
+		InOrder deletionOrder = inOrder(scheduleService, participantRepository, chatRoomService, gatheringRepository);
 		deletionOrder.verify(scheduleService).deleteSchedulesByGatheringTsid(gatheringTsid);
 		deletionOrder.verify(participantRepository).deleteAllByGatheringTsid(gatheringTsid);
+		deletionOrder.verify(chatRoomService).deleteForGathering(gatheringTsid);
 		deletionOrder.verify(gatheringRepository).deleteById(gatheringTsid);
 	}
 
