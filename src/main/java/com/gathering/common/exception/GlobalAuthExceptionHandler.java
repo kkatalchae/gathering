@@ -1,6 +1,6 @@
 package com.gathering.common.exception;
 
-import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -44,13 +44,13 @@ public class GlobalAuthExceptionHandler {
 	}
 
 	/**
-	 * 비관적 락 실패 예외 처리
-	 * 데드락 패자(DeadlockLoserDataAccessException), 락 대기 타임아웃(CannotAcquireLockException) 모두 여기로 온다
-	 * 요청 자체는 유효하고 재시도하면 성공하므로 500 이 아니라 409 로 응답한다 — docs/adr/0001 참고
+	 * 동시성 실패 예외 처리
+	 * 비관적 락 실패(데드락 패자, 락 대기 타임아웃)와 낙관적 락 실패(다른 트랜잭션이 먼저 지운/바꾼 row 갱신) 모두 여기로 온다
+	 * 요청 자체는 유효하고 재시도하면 결과가 확정되므로 500 이 아니라 409 로 응답한다 — docs/adr/0001 참고
 	 */
-	@ExceptionHandler(PessimisticLockingFailureException.class)
-	public ResponseEntity<ErrorResponse> handlePessimisticLockingFailure(PessimisticLockingFailureException e) {
-		log.warn("비관적 락 획득 실패: {}", e.getMessage());
+	@ExceptionHandler(ConcurrencyFailureException.class)
+	public ResponseEntity<ErrorResponse> handleConcurrencyFailure(ConcurrencyFailureException e) {
+		log.warn("동시성 충돌: {}", e.getMessage());
 		return ErrorCode.CONCURRENT_REQUEST_CONFLICT.toResponseEntity();
 	}
 

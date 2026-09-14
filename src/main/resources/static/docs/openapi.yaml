@@ -81,7 +81,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/gatherings-tsid-335326168"
+              $ref: "#/components/schemas/gatherings-335326168"
             examples:
               gatherings:
                 value: "{\"name\":\"테스트 모임\",\"description\":\"테스트 설명입니다\",\"regionTsid\"\
@@ -99,7 +99,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
                     :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
                     :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-14T00:51:51.322984Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-14T01:08:45.430684Z\"\
                     }"
   /gatherings/{tsid}:
     get:
@@ -137,7 +137,7 @@ paths:
                     ,\"nickname\":\"철수\",\"name\":\"김철수\",\"profileImageUrl\":\"https://example.com/profile1.jpg\"\
                     ,\"role\":\"OWNER\"},{\"userTsid\":\"01HQUSER000002\",\"nickname\"\
                     :\"영희\",\"name\":\"이영희\",\"profileImageUrl\":\"https://example.com/profile2.jpg\"\
-                    ,\"role\":\"MEMBER\"}],\"createdAt\":\"2026-09-14T00:51:51.453884Z\"\
+                    ,\"role\":\"MEMBER\"}],\"createdAt\":\"2026-09-14T01:08:45.597461Z\"\
                     }"
     put:
       tags:
@@ -174,7 +174,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/gatherings-tsid-335326168"
+              $ref: "#/components/schemas/gatherings-335326168"
             examples:
               gatherings-update:
                 value: "{\"name\":\"수정된 모임\",\"description\":\"수정된 설명입니다\",\"regionTsid\"\
@@ -192,7 +192,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"수정된 모임\",\"description\"\
                     :\"수정된 설명입니다\",\"regionTsid\":\"01HQREGION5678\",\"category\"\
                     :\"STUDY\",\"mainImageUrl\":\"https://example.com/new-image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-14T00:51:51.389660Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-14T01:08:45.532018Z\"\
                     }"
     delete:
       tags:
@@ -261,7 +261,7 @@ paths:
                 gatherings-join:
                   value: "{\"participantTsid\":\"01HQPARTIC1234\",\"gatheringTsid\"\
                     :\"01HQGATHERING1\",\"userTsid\":\"01HQUSER123456\",\"role\":\"\
-                    MEMBER\",\"joinedAt\":\"2026-09-14T00:51:51.429833Z\"}"
+                    MEMBER\",\"joinedAt\":\"2026-09-14T01:08:45.574154Z\"}"
   /gatherings/{tsid}/main-image:
     patch:
       tags:
@@ -648,8 +648,8 @@ paths:
                     startAt\":\"2026-09-20T10:00:00Z\",\"endAt\":\"2026-09-20T12:00:00Z\"\
                     ,\"locationName\":\"한강공원 2주차장\",\"locationAddress\":\"서울특별시 영등\
                     포구 여의동로 330\",\"maxParticipants\":4,\"hostTsid\":\"01HQUSERHOST01\"\
-                    ,\"createdAt\":\"2026-09-14T00:51:52.577008Z\",\"updatedAt\":\"\
-                    2026-09-14T00:51:52.577008Z\"}"
+                    ,\"createdAt\":\"2026-09-14T01:08:46.616035Z\",\"updatedAt\":\"\
+                    2026-09-14T01:08:46.616036Z\"}"
   /schedules/{scheduleTsid}:
     get:
       tags:
@@ -693,8 +693,8 @@ paths:
                     name\":\"박게스트\",\"profileImageUrl\":null,\"joinedAt\":\"2026-09-20T10:00:00Z\"\
                     ,\"host\":false,\"gatheringMember\":false}],\"hostTsid\":\"01HQUSERHOST01\"\
                     ,\"hostNickname\":\"러닝맨\",\"hostName\":\"김병채\",\"hostProfileImageUrl\"\
-                    :\"https://example.com/host.jpg\",\"createdAt\":\"2026-09-14T00:51:52.611504Z\"\
-                    ,\"updatedAt\":\"2026-09-14T00:51:52.611505Z\"}"
+                    :\"https://example.com/host.jpg\",\"createdAt\":\"2026-09-14T01:08:46.641123Z\"\
+                    ,\"updatedAt\":\"2026-09-14T01:08:46.641123Z\"}"
     put:
       tags:
       - schedules
@@ -742,8 +742,8 @@ paths:
                     합니다\",\"startAt\":\"2026-09-20T10:00:00Z\",\"endAt\":\"2026-09-20T12:00:00Z\"\
                     ,\"locationName\":\"합정역 3번 출구\",\"locationAddress\":\"서울특별시 마포\
                     구 양화로 45\",\"maxParticipants\":6,\"hostTsid\":\"01HQUSERHOST01\"\
-                    ,\"createdAt\":\"2026-09-14T00:51:52.645014Z\",\"updatedAt\":\"\
-                    2026-09-14T00:51:52.645014Z\"}"
+                    ,\"createdAt\":\"2026-09-14T01:08:46.669135Z\",\"updatedAt\":\"\
+                    2026-09-14T01:08:46.669135Z\"}"
     delete:
       tags:
       - schedules
@@ -806,7 +806,7 @@ paths:
                 schedules-join:
                   value: "{\"participantTsid\":\"01HQSCHEDPART1\",\"scheduleTsid\"\
                     :\"01HQSCHEDULE01\",\"userTsid\":\"01HQUSERHOST01\",\"joinedAt\"\
-                    :\"2026-09-14T00:51:52.633049Z\"}"
+                    :\"2026-09-14T01:08:46.657454Z\"}"
   /schedules/{scheduleTsid}/participants/me:
     delete:
       tags:
@@ -1531,7 +1531,7 @@ components:
           type: string
           description: 프로필 이미지 URL
           nullable: true
-    gatherings-tsid-335326168:
+    gatherings-335326168:
       required:
       - category
       - name
@@ -1862,6 +1862,46 @@ components:
           type: string
           description: 현재 비밀번호 (AES 암호화) 소셜 가입자의 경우 null 을 보낼 수 있다.
           nullable: true
+    gatherings251537030:
+      required:
+      - gatherings
+      - hasNext
+      type: object
+      properties:
+        nextCursor:
+          type: string
+          description: 다음 페이지 커서 (null이면 마지막 페이지)
+          nullable: true
+        gatherings:
+          type: array
+          description: 모임 목록
+          items:
+            required:
+            - category
+            - name
+            - regionName
+            - tsid
+            type: object
+            properties:
+              regionName:
+                type: string
+                description: 지역명
+              name:
+                type: string
+                description: 모임 이름
+              category:
+                type: string
+                description: 모임 카테고리
+              tsid:
+                type: string
+                description: 모임 고유 ID
+              mainImageUrl:
+                type: string
+                description: 대표 이미지 URL
+                nullable: true
+        hasNext:
+          type: boolean
+          description: 다음 페이지 존재 여부
     schedules-scheduleTsid-513139950:
       required:
       - createdAt
@@ -1914,46 +1954,6 @@ components:
           type: number
           description: 정원 (null이면 인원 제한 없음)
           nullable: true
-    gatherings251537030:
-      required:
-      - gatherings
-      - hasNext
-      type: object
-      properties:
-        nextCursor:
-          type: string
-          description: 다음 페이지 커서 (null이면 마지막 페이지)
-          nullable: true
-        gatherings:
-          type: array
-          description: 모임 목록
-          items:
-            required:
-            - category
-            - name
-            - regionName
-            - tsid
-            type: object
-            properties:
-              regionName:
-                type: string
-                description: 지역명
-              name:
-                type: string
-                description: 모임 이름
-              category:
-                type: string
-                description: 모임 카테고리
-              tsid:
-                type: string
-                description: 모임 고유 ID
-              mainImageUrl:
-                type: string
-                description: 대표 이미지 URL
-                nullable: true
-        hasNext:
-          type: boolean
-          description: 다음 페이지 존재 여부
     users-me1442001226:
       required:
       - connectedProviders

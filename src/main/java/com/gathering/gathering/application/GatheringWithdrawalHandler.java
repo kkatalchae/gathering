@@ -3,8 +3,11 @@ package com.gathering.gathering.application;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
+import com.gathering.gathering.domain.model.GatheringParticipantEntity;
 import com.gathering.gathering.domain.model.ParticipantRole;
 import com.gathering.gathering.domain.repository.GatheringParticipantRepository;
 import com.gathering.user.domain.policy.UserWithdrawalHandler;
@@ -35,6 +38,14 @@ public class GatheringWithdrawalHandler implements UserWithdrawalHandler {
 
 	@Override
 	public void cleanUp(String userTsid) {
+		// validate 와 cleanUp 사이에 오너 양도가 끼어들 수 있으므로, 삭제 직전 row 락을 잡고 다시 확인한다
+		List<GatheringParticipantEntity> participations = participantRepository.findAllByUserTsidForUpdate(userTsid);
+		boolean isOwnerAnywhere = participations.stream()
+			.anyMatch(participation -> participation.getRole() == ParticipantRole.OWNER);
+		if (isOwnerAnywhere) {
+			throw new BusinessException(ErrorCode.CANNOT_WITHDRAW_AS_GATHERING_OWNER);
+		}
+
 		participantRepository.deleteAllByUserTsid(userTsid);
 	}
 }
