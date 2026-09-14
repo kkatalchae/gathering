@@ -24,12 +24,25 @@ class GlobalAuthExceptionHandlerTest {
 			new DeadlockLoserDataAccessException("Deadlock found when trying to get lock", null);
 
 		// when
-		ResponseEntity<ErrorResponse> response = handler.handlePessimisticLockingFailure(exception);
+		ResponseEntity<ErrorResponse> response = handler.handleConcurrencyFailure(exception);
 
 		// then
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 		assertThat(response.getBody()).isNotNull();
 		assertThat(response.getBody().getMessage()).isEqualTo(ErrorCode.CONCURRENT_REQUEST_CONFLICT.getMessage());
+	}
+
+	@Test
+	@DisplayName("다른 트랜잭션이 먼저 지운 row 를 갱신하려는 낙관적 락 실패도 409 로 응답한다")
+	void optimisticLockingFailureIsTranslatedToConflict() {
+		// given
+		var exception = new org.springframework.orm.ObjectOptimisticLockingFailureException("row gone", null);
+
+		// when
+		ResponseEntity<ErrorResponse> response = handler.handleConcurrencyFailure(exception);
+
+		// then
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 	}
 
 	@Test
@@ -40,7 +53,7 @@ class GlobalAuthExceptionHandlerTest {
 			new CannotAcquireLockException("Lock wait timeout exceeded", null);
 
 		// when
-		ResponseEntity<ErrorResponse> response = handler.handlePessimisticLockingFailure(exception);
+		ResponseEntity<ErrorResponse> response = handler.handleConcurrencyFailure(exception);
 
 		// then
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);

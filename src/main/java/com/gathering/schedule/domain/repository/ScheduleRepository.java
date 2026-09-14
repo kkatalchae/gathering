@@ -103,10 +103,19 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, String
 	List<ScheduleEntity> findAllByGatheringTsidForUpdate(@Param("gatheringTsid") String gatheringTsid);
 
 	/**
-	 * 모임에 귀속된 일정 일괄 삭제
-	 * 벌크 연산이므로 실행 전 flush, 실행 후 영속성 컨텍스트를 비워 stale 엔티티를 남기지 않는다
+	 * 사용자가 호스트인, 아직 시작하지 않은 일정들에 쓰기 락을 걸고 조회 (회원 탈퇴 시 삭제 대상)
+	 * 지난 일정은 모임의 기록이므로 조회하지 않는다
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT s FROM ScheduleEntity s WHERE s.createdBy = :hostTsid AND s.startAt > :baseTime")
+	List<ScheduleEntity> findAllUpcomingByHostForUpdate(
+		@Param("hostTsid") String hostTsid, @Param("baseTime") Instant baseTime);
+
+	/**
+	 * 일정 여러 건 일괄 삭제 (참여자를 먼저 지운 뒤 호출)
 	 */
 	@Modifying(flushAutomatically = true, clearAutomatically = true)
-	@Query("DELETE FROM ScheduleEntity s WHERE s.gatheringTsid = :gatheringTsid")
-	void deleteAllByGatheringTsid(@Param("gatheringTsid") String gatheringTsid);
+	@Query("DELETE FROM ScheduleEntity s WHERE s.tsid IN :scheduleTsids")
+	void deleteAllByTsidIn(@Param("scheduleTsids") List<String> scheduleTsids);
+
 }

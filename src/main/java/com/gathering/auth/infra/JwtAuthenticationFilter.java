@@ -84,6 +84,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			sendErrorResponse(response, ErrorCode.AUTHENTICATION_FAILED);
 			return;
 		}
+		// 탈퇴한 사용자의 아직 만료되지 않은 액세스 토큰은 거부한다 (리프레시 토큰은 탈퇴 시 삭제됨)
+		if (user.isWithdrawn()) {
+			log.debug("탈퇴한 사용자의 토큰: {}", tsid);
+			sendErrorResponse(response, ErrorCode.AUTHENTICATION_FAILED);
+			return;
+		}
 
 		String email = user.getEmail();
 

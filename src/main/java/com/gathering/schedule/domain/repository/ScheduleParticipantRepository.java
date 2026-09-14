@@ -1,5 +1,6 @@
 package com.gathering.schedule.domain.repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,6 +50,18 @@ public interface ScheduleParticipantRepository extends JpaRepository<SchedulePar
 	@Modifying(flushAutomatically = true, clearAutomatically = true)
 	@Query("DELETE FROM ScheduleParticipantEntity sp WHERE sp.scheduleTsid = :scheduleTsid")
 	void deleteAllByScheduleTsid(@Param("scheduleTsid") String scheduleTsid);
+
+	/**
+	 * 사용자의 참여 중 아직 시작하지 않은 일정의 참여만 일괄 삭제 (회원 탈퇴)
+	 * 지난 일정의 참여 기록은 남긴다 — 사용자 row 가 익명화되어 남으므로 참조는 유효하다
+	 */
+	@Modifying(flushAutomatically = true, clearAutomatically = true)
+	@Query("""
+		DELETE FROM ScheduleParticipantEntity sp
+		WHERE sp.userTsid = :userTsid
+		AND sp.scheduleTsid IN (SELECT s.tsid FROM ScheduleEntity s WHERE s.startAt > :baseTime)
+		""")
+	void deleteAllUpcomingByUserTsid(@Param("userTsid") String userTsid, @Param("baseTime") Instant baseTime);
 
 	/**
 	 * 여러 일정의 참여자를 한 번의 쿼리로 일괄 삭제 (모임 삭제 시 사용)

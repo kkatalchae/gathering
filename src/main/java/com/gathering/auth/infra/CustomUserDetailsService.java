@@ -37,6 +37,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 		// 1. 사용자 기본 정보 조회
 		UsersEntity user = usersRepository.findByEmail(email)
 			.orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + email));
+		if (user.isWithdrawn()) {
+			throw new UsernameNotFoundException("탈퇴한 사용자입니다: " + email);
+		}
 
 		// 2. 사용자 보안 정보 조회 (비밀번호 해시)
 		UserSecurityEntity userSecurity = userSecurityRepository.findByUserTsid(user.getTsid())

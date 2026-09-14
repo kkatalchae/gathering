@@ -290,13 +290,25 @@ public class ScheduleService {
 		List<String> scheduleTsids = scheduleRepository.findAllByGatheringTsidForUpdate(gatheringTsid).stream()
 			.map(ScheduleEntity::getTsid)
 			.toList();
+		deleteSchedulesByTsids(scheduleTsids);
+	}
+
+	/**
+	 * 일정 여러 건을 참여자와 함께 일괄 삭제
+	 * 호출 측이 대상 일정 row 의 락을 이미 잡고 있어야 한다 (모임 삭제, 회원 탈퇴)
+	 * 일정에 딸린 데이터(참여자, 이후 #18 의 채팅방)를 지우는 지점은 여기 한 곳이다
+	 *
+	 * @param scheduleTsids 삭제할 일정 TSID 목록 (비어 있으면 아무것도 하지 않음)
+	 */
+	@Transactional
+	public void deleteSchedulesByTsids(List<String> scheduleTsids) {
 		if (scheduleTsids.isEmpty()) {
 			return;
 		}
 
 		// 일정별로 반복하지 않고 IN 조건 한 번으로 참여자를 모두 삭제
 		scheduleParticipantRepository.deleteAllByScheduleTsidIn(scheduleTsids);
-		scheduleRepository.deleteAllByGatheringTsid(gatheringTsid);
+		scheduleRepository.deleteAllByTsidIn(scheduleTsids);
 	}
 
 	/**

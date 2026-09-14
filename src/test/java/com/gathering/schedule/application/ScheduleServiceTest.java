@@ -607,7 +607,7 @@ class ScheduleServiceTest {
 
 		// then
 		then(scheduleParticipantRepository).should().deleteAllByScheduleTsidIn(scheduleTsids);
-		then(scheduleRepository).should().deleteAllByGatheringTsid(GATHERING_TSID);
+		then(scheduleRepository).should().deleteAllByTsidIn(scheduleTsids);
 	}
 
 	@Test
@@ -621,7 +621,7 @@ class ScheduleServiceTest {
 
 		// then
 		then(scheduleParticipantRepository).should(never()).deleteAllByScheduleTsidIn(any());
-		then(scheduleRepository).should(never()).deleteAllByGatheringTsid(any());
+		then(scheduleRepository).should(never()).deleteAllByTsidIn(any());
 	}
 
 	private CreateScheduleRequest createRequest(String gatheringTsid, Integer maxParticipants) {
