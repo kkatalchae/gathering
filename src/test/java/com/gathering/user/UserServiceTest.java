@@ -17,6 +17,7 @@ import com.gathering.auth.application.RefreshTokenService;
 import com.gathering.common.exception.BusinessException;
 import com.gathering.common.exception.ErrorCode;
 import com.gathering.user.application.UserService;
+import com.gathering.user.application.UserWithdrawalService;
 import com.gathering.user.application.UserValidator;
 import com.gathering.user.domain.model.UserSecurityEntity;
 import com.gathering.user.domain.model.UsersEntity;
@@ -52,8 +53,11 @@ class UserServiceTest {
 	@Mock
 	private RefreshTokenService refreshTokenService;
 
+	@Mock
+	private UserWithdrawalService userWithdrawalService;
+
 	@Test
-	@DisplayName("회원 탈퇴 시 users, user_security 테이블에서 삭제되고 Redis 토큰이 삭제된다")
+	@DisplayName("회원 탈퇴 시 본인 확인 후 연관 데이터 정리·익명화를 위임하고 Redis 토큰이 삭제된다")
 	void withdrawSuccess() {
 		// given
 		String tsid = "1234567890123";
@@ -81,11 +85,10 @@ class UserServiceTest {
 		verify(usersRepository, times(1)).findById(tsid);
 		verify(userSecurityRepository, times(1)).findById(tsid);
 		verify(passwordEncoder, times(1)).matches(password, encodedPassword);
-		// user entitiy 가 삭제 되면서 함께 사라져야하는 데이터가 잘 삭제되는가?
-		verify(oauthConnectionRepository, times(1)).deleteByUserTsid(tsid);
-		verify(userSecurityRepository, times(1)).deleteById(tsid);
-		verify(usersRepository, times(1)).deleteById(tsid);
-		// users 삭제 이후 세션에 대한 부분도 삭제되는가?
+		// 연관 데이터 정리와 익명화는 UserWithdrawalService 가 맡는다 (하드 삭제하지 않는다)
+		verify(userWithdrawalService, times(1)).withdraw(tsid);
+		verify(usersRepository, never()).deleteById(anyString());
+		// 세션에 대한 부분도 삭제되는가?
 		verify(refreshTokenService, times(1)).deleteAllRefreshTokensByTsid(tsid);
 	}
 
@@ -106,8 +109,22 @@ class UserServiceTest {
 		verify(usersRepository, times(1)).findById(tsid);
 		verify(userSecurityRepository, never()).findById(anyString());
 		verify(refreshTokenService, never()).deleteAllRefreshTokensByTsid(anyString());
-		verify(userSecurityRepository, never()).deleteById(anyString());
-		verify(usersRepository, never()).deleteById(anyString());
+		verify(userWithdrawalService, never()).withdraw(any());
+	}
+
+	@Test
+	@DisplayName("이미 탈퇴한 사용자는 USER_DELETED 로 조회가 거부된다")
+	void getUsersEntityByTsidRejectsWithdrawn() {
+		// given
+		String tsid = "1234567890123";
+		UsersEntity withdrawn = UsersEntity.builder().tsid(tsid).email("x@example.com").name("x").build();
+		withdrawn.withdraw();
+		when(usersRepository.findById(tsid)).thenReturn(Optional.of(withdrawn));
+
+		// when & then
+		assertThatThrownBy(() -> userService.getUsersEntityByTsid(tsid))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_DELETED);
 	}
 
 	@Test
@@ -170,9 +187,7 @@ class UserServiceTest {
 		verify(usersRepository, times(1)).findById(tsid);
 		verify(userSecurityRepository, times(1)).findById(tsid);
 		verify(passwordEncoder, never()).matches(anyString(), anyString());
-		verify(oauthConnectionRepository, times(1)).deleteByUserTsid(tsid);
-		verify(userSecurityRepository, times(1)).deleteById(tsid);
-		verify(usersRepository, times(1)).deleteById(tsid);
+		verify(userWithdrawalService, times(1)).withdraw(tsid);
 		verify(refreshTokenService, times(1)).deleteAllRefreshTokensByTsid(tsid);
 	}
 

@@ -37,6 +37,7 @@ public class UserService {
 	private final UserOAuthConnectionRepository oauthConnectionRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final UserValidator userValidator;
+	private final UserWithdrawalService userWithdrawalService;
 	private final RefreshTokenService refreshTokenService;
 	private final FileUploadService fileUploadService;
 
@@ -125,8 +126,12 @@ public class UserService {
 	 * @throws BusinessException 사용자가 존재않은 경우
 	 */
 	public UsersEntity getUsersEntityByTsid(String tsid) {
-		return usersRepository.findById(tsid)
+		UsersEntity user = usersRepository.findById(tsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+		if (user.isWithdrawn()) {
+			throw new BusinessException(ErrorCode.USER_DELETED);
+		}
+		return user;
 	}
 
 	/**
@@ -247,12 +252,13 @@ public class UserService {
 	}
 
 	/**
-	 * 회원 탈퇴 (hard delete)
-	 * 개인정보보호법에 따라 사용자 데이터를 완전히 삭제
+	 * 회원 탈퇴
+	 * 본인 확인 후 도메인별 연관 데이터를 정리하고 개인정보를 익명화한다 (UserWithdrawalService)
+	 * users row 는 참조 무결성을 위해 "탈퇴한 사용자" 로 남는다
 	 *
 	 * @param tsid 사용자 고유 ID
 	 * @param request 회원 탈퇴 요청 (비밀번호 포함)
-	 * @throws BusinessException 사용자가 존재하지 않거나 비밀번호가 일치하지 않는 경우
+	 * @throws BusinessException 사용자가 존재하지 않거나, 비밀번호가 일치하지 않거나, 오너인 모임이 있는 경우
 	 */
 	@Transactional
 	public void withdraw(String tsid, WithdrawRequest request) {
@@ -269,21 +275,11 @@ public class UserService {
 			throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
 		}
 
-		deleteUsersByTsid(tsid);
+		// 4. 연관 데이터 정리 + 익명화
+		userWithdrawalService.withdraw(tsid);
 
-		// 7. Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
+		// 5. Redis에서 모든 refresh token 삭제 (멀티 디바이스 로그아웃)
 		refreshTokenService.deleteAllRefreshTokensByTsid(tsid);
-	}
-
-	private void deleteUsersByTsid(String tsid) {
-		// 소셜 연동 정보 삭제 (FK 제약으로 인해 먼저 삭제)
-		oauthConnectionRepository.deleteByUserTsid(tsid);
-
-		// user_security 테이블 삭제
-		userSecurityRepository.deleteById(tsid);
-
-		// users 테이블 삭제
-		usersRepository.deleteById(tsid);
 	}
 
 	/**

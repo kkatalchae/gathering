@@ -554,4 +554,22 @@ class UserControllerTest {
 		verify(authService, times(1)).getCurrentUserTsid(any());
 		verify(userService, times(1)).withdraw(eq(tsid), any(WithdrawRequest.class));
 	}
+
+	@Test
+	@DisplayName("오너로 있는 모임이 있는 사용자가 탈퇴하면 400 에러를 반환한다")
+	void withdrawRejectedForGatheringOwner() throws Exception {
+		// given
+		String tsid = "1234567890123";
+		WithdrawRequest request = new WithdrawRequest(CryptoUtil.encryptAES("Password1!", aesKey));
+		when(authService.getCurrentUserTsid(any())).thenReturn(tsid);
+		doThrow(new BusinessException(ErrorCode.CANNOT_WITHDRAW_AS_GATHERING_OWNER))
+			.when(userService).withdraw(eq(tsid), any(WithdrawRequest.class));
+
+		// when & then
+		mockMvc.perform(delete("/users/me")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("CANNOT_WITHDRAW_AS_GATHERING_OWNER"));
+	}
 }

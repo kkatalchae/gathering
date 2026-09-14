@@ -68,6 +68,34 @@ public class UsersEntity {
 	@CreatedDate
 	private Instant createdAt;
 
+	/** 탈퇴 시각. 익명화된 row 를 나중에 완전 파기하는 배치의 기준이 된다 */
+	@Column(name = "withdrawn_at")
+	private Instant withdrawnAt;
+
+
+	/** 익명화된 이메일 도메인. RFC 2606 예약 TLD 라 실제 주소와 절대 겹치지 않고, uk_user_email 도 tsid 로 유일하다 */
+	public static final String WITHDRAWN_EMAIL_DOMAIN = "withdrawn.invalid";
+	public static final String WITHDRAWN_NAME = "탈퇴한 사용자";
+
+	/**
+	 * 회원 탈퇴 — 개인정보를 지우고 상태를 WITHDRAWN 으로 바꾼다
+	 * row 자체는 남긴다: 일정 호스트, 채팅 발신자처럼 이 사용자를 가리키는 기록이 "탈퇴한 사용자" 로 계속 유효해야 하고,
+	 * FK 를 하나씩 끊는 대신 참조 무결성을 그대로 두는 편이 안전하다. 원래 이메일은 비워지므로 같은 이메일로 재가입할 수 있다
+	 */
+	public void withdraw() {
+		this.email = "withdrawn+" + tsid + "@" + WITHDRAWN_EMAIL_DOMAIN;
+		this.name = WITHDRAWN_NAME;
+		this.nickname = null;
+		this.phoneNumber = null;
+		this.profileImageUrl = null;
+		this.emailVerified = false;
+		this.status = UserStatus.WITHDRAWN;
+		this.withdrawnAt = Instant.now();
+	}
+
+	public boolean isWithdrawn() {
+		return status == UserStatus.WITHDRAWN;
+	}
 
 	public void updateProfileImageUrl(String profileImageUrl) {
 		this.profileImageUrl = profileImageUrl;

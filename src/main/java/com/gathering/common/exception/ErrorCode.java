@@ -40,6 +40,12 @@ public enum ErrorCode {
 	INVALID_CURRENT_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다."),
 	NAME_BLANK(HttpStatus.BAD_REQUEST, "이름은 비어있을 수 없습니다."),
 
+	// 회원 탈퇴 관련 에러 (400 Bad Request)
+	CANNOT_WITHDRAW_AS_GATHERING_OWNER(
+		HttpStatus.BAD_REQUEST,
+		"오너로 있는 모임이 있습니다. 오너를 양도하거나 모임을 삭제한 뒤 탈퇴해주세요."
+	),
+
 	// 중복 에러 (409 Conflict)
 	EMAIL_DUPLICATE(HttpStatus.CONFLICT, "이미 사용중인 이메일입니다."),
 	EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입된 이메일입니다. 기존 계정으로 로그인 후 설정에서 소셜 계정을 연동해주세요."),

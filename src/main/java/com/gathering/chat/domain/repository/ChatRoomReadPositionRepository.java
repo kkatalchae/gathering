@@ -17,4 +17,7 @@ public interface ChatRoomReadPositionRepository
 	Optional<ChatRoomReadPositionEntity> findByKeyUserTsidAndKeyRoomTsid(String userTsid, String roomTsid);
 
 	List<ChatRoomReadPositionEntity> findByKeyUserTsid(String userTsid);
+
+	/** 사용자 파티션 통째로 삭제 (회원 탈퇴) */
+	void deleteByKeyUserTsid(String userTsid);
 }
