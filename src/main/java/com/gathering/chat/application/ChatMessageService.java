@@ -13,6 +13,8 @@ import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.github.f4b6a3.tsid.Tsid;
+
 import com.gathering.chat.domain.model.ChatMessageBucket;
 import com.gathering.chat.domain.model.ChatMessageContent;
 import com.gathering.chat.domain.model.ChatMessageEntity;
@@ -82,7 +84,9 @@ public class ChatMessageService {
 	public ChatMessageListResponse getMessagesBefore(String roomTsid, String userTsid, String before, int size) {
 		ChatRoomEntity room = getMemberRoom(roomTsid, userTsid);
 		ChatMessageBucket oldest = ChatMessageBucket.of(room.getCreatedAt());
-		ChatMessageBucket bucket = before == null ? ChatMessageBucket.of(Instant.now()) : bucketOf(before);
+		ChatMessageBucket current = ChatMessageBucket.of(Instant.now());
+		// 커서는 클라이언트 입력이다 — 미래 시각 TSID 를 보내도 현재 월보다 위에서 시작하지 않는다 (미래 버킷에는 메시지가 없다)
+		ChatMessageBucket bucket = before == null ? current : ChatMessageBucket.min(bucketOf(before), current);
 
 		List<ChatMessageEntity> collected = new ArrayList<>();
 		String cursor = before;
@@ -107,12 +111,17 @@ public class ChatMessageService {
 	 */
 	@Transactional(readOnly = true)
 	public ChatMessageListResponse getMessagesAfter(String roomTsid, String userTsid, String after, int size) {
-		getMemberRoom(roomTsid, userTsid);
+		ChatRoomEntity room = getMemberRoom(roomTsid, userTsid);
 		ChatMessageBucket current = ChatMessageBucket.of(Instant.now());
-		ChatMessageBucket bucket = bucketOf(after);
+		ChatMessageBucket oldest = ChatMessageBucket.of(room.getCreatedAt());
+		ChatMessageBucket cursorBucket = bucketOf(after);
+		// 커서는 클라이언트 입력이다 — 방 생성 월보다 오래된 커서면 거기서 시작하되, 그 버킷의 모든 메시지가 커서보다 새로우므로
+		// 커서 조건 없이 읽는다 (아래 cursor 를 null 로)
+		boolean cursorBeforeRoom = cursorBucket.isBefore(oldest);
+		ChatMessageBucket bucket = cursorBeforeRoom ? oldest : cursorBucket;
 
 		List<ChatMessageEntity> collected = new ArrayList<>();
-		String cursor = after;
+		String cursor = cursorBeforeRoom ? null : after;
 		while (collected.size() <= size && !current.isBefore(bucket)) {
 			Limit limit = Limit.of(size + 1 - collected.size());
 			collected.addAll(cursor == null
@@ -133,6 +142,8 @@ public class ChatMessageService {
 	@Transactional(readOnly = true)
 	public ChatReadPositionResponse markAsRead(String roomTsid, String userTsid, String lastReadMessageTsid) {
 		getMemberRoom(roomTsid, userTsid);
+		// 읽음 위치는 문자열 비교로 앞뒤를 판단하므로 TSID 형식이 아닌 값이 들어오면 이후 갱신이 영구히 막힌다
+		validateMessageTsid(lastReadMessageTsid);
 
 		ChatRoomReadPositionEntity position = readPositionRepository
 			.findByKeyUserTsidAndKeyRoomTsid(userTsid, roomTsid)
@@ -159,6 +170,12 @@ public class ChatMessageService {
 		try {
 			return ChatMessageBucket.ofMessageTsid(messageTsid);
 		} catch (IllegalArgumentException | DateTimeParseException e) {
+			throw new BusinessException(ErrorCode.INVALID_CURSOR);
+		}
+	}
+
+	private void validateMessageTsid(String messageTsid) {
+		if (messageTsid == null || !Tsid.isValid(messageTsid)) {
 			throw new BusinessException(ErrorCode.INVALID_CURSOR);
 		}
 	}

@@ -223,6 +223,65 @@ class ChatMessageServiceTest {
 	}
 
 	@Test
+	@DisplayName("before 커서가 미래 시각이면 현재 월 버킷부터 읽는다 (미래 버킷을 훑지 않는다)")
+	void getMessagesBeforeClampsFutureCursorToCurrentBucket() {
+		// given: 7ZZZ… 은 TSID 가 표현할 수 있는 가장 먼 미래(2100년대) 시각이다
+		ChatRoomEntity room = roomCreatedAt(Instant.now());
+		given(chatRoomRepository.findById(ROOM_TSID)).willReturn(Optional.of(room));
+		String futureCursor = "7ZZZZZZZZZZZZ";
+		String currentBucket = ChatMessageBucket.of(Instant.now()).getValue();
+		given(chatMessageRepository.findByKeyRoomTsidAndKeyBucketAndKeyMessageTsidLessThan(
+			eq(ROOM_TSID), eq(currentBucket), eq(futureCursor), any(Limit.class))).willReturn(List.of());
+
+		// when
+		ChatMessageListResponse response = chatMessageService.getMessagesBefore(ROOM_TSID, USER_TSID, futureCursor, 50);
+
+		// then: 현재 월 한 번만 조회했다
+		assertThat(response.getMessages()).isEmpty();
+		then(chatMessageRepository).should(times(1))
+			.findByKeyRoomTsidAndKeyBucketAndKeyMessageTsidLessThan(any(), any(), any(), any());
+		then(chatMessageRepository).should(never()).findByKeyRoomTsidAndKeyBucket(any(), any(), any());
+	}
+
+	@Test
+	@DisplayName("after 커서가 방 생성 월보다 오래되면 방 생성 월부터 커서 조건 없이 읽는다")
+	void getMessagesAfterClampsOldCursorToRoomCreationBucket() {
+		// given: 이번 달에 만들어진 방, 커서는 2020년(TSID epoch)
+		ChatRoomEntity room = roomCreatedAt(Instant.now());
+		given(chatRoomRepository.findById(ROOM_TSID)).willReturn(Optional.of(room));
+		String ancientCursor = "0000000000000";
+		String currentBucket = ChatMessageBucket.of(Instant.now()).getValue();
+		ChatMessageEntity message = ChatMessageEntity.text(ROOM_TSID, USER_TSID, "이번 달");
+		given(chatMessageRepository.findByKeyRoomTsidAndKeyBucketOrderByKeyMessageTsidAsc(
+			eq(ROOM_TSID), eq(currentBucket), any(Limit.class))).willReturn(List.of(message));
+		given(usersRepository.findAllById(any())).willReturn(List.of(user(USER_TSID, "나")));
+
+		// when
+		ChatMessageListResponse response = chatMessageService.getMessagesAfter(ROOM_TSID, USER_TSID, ancientCursor, 50);
+
+		// then: 2020년부터 훑지 않고 방 생성 월(=현재 월) 한 번만, 커서 조건 없는 조회로 읽었다
+		assertThat(response.getMessages()).extracting(ChatMessageResponse::getContent).containsExactly("이번 달");
+		then(chatMessageRepository).should(times(1))
+			.findByKeyRoomTsidAndKeyBucketOrderByKeyMessageTsidAsc(any(), any(), any());
+		then(chatMessageRepository).should(never())
+			.findByKeyRoomTsidAndKeyBucketAndKeyMessageTsidGreaterThanOrderByKeyMessageTsidAsc(any(), any(), any(), any());
+	}
+
+	@Test
+	@DisplayName("TSID 형식이 아닌 읽음 위치는 저장하지 않고 거부한다")
+	void markAsReadRejectsInvalidTsid() {
+		// given
+		ChatRoomEntity room = roomCreatedAt(Instant.now());
+		given(chatRoomRepository.findById(ROOM_TSID)).willReturn(Optional.of(room));
+
+		// when & then: 'zzz' 가 저장되면 이후 모든 정상 TSID 가 "뒤로 가는 요청" 이 되어 읽음 위치가 영구 고정된다
+		assertThatThrownBy(() -> chatMessageService.markAsRead(ROOM_TSID, USER_TSID, "zzz"))
+			.isInstanceOf(BusinessException.class)
+			.hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CURSOR);
+		then(readPositionRepository).shouldHaveNoInteractions();
+	}
+
+	@Test
 	@DisplayName("형식이 잘못된 커서는 INVALID_CURSOR 로 거부된다")
 	void invalidCursor() {
 		// given
