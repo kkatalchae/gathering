@@ -47,6 +47,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     // cassandra - 채팅 메시지/읽음 위치 저장소 (docs/adr/0002)
     implementation 'org.springframework.boot:spring-boot-starter-data-cassandra'
+    // websocket + stomp - 채팅 실시간 수신 (docs/adr/0003)
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
     // thymeleaf
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     // mysql
