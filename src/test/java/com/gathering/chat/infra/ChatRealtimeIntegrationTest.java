@@ -17,12 +17,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessageType;
+import org.springframework.messaging.simp.broker.SimpleBrokerMessageHandler;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
@@ -58,6 +63,9 @@ class ChatRealtimeIntegrationTest {
 
 	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
+
+	@Autowired
+	private SimpleBrokerMessageHandler brokerMessageHandler;
 
 	@Autowired
 	private ChatMessageService chatMessageService;
@@ -128,8 +136,7 @@ class ChatRealtimeIntegrationTest {
 		// given: 멤버로 접속해 방을 구독
 		FrameCollector frames = new FrameCollector();
 		StompSession session = connect(member, frames);
-		session.subscribe(ChatDestinations.room(room.getTsid()), frames);
-		Thread.sleep(300); // SUBSCRIBE 는 응답이 없으므로 브로커에 등록될 시간을 준다
+		subscribeAndAwaitRegistration(session, ChatDestinations.room(room.getTsid()), frames);
 
 		// when: 전송은 REST(서비스) 로
 		chatMessageService.sendMessage(room.getTsid(), member.getTsid(), "실시간으로 도착");
@@ -175,6 +182,28 @@ class ChatRealtimeIntegrationTest {
 		connectHeaders.add("Authorization", "Bearer " + jwtTokenProvider.createAccessToken(user.getTsid()));
 		return stompClient.connectAsync(url(), new WebSocketHttpHeaders(), connectHeaders, handler)
 			.get(10, TimeUnit.SECONDS);
+	}
+
+	/**
+	 * SUBSCRIBE 는 응답이 없고 Simple Broker 는 RECEIPT 도 보내지 않아, 클라이언트는 브로커 등록 시점을 알 수 없다.
+	 * 고정 sleep 은 느린 환경에서 구독 전에 브로드캐스트가 나가 메시지를 잃을 수 있으므로,
+	 * 브로커의 구독 레지스트리(브로드캐스트가 실제로 참조하는 곳)에 목적지가 등록될 때까지 기다린다
+	 */
+	private void subscribeAndAwaitRegistration(StompSession session, String destination, StompFrameHandler handler)
+		throws Exception {
+		session.subscribe(destination, handler);
+
+		SimpMessageHeaderAccessor probeHeaders = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
+		probeHeaders.setDestination(destination);
+		Message<byte[]> probe = MessageBuilder.createMessage(new byte[0], probeHeaders.getMessageHeaders());
+		long deadline = System.currentTimeMillis() + 10_000;
+		while (System.currentTimeMillis() < deadline) {
+			if (!brokerMessageHandler.getSubscriptionRegistry().findSubscriptions(probe).isEmpty()) {
+				return;
+			}
+			Thread.sleep(20);
+		}
+		fail("브로커에 구독이 등록되지 않았다: " + destination);
 	}
 
 	private String url() {
