@@ -76,6 +76,7 @@ class ChatMessagingIntegrationTest {
 	private ChatRoomReadPositionRepository readPositionRepository;
 
 	private UsersEntity member;
+	private UsersEntity other;
 	private UsersEntity stranger;
 	private RegionEntity region;
 	private GatheringEntity gathering;
@@ -84,6 +85,7 @@ class ChatMessagingIntegrationTest {
 	@BeforeEach
 	void setUp() {
 		member = usersRepository.save(user("member"));
+		other = usersRepository.save(user("other"));
 		stranger = usersRepository.save(user("stranger"));
 		region = regionRepository.save(RegionEntity.builder()
 			.name("채팅 테스트 지역").code("CH" + System.nanoTime() % 100000).depth(1).path("/ch/").build());
@@ -102,10 +104,11 @@ class ChatMessagingIntegrationTest {
 			participantRepository.deleteAllByGatheringTsid(gathering.getTsid());
 			gatheringRepository.delete(gathering);
 			regionRepository.delete(region);
-			usersRepository.deleteAll(List.of(member, stranger));
+			usersRepository.deleteAll(List.of(member, other, stranger));
 		});
 		chatMessageRepository.deleteByKeyRoomTsidAndKeyBucket(room.getTsid(), ChatMessageBucket.of(Instant.now()).getValue());
 		readPositionRepository.deleteByKeyUserTsid(member.getTsid());
+		readPositionRepository.deleteByKeyUserTsid(other.getTsid());
 	}
 
 	@Test
@@ -170,12 +173,14 @@ class ChatMessagingIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("내 채팅방 목록은 참여한 방만 보여주고, 읽음 위치(없으면 참여 시각) 이후를 안 읽은 수로 센다")
+	@DisplayName("내 채팅방 목록은 참여한 방만 보여주고, 읽음 위치(없으면 참여 시각) 이후의 남이 보낸 메시지를 안 읽은 수로 센다")
 	void myRoomsWithUnreadCount() {
-		// given
-		ChatMessageResponse first = chatMessageService.sendMessage(room.getTsid(), member.getTsid(), "첫 번째");
-		chatMessageService.sendMessage(room.getTsid(), member.getTsid(), "두 번째");
-		chatMessageService.sendMessage(room.getTsid(), member.getTsid(), "세 번째");
+		// given: 다른 멤버가 3건 보냄
+		participantRepository.save(GatheringParticipantEntity.builder()
+			.gatheringTsid(gathering.getTsid()).userTsid(other.getTsid()).role(ParticipantRole.MEMBER).build());
+		ChatMessageResponse first = chatMessageService.sendMessage(room.getTsid(), other.getTsid(), "첫 번째");
+		chatMessageService.sendMessage(room.getTsid(), other.getTsid(), "두 번째");
+		ChatMessageResponse third = chatMessageService.sendMessage(room.getTsid(), other.getTsid(), "세 번째");
 
 		// when: 읽음 처리 전
 		List<ChatRoomSummaryResponse> beforeRead = chatRoomListService.getMyRooms(member.getTsid()).getRooms();
@@ -186,7 +191,7 @@ class ChatMessagingIntegrationTest {
 		assertThat(summary.getRoomTsid()).isEqualTo(room.getTsid());
 		assertThat(summary.getTitle()).isEqualTo("채팅 테스트 모임");
 		assertThat(summary.getLastMessage().getContent()).isEqualTo("세 번째");
-		assertThat(summary.getLastMessage().getSender().getName()).isEqualTo("member");
+		assertThat(summary.getLastMessage().getSender().getName()).isEqualTo("other");
 		assertThat(summary.getLastReadMessageTsid()).isNull();
 		assertThat(summary.getUnreadCount()).isEqualTo(3);
 		assertThat(summary.isUnreadCountCapped()).isFalse();
@@ -198,6 +203,11 @@ class ChatMessagingIntegrationTest {
 		// then
 		assertThat(afterRead.getLastReadMessageTsid()).isEqualTo(first.getMessageTsid());
 		assertThat(afterRead.getUnreadCount()).isEqualTo(2);
+
+		// 보낸 사람 쪽은 자기 메시지가 읽음 위치가 되어 안 읽은 것이 없다
+		ChatRoomSummaryResponse senderView = chatRoomListService.getMyRooms(other.getTsid()).getRooms().getFirst();
+		assertThat(senderView.getLastReadMessageTsid()).isEqualTo(third.getMessageTsid());
+		assertThat(senderView.getUnreadCount()).isZero();
 
 		// 참여하지 않은 사용자의 목록에는 이 방이 없다
 		assertThat(chatRoomListService.getMyRooms(stranger.getTsid()).getRooms()).isEmpty();

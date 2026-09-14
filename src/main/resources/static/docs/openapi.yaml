@@ -37,16 +37,16 @@ paths:
                 chat-rooms-me:
                   value: "{\"rooms\":[{\"roomTsid\":\"01HQROOM000001\",\"roomType\"\
                     :\"GATHERING\",\"gatheringTsid\":\"01HQGATH000001\",\"scheduleTsid\"\
-                    :null,\"title\":\"한강 러닝크루\",\"createdAt\":\"2026-09-14T06:46:45.962122Z\"\
+                    :null,\"title\":\"한강 러닝크루\",\"createdAt\":\"2026-09-14T07:15:09.340895Z\"\
                     ,\"lastMessage\":{\"messageTsid\":\"0HZZZZZZZZZZ5\",\"roomTsid\"\
                     :\"01HQROOM000001\",\"messageType\":\"TEXT\",\"sender\":{\"userTsid\"\
                     :\"01HQUSER000001\",\"nickname\":\"러닝맨\",\"name\":\"김병채\",\"profileImageUrl\"\
                     :\"https://example.com/me.jpg\",\"withdrawn\":false},\"content\"\
-                    :\"이번 주 토요일 어때요?\",\"createdAt\":\"2026-09-14T06:46:45.962136Z\"\
+                    :\"이번 주 토요일 어때요?\",\"createdAt\":\"2026-09-14T07:15:09.340909Z\"\
                     },\"lastReadMessageTsid\":\"0HZZZZZZZZZZ5\",\"unreadCount\":3,\"\
                     unreadCountCapped\":false},{\"roomTsid\":\"01HQROOM000002\",\"\
                     roomType\":\"SCHEDULE\",\"gatheringTsid\":null,\"scheduleTsid\"\
-                    :\"01HQSCHD000001\",\"title\":\"9월 정기 모임\",\"createdAt\":\"2026-09-14T06:46:45.962140Z\"\
+                    :\"01HQSCHD000001\",\"title\":\"9월 정기 모임\",\"createdAt\":\"2026-09-14T07:15:09.340913Z\"\
                     ,\"lastMessage\":null,\"lastReadMessageTsid\":null,\"unreadCount\"\
                     :0,\"unreadCountCapped\":false}]}"
   /chat-rooms/{roomTsid}/messages:
@@ -108,11 +108,11 @@ paths:
                     :\"01HQROOM000001\",\"messageType\":\"TEXT\",\"sender\":{\"userTsid\"\
                     :\"01HQUSER000001\",\"nickname\":\"러닝맨\",\"name\":\"김병채\",\"profileImageUrl\"\
                     :\"https://example.com/me.jpg\",\"withdrawn\":false},\"content\"\
-                    :\"두 번째\",\"createdAt\":\"2026-09-14T06:46:45.998455Z\"},{\"messageTsid\"\
+                    :\"두 번째\",\"createdAt\":\"2026-09-14T07:15:09.376371Z\"},{\"messageTsid\"\
                     :\"0HZZZZZZZZZZ5\",\"roomTsid\":\"01HQROOM000001\",\"messageType\"\
                     :\"TEXT\",\"sender\":{\"userTsid\":\"01HQUSER000001\",\"nickname\"\
                     :\"러닝맨\",\"name\":\"김병채\",\"profileImageUrl\":\"https://example.com/me.jpg\"\
-                    ,\"withdrawn\":false},\"content\":\"첫 번째\",\"createdAt\":\"2026-09-14T06:46:45.998457Z\"\
+                    ,\"withdrawn\":false},\"content\":\"첫 번째\",\"createdAt\":\"2026-09-14T07:15:09.376373Z\"\
                     }],\"nextCursor\":\"0HZZZZZZZZZZ5\",\"hasNext\":true}"
     post:
       tags:
@@ -122,6 +122,7 @@ paths:
         채팅방에 메시지를 보낸다. 채팅방은 모임/일정 생성 시 자동으로 만들어지며 TSID 는 모임/일정 상세의 chatRoomTsid 로 얻는다.
         모임 채팅방은 모임 참여자, 일정 채팅방은 일정 참여자만 보낼 수 있다 (멤버십은 참여자 테이블에서 파생).
         저장된 메시지는 같은 형태로 실시간 구독자에게도 전달된다 (WebSocket, 별도 구현).
+        내가 보낸 메시지는 읽은 것으로 본다 — 발신자의 읽음 위치가 이 메시지로 옮겨지므로 전송 후 read-position 을 따로 갱신할 필요가 없다.
 
         **실패 케이스**
         - 내용이 비어 있거나 1000자를 초과하면 400 에러가 발생한다.
@@ -157,7 +158,7 @@ paths:
                     ,\"messageType\":\"TEXT\",\"sender\":{\"userTsid\":\"01HQUSER000001\"\
                     ,\"nickname\":\"러닝맨\",\"name\":\"김병채\",\"profileImageUrl\":\"\
                     https://example.com/me.jpg\",\"withdrawn\":false},\"content\"\
-                    :\"이번 주 토요일 어때요?\",\"createdAt\":\"2026-09-14T06:46:46.015568Z\"\
+                    :\"이번 주 토요일 어때요?\",\"createdAt\":\"2026-09-14T07:15:09.392796Z\"\
                     }"
   /chat-rooms/{roomTsid}/read-position:
     put:
@@ -193,7 +194,7 @@ paths:
               examples:
                 chat-rooms-read-position:
                   value: "{\"roomTsid\":\"01HQROOM000001\",\"lastReadMessageTsid\"\
-                    :\"0HZZZZZZZZZZ5\",\"updatedAt\":\"2026-09-14T06:46:46.036458Z\"\
+                    :\"0HZZZZZZZZZZ5\",\"updatedAt\":\"2026-09-14T07:15:09.411809Z\"\
                     }"
   /gatherings:
     get:
@@ -287,7 +288,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"테스트 모임\",\"description\"\
                     :\"테스트 설명입니다\",\"regionTsid\":\"01HQREGION1234\",\"category\"\
                     :\"SPORTS\",\"mainImageUrl\":\"https://example.com/image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-14T06:46:47.534617Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-14T07:15:10.639695Z\"\
                     }"
   /gatherings/{tsid}:
     get:
@@ -326,7 +327,7 @@ paths:
                     ,\"role\":\"OWNER\"},{\"userTsid\":\"01HQUSER000002\",\"nickname\"\
                     :\"영희\",\"name\":\"이영희\",\"profileImageUrl\":\"https://example.com/profile2.jpg\"\
                     ,\"role\":\"MEMBER\"}],\"chatRoomTsid\":\"01HQCHATROOM01\",\"\
-                    createdAt\":\"2026-09-14T06:46:47.646060Z\"}"
+                    createdAt\":\"2026-09-14T07:15:10.750461Z\"}"
     put:
       tags:
       - gatherings
@@ -380,7 +381,7 @@ paths:
                   value: "{\"tsid\":\"01HQGATHERING1\",\"name\":\"수정된 모임\",\"description\"\
                     :\"수정된 설명입니다\",\"regionTsid\":\"01HQREGION5678\",\"category\"\
                     :\"STUDY\",\"mainImageUrl\":\"https://example.com/new-image.jpg\"\
-                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-14T06:46:47.587273Z\"\
+                    ,\"maxParticipants\":100,\"createdAt\":\"2026-09-14T07:15:10.692074Z\"\
                     }"
     delete:
       tags:
@@ -449,7 +450,7 @@ paths:
                 gatherings-join:
                   value: "{\"participantTsid\":\"01HQPARTIC1234\",\"gatheringTsid\"\
                     :\"01HQGATHERING1\",\"userTsid\":\"01HQUSER123456\",\"role\":\"\
-                    MEMBER\",\"joinedAt\":\"2026-09-14T06:46:47.623411Z\"}"
+                    MEMBER\",\"joinedAt\":\"2026-09-14T07:15:10.729565Z\"}"
   /gatherings/{tsid}/main-image:
     patch:
       tags:
@@ -836,8 +837,8 @@ paths:
                     startAt\":\"2026-09-20T10:00:00Z\",\"endAt\":\"2026-09-20T12:00:00Z\"\
                     ,\"locationName\":\"한강공원 2주차장\",\"locationAddress\":\"서울특별시 영등\
                     포구 여의동로 330\",\"maxParticipants\":4,\"hostTsid\":\"01HQUSERHOST01\"\
-                    ,\"createdAt\":\"2026-09-14T06:46:48.889875Z\",\"updatedAt\":\"\
-                    2026-09-14T06:46:48.889876Z\"}"
+                    ,\"createdAt\":\"2026-09-14T07:15:11.717742Z\",\"updatedAt\":\"\
+                    2026-09-14T07:15:11.717742Z\"}"
   /schedules/{scheduleTsid}:
     get:
       tags:
@@ -882,8 +883,8 @@ paths:
                     ,\"host\":false,\"gatheringMember\":false}],\"hostTsid\":\"01HQUSERHOST01\"\
                     ,\"hostNickname\":\"러닝맨\",\"hostName\":\"김병채\",\"hostProfileImageUrl\"\
                     :\"https://example.com/host.jpg\",\"chatRoomTsid\":\"01HQCHATROOM01\"\
-                    ,\"createdAt\":\"2026-09-14T06:46:48.914702Z\",\"updatedAt\":\"\
-                    2026-09-14T06:46:48.914703Z\"}"
+                    ,\"createdAt\":\"2026-09-14T07:15:11.736785Z\",\"updatedAt\":\"\
+                    2026-09-14T07:15:11.736786Z\"}"
     put:
       tags:
       - schedules
@@ -931,8 +932,8 @@ paths:
                     합니다\",\"startAt\":\"2026-09-20T10:00:00Z\",\"endAt\":\"2026-09-20T12:00:00Z\"\
                     ,\"locationName\":\"합정역 3번 출구\",\"locationAddress\":\"서울특별시 마포\
                     구 양화로 45\",\"maxParticipants\":6,\"hostTsid\":\"01HQUSERHOST01\"\
-                    ,\"createdAt\":\"2026-09-14T06:46:48.939911Z\",\"updatedAt\":\"\
-                    2026-09-14T06:46:48.939912Z\"}"
+                    ,\"createdAt\":\"2026-09-14T07:15:11.759341Z\",\"updatedAt\":\"\
+                    2026-09-14T07:15:11.759341Z\"}"
     delete:
       tags:
       - schedules
@@ -995,7 +996,7 @@ paths:
                 schedules-join:
                   value: "{\"participantTsid\":\"01HQSCHEDPART1\",\"scheduleTsid\"\
                     :\"01HQSCHEDULE01\",\"userTsid\":\"01HQUSERHOST01\",\"joinedAt\"\
-                    :\"2026-09-14T06:46:48.929583Z\"}"
+                    :\"2026-09-14T07:15:11.749746Z\"}"
   /schedules/{scheduleTsid}/participants/me:
     delete:
       tags:
@@ -1729,6 +1730,14 @@ components:
               roomTsid:
                 type: string
                 description: 채팅방 TSID
+    users-me192728359:
+      required:
+      - password
+      type: object
+      properties:
+        password:
+          type: string
+          description: "비밀번호 (AES 암호화, 본인 확인용)"
     schedules-scheduleTsid1730128900:
       required:
       - createdAt
@@ -1837,14 +1846,6 @@ components:
                 type: string
                 description: 참여자 프로필 이미지 URL
                 nullable: true
-    users-me192728359:
-      required:
-      - password
-      type: object
-      properties:
-        password:
-          type: string
-          description: "비밀번호 (AES 암호화, 본인 확인용)"
     users-me-2142060944:
       required:
       - connectedProviders
@@ -2011,22 +2012,6 @@ components:
           type: number
           description: 정원 (null이면 인원 제한 없음)
           nullable: true
-    chat-rooms-roomTsid-read-position1510172399:
-      required:
-      - lastReadMessageTsid
-      - roomTsid
-      - updatedAt
-      type: object
-      properties:
-        lastReadMessageTsid:
-          type: string
-          description: 현재 읽음 위치 (뒤로 가는 요청이면 기존 값)
-        roomTsid:
-          type: string
-          description: 채팅방 TSID
-        updatedAt:
-          type: string
-          description: 갱신 일시
     regions1337480724:
       type: array
       items:
@@ -2083,6 +2068,22 @@ components:
           tsid:
             type: string
             description: 지역 고유 ID (모임 필터링에 사용)
+    chat-rooms-roomTsid-read-position1510172399:
+      required:
+      - lastReadMessageTsid
+      - roomTsid
+      - updatedAt
+      type: object
+      properties:
+        lastReadMessageTsid:
+          type: string
+          description: 현재 읽음 위치 (뒤로 가는 요청이면 기존 값)
+        roomTsid:
+          type: string
+          description: 채팅방 TSID
+        updatedAt:
+          type: string
+          description: 갱신 일시
     schedules661789918:
       required:
       - locationName
@@ -2154,6 +2155,30 @@ components:
         message:
           type: string
           description: 에러 메시지
+    refresh2110093555:
+      required:
+      - code
+      - message
+      type: object
+      properties:
+        code:
+          type: string
+          description: 에러 코드 (REFRESH_TOKEN_REVOKED)
+        message:
+          type: string
+          description: 에러 메시지
+    users-me-password-2065468587:
+      required:
+      - newPassword
+      type: object
+      properties:
+        newPassword:
+          type: string
+          description: "새 비밀번호 (AES 암호화, 최소 8자, 숫자+특수문자 포함)"
+        currentPassword:
+          type: string
+          description: 현재 비밀번호 (AES 암호화) 소셜 가입자의 경우 null 을 보낼 수 있다.
+          nullable: true
     chat-rooms-roomTsid-messages1330532344:
       required:
       - content
@@ -2203,30 +2228,6 @@ components:
         roomTsid:
           type: string
           description: 채팅방 TSID
-    refresh2110093555:
-      required:
-      - code
-      - message
-      type: object
-      properties:
-        code:
-          type: string
-          description: 에러 코드 (REFRESH_TOKEN_REVOKED)
-        message:
-          type: string
-          description: 에러 메시지
-    users-me-password-2065468587:
-      required:
-      - newPassword
-      type: object
-      properties:
-        newPassword:
-          type: string
-          description: "새 비밀번호 (AES 암호화, 최소 8자, 숫자+특수문자 포함)"
-        currentPassword:
-          type: string
-          description: 현재 비밀번호 (AES 암호화) 소셜 가입자의 경우 null 을 보낼 수 있다.
-          nullable: true
     schedules-scheduleTsid-513139950:
       required:
       - createdAt

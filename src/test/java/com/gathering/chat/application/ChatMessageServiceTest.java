@@ -73,12 +73,13 @@ class ChatMessageServiceTest {
 	private ChatMessageService chatMessageService;
 
 	@Test
-	@DisplayName("메시지를 보내면 멤버십 검증 후 저장하고 발신자 정보를 실은 이벤트를 발행한다")
+	@DisplayName("메시지를 보내면 멤버십 검증 후 저장하고, 발신자의 읽음 위치를 그 메시지로 옮기고, 발신자 정보를 실은 이벤트를 발행한다")
 	void sendMessagePublishesEvent() {
 		// given
 		ChatRoomEntity room = roomCreatedAt(Instant.now());
 		given(chatRoomRepository.findById(ROOM_TSID)).willReturn(Optional.of(room));
 		given(chatMessageRepository.save(any(ChatMessageEntity.class))).willAnswer(inv -> inv.getArgument(0));
+		given(readPositionRepository.findByKeyUserTsidAndKeyRoomTsid(USER_TSID, ROOM_TSID)).willReturn(Optional.empty());
 		given(usersRepository.findById(USER_TSID)).willReturn(Optional.of(user(USER_TSID, "러닝맨")));
 
 		// when
@@ -88,6 +89,11 @@ class ChatMessageServiceTest {
 		then(chatRoomPolicy).should().validateMember(room, USER_TSID);
 		assertThat(response.getContent()).isEqualTo("안녕하세요");
 		assertThat(response.getSender().getNickname()).isEqualTo("러닝맨");
+
+		// 내가 보낸 메시지는 읽은 것 — 읽음 위치가 없었으므로 새로 만든다
+		ArgumentCaptor<ChatRoomReadPositionEntity> position = ArgumentCaptor.forClass(ChatRoomReadPositionEntity.class);
+		then(readPositionRepository).should().save(position.capture());
+		assertThat(position.getValue().getLastReadMessageTsid()).isEqualTo(response.getMessageTsid());
 
 		ArgumentCaptor<ChatMessageSentEvent> captor = ArgumentCaptor.forClass(ChatMessageSentEvent.class);
 		then(eventPublisher).should().publishEvent(captor.capture());

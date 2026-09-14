@@ -52,6 +52,7 @@ public class ChatMessageService {
 	/**
 	 * 메시지 전송
 	 * 저장 후 ChatMessageSentEvent 를 발행한다 — 실시간 전달은 이벤트 리스너(STOMP 브로드캐스터)의 몫
+	 * 내가 보낸 메시지는 읽은 것이다 — 발신자의 읽음 위치를 이 메시지로 옮겨 내 채팅방 목록에 유령 배지가 뜨지 않게 한다
 	 *
 	 * @return 저장된 메시지 (발신자 정보 포함)
 	 */
@@ -62,6 +63,7 @@ public class ChatMessageService {
 
 		ChatMessageEntity saved = chatMessageRepository.save(
 			ChatMessageEntity.text(room.getTsid(), senderTsid, validated.getValue()));
+		advanceReadPosition(senderTsid, room.getTsid(), saved.getMessageTsid());
 
 		UsersEntity sender = usersRepository.findById(senderTsid)
 			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -143,18 +145,26 @@ public class ChatMessageService {
 		// 읽음 위치는 문자열 비교로 앞뒤를 판단하므로 TSID 형식이 아닌 값이 들어오면 이후 갱신이 영구히 막힌다
 		validateMessageTsid(lastReadMessageTsid);
 
+		return ChatReadPositionResponse.from(advanceReadPosition(userTsid, roomTsid, lastReadMessageTsid));
+	}
+
+	/**
+	 * 읽음 위치를 messageTsid 로 옮긴다 (앞으로만). 없으면 만든다
+	 *
+	 * @return 갱신 후(또는 뒤로 가는 요청이면 기존) 읽음 위치
+	 */
+	private ChatRoomReadPositionEntity advanceReadPosition(String userTsid, String roomTsid, String messageTsid) {
 		ChatRoomReadPositionEntity position = readPositionRepository
 			.findByKeyUserTsidAndKeyRoomTsid(userTsid, roomTsid)
 			.orElse(null);
 		if (position == null) {
-			position = readPositionRepository.save(
-				ChatRoomReadPositionEntity.of(userTsid, roomTsid, lastReadMessageTsid));
-		} else if (position.advanceTo(lastReadMessageTsid)) {
-			// Cassandra 엔티티는 변경 감지가 없다 — 옮겨졌을 때만 명시적으로 저장
-			position = readPositionRepository.save(position);
+			return readPositionRepository.save(ChatRoomReadPositionEntity.of(userTsid, roomTsid, messageTsid));
 		}
-
-		return ChatReadPositionResponse.from(position);
+		if (position.advanceTo(messageTsid)) {
+			// Cassandra 엔티티는 변경 감지가 없다 — 옮겨졌을 때만 명시적으로 저장
+			return readPositionRepository.save(position);
+		}
+		return position;
 	}
 
 	private ChatRoomEntity getMemberRoom(String roomTsid, String userTsid) {
