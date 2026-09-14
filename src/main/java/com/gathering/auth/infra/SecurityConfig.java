@@ -31,7 +31,9 @@ public class SecurityConfig {
 		// 지역 API (모임 폼 드롭다운용)
 		"/regions",
 		// 업로드된 파일 (개발 환경 정적 리소스 서빙)
-		"/uploads/**"
+		"/uploads/**",
+		// WebSocket 핸드셰이크 — 브라우저는 여기에 헤더를 못 붙이므로 인증은 STOMP CONNECT 프레임에서 한다 (docs/adr/0003)
+		"/ws/**"
 	};
 
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;

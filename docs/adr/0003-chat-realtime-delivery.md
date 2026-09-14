@@ -73,5 +73,17 @@ RabbitMQ 를 새로 들이는 것보다 이미 있는 Redis 를 쓰는 편이 AD
 ## 결과
 
 - #18 은 (a) REST 전송/조회 API, (b) STOMP 설정 + 인터셉터, (c) AFTER_COMMIT 브로드캐스터 세 부분으로 나뉜다. (a) 만으로도 폴링 클라이언트가 동작하므로 (a) 를 먼저 만들고 (b)(c) 를 얹는다.
-- 클라이언트는 "구독 + REST 전송 + 재접속 시 after 커서 보충" 세 가지를 구현해야 한다.
+- 클라이언트는 "구독 + REST 전송 + 재접속 시 after 커서 보충" 세 가지를 구현해야 한다. 프로토콜은 [docs/chat-websocket.md](../chat-websocket.md).
 - 브로드캐스트 구현체는 인터페이스 뒤에 두어 스케일아웃 시 서비스 코드를 건드리지 않는다.
+
+## 구현 (2026-09-14)
+
+| 결정 | 구현 |
+|---|---|
+| 엔드포인트, 브로커 | `ChatWebSocketConfig` — `/ws`, Simple Broker `/topic`, 애플리케이션 목적지 없음 |
+| CONNECT 인증, SUBSCRIBE 인가 | `ChatStompChannelInterceptor` — Bearer 토큰 검증 후 `StompUserPrincipal` 부착, `/topic/rooms/{tsid}` 만 허용하고 `ChatRoomPolicy` 로 멤버십 확인, SEND 거부 |
+| 커밋 후 브로드캐스트 | `ChatMessageSentEventListener` (`@TransactionalEventListener(AFTER_COMMIT)`) → `ChatMessageBroadcaster` |
+| 브로커 교체 지점 | `ChatMessageBroadcaster` 인터페이스, 현재 구현 `SimpleBrokerChatMessageBroadcaster` |
+| 검증 | `ChatRealtimeIntegrationTest` — 실제 STOMP 클라이언트로 접속·구독·전송·수신, 비멤버 ERROR 프레임 |
+
+아직 안 한 것: 모임/일정 탈퇴 시 살아 있는 구독 끊기. 지금은 다음 재접속 때 SUBSCRIBE 가 거부된다. 필요해지면 `SimpUserRegistry` 로 세션을 찾아 끊는다.
